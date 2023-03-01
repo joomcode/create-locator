@@ -13,6 +13,15 @@ declare global {
   }
 }
 
+/**
+ * Returns true if types are exactly equal and false otherwise.
+ * IsEqual<{foo: string}, {foo: string}> = true.
+ * IsEqual<{readonly foo: string}, {foo: string}> = false.
+ */
+type IsEqual<X, Y> = (<T>() => T extends X ? 1 : 2) extends <T>() => T extends Y ? 1 : 2
+  ? true
+  : false;
+
 type L1 = Locator<{}>;
 type N1 = Node<{}>;
 
@@ -165,6 +174,19 @@ const Wrapper = (props: HeaderLocator) => {
 type RenderedLocator = Locator<{
   header: HeaderLocator;
 }>;
+
+declare const SYMBOL: unique symbol;
+
+type RenderedLocatorWithSymbolProperty = Locator<{
+  header: HeaderLocator;
+  [SYMBOL]: {foo: 'bar'};
+}>;
+
+true satisfies IsEqual<RenderedLocator, RenderedLocatorWithSymbolProperty>;
+
+type RenderedLocatorWithSymbolInParameters = Locator<{header: HeaderLocator}, {[SYMBOL]: 'baz'}>;
+
+false satisfies IsEqual<RenderedLocator, RenderedLocatorWithSymbolInParameters>;
 
 type MainLocator = Locator<
   {

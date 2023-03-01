@@ -49,15 +49,10 @@ type AnyNodeWithParameters = {readonly [PARAMETERS]: object};
 type AnyParameters = Attributes;
 
 /**
- * Attributes object.
- */
-type Attributes = Readonly<Record<string, string>>;
-
-/**
  * Base visible node of locators tree (by parameters and, maybe, locators tree).
  */
 type BaseVisibleNode<Parameters, Tree> = IsParametersEmpty<Parameters> extends true
-  ? (Tree extends object ? () => {readonly [LOCATOR]: Tree} : () => object) & {
+  ? (Tree extends object ? (this: void) => {readonly [LOCATOR]: Tree} : (this: void) => object) & {
       readonly [NO_CALL_ERROR]: 'The locator should be called';
     }
   : WithParameters<Parameters, object> & {
@@ -68,29 +63,30 @@ type BaseVisibleNode<Parameters, Tree> = IsParametersEmpty<Parameters> extends t
  * createLocator overload for component locator.
  */
 type CreateComponentLocator = <Props extends AnyLocator>(
+  this: void,
   props: Props,
 ) => CreateLocatorResult<Props[typeof LOCATOR]>;
 
 type CreateLocatorResult<Tree> = Tree extends AnyNodeWithParameters
   ? Tree
-  : {[Key in string & keyof Tree]: Tree[Key]} & (() => {readonly [LOCATOR]: Tree});
+  : {[Key in string & keyof Tree]: Tree[Key]} & ((this: void) => {readonly [LOCATOR]: Tree});
 
 /**
  * createLocator overload for root locator.
  */
 type CreateRootLocator = <RootLocator extends AnyLocator>(
+  this: void,
   rootPrefix: string,
-  rootOptions?: RootOptions,
+  rootOptions?: Partial<RootOptions>,
 ) => CreateLocatorResult<RootLocator[typeof LOCATOR]>;
 
 /**
  * createLocator overload for root locator with attributes mapping.
  */
 type CreateRootLocatorWithMapping = <RootLocator extends AnyLocator, MapResult>(
+  this: void,
   rootPrefix: string,
-  rootOptions: RootOptions & {
-    readonly mapAttributes: (attributes: Attributes) => MapResult;
-  },
+  rootOptions: Partial<RootOptions> & MapAttributes<MapResult>,
 ) => NormalizeTree<RootLocator[typeof LOCATOR], MapResult>;
 
 /**
@@ -133,7 +129,7 @@ type NoCallError = typeof NO_CALL_ERROR;
  */
 type NormalizeBaseNode<BaseNode, MapResult> = BaseNode extends AnyNodeWithParameters
   ? WithParameters<BaseNode[typeof PARAMETERS], MapResult>
-  : () => MapResult;
+  : (this: void) => MapResult;
 
 /**
  * Normalize subnodes of locators tree.
@@ -158,22 +154,17 @@ type NormalizeTree<Tree, MapResult = void> = NormalizeBaseNode<Tree, MapResult> 
 type NotLocatorDescription = 'Not a locator tree description';
 
 /**
- * Options of root locator (as createLocator second argument).
- */
-type RootOptions = Readonly<{
-  isProduction?: boolean;
-  locatorAttribute?: string;
-  pathDelimiter?: string;
-  parameterAttributePrefix?: string;
-}>;
-
-/**
  * Part of node type with parameters.
  */
 type WithParameters<Parameters, Return> = {
-  (parameters: Parameters): Return;
+  (this: void, parameters: Parameters): Return;
   readonly [PARAMETERS]: Parameters;
 };
+
+/**
+ * Attributes object.
+ */
+export type Attributes = Readonly<Record<string, string>>;
 
 /**
  * Type of createLocator function (with overloads).
@@ -193,8 +184,25 @@ export type Locator<
 };
 
 /**
+ * Additional option of root locator for mapping attributes.
+ */
+export type MapAttributes<MapResult> = {
+  readonly mapAttributes: (this: void, attributes: Attributes) => MapResult;
+};
+
+/**
  * Create node of component locators tree by locators description.
  */
 export type Node<Description extends LocatorsDescription, Parameters extends AnyParameters = {}> = {
   readonly [NODE]: LocatorsTree<Description, Parameters>;
 };
+
+/**
+ * Options of root locator (as createLocator second argument).
+ */
+export type RootOptions = Readonly<{
+  isProduction: boolean;
+  locatorAttribute: string;
+  pathDelimiter: string;
+  parameterAttributePrefix: string;
+}>;
