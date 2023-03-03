@@ -52,10 +52,10 @@ type AnyParameters = Attributes;
  * Base visible node of locators tree (by parameters and, maybe, locators tree).
  */
 type BaseVisibleNode<Parameters, Tree> = IsParametersEmpty<Parameters> extends true
-  ? (Tree extends object ? (this: void) => {readonly [LOCATOR]: Tree} : (this: void) => object) & {
+  ? ((this: void) => LocatorReturn<Tree>) & {
       readonly [NO_CALL_ERROR]: 'The locator should be called';
     }
-  : WithParameters<Parameters, object> & {
+  : WithParameters<Parameters, LocatorReturn<Tree>> & {
       readonly [NO_CALL_ERROR]: 'The locator should be called (with parameters)';
     };
 
@@ -67,12 +67,15 @@ type CreateComponentLocator = <Props extends AnyLocator>(
   props: Props,
 ) => CreateLocatorResult<Props[typeof LOCATOR]>;
 
+/**
+ * Type of component root locator object.
+ */
 type CreateLocatorResult<Tree> = Tree extends AnyNodeWithParameters
   ? Tree
   : {[Key in string & keyof Tree]: Tree[Key]} & ((this: void) => {readonly [LOCATOR]: Tree});
 
 /**
- * createLocator overload for root locator.
+ * createLocator overload for app root locator.
  */
 type CreateRootLocator = <RootLocator extends AnyLocator>(
   this: void,
@@ -81,7 +84,7 @@ type CreateRootLocator = <RootLocator extends AnyLocator>(
 ) => CreateLocatorResult<RootLocator[typeof LOCATOR]>;
 
 /**
- * createLocator overload for root locator with attributes mapping.
+ * createLocator overload for app root locator with attributes mapping.
  */
 type CreateRootLocatorWithMapping = <RootLocator extends AnyLocator, MapResult>(
   this: void,
@@ -90,9 +93,21 @@ type CreateRootLocatorWithMapping = <RootLocator extends AnyLocator, MapResult>(
 ) => NormalizeTree<RootLocator[typeof LOCATOR], MapResult>;
 
 /**
+ * Extracts parameters from some base or normalized node.
+ */
+type ExtractNodeParameters<SomeNode> = SomeNode extends AnyNodeWithParameters
+  ? SomeNode[typeof PARAMETERS]
+  : {};
+
+/**
  * Return true if parameters is empty, false otherwise.
  */
-type IsParametersEmpty<Parameters> = [keyof Parameters] extends [never] ? true : false;
+type IsParametersEmpty<Parameters> = Keys<Parameters> extends never ? true : false;
+
+/**
+ * Keys of type.
+ */
+type Keys<T> = T extends unknown ? keyof T : never;
 
 /**
  * Description of locators tree (argument of Locator<...> and Node<...>).
@@ -107,17 +122,32 @@ type LocatorsDescription = Readonly<
 >;
 
 /**
- * Create locators tree by locators description and root parameters.
+ * Creates locators tree by locators description and component root locator parameters.
  */
-type LocatorsTree<Description, RootParameters> = BaseVisibleNode<RootParameters, void> & {
-  readonly [Key in string & keyof Description]: Description[Key] extends AnyLocator
-    ? BaseVisibleNode<{}, Description[Key][typeof LOCATOR]> & {
-        readonly [HIDDEN]: NormalizeTree<Description[Key][typeof LOCATOR]>;
+type LocatorsTree<
+  Description,
+  RootParameters,
+  Intersection = UnionToIntersection<Description>,
+> = BaseVisibleNode<RootParameters, void> & {
+  readonly [Key in string & keyof Intersection]-?: Exclude<
+    Intersection[Key],
+    undefined
+  > extends AnyLocator
+    ? BaseVisibleNode<
+        ExtractNodeParameters<Exclude<Intersection[Key], undefined>[typeof LOCATOR]>,
+        Exclude<Intersection[Key], undefined>[typeof LOCATOR]
+      > & {
+        readonly [HIDDEN]: NormalizeTree<Exclude<Intersection[Key], undefined>[typeof LOCATOR]>;
       }
-    : Description[Key] extends AnyNode
-    ? Description[Key][typeof NODE]
-    : BaseVisibleNode<Description[Key], void>;
+    : Exclude<Intersection[Key], undefined> extends AnyNode
+    ? Exclude<Intersection[Key], undefined>[typeof NODE]
+    : BaseVisibleNode<Exclude<Intersection[Key], undefined>, void>;
 };
+
+/**
+ * Return type of locator call signature.
+ */
+type LocatorReturn<Tree> = Tree extends object ? {readonly [LOCATOR]: Tree} : object;
 
 /**
  * Type of NO_CALL_ERROR key.
@@ -154,6 +184,13 @@ type NormalizeTree<Tree, MapResult = void> = NormalizeBaseNode<Tree, MapResult> 
 type NotLocatorDescription = 'Not a locator tree description';
 
 /**
+ * Converts union of types to intersection of this types.
+ */
+type UnionToIntersection<U> = (U extends any ? (k: U) => void : never) extends (k: infer I) => void
+  ? I
+  : never;
+
+/**
  * Part of node type with parameters.
  */
 type WithParameters<Parameters, Return> = {
@@ -174,7 +211,7 @@ export type CreateLocator = CreateComponentLocator &
   CreateRootLocatorWithMapping;
 
 /**
- * Create component locators tree by locators description.
+ * Creates component locators tree by locators description.
  */
 export type Locator<
   Description extends LocatorsDescription,
@@ -184,21 +221,21 @@ export type Locator<
 };
 
 /**
- * Additional option of root locator for mapping attributes.
+ * Additional option of app root locator for mapping attributes.
  */
 export type MapAttributes<MapResult> = {
   readonly mapAttributes: (this: void, attributes: Attributes) => MapResult;
 };
 
 /**
- * Create node of component locators tree by locators description.
+ * Creates node of component locators tree by locators description.
  */
 export type Node<Description extends LocatorsDescription, Parameters extends AnyParameters = {}> = {
   readonly [NODE]: LocatorsTree<Description, Parameters>;
 };
 
 /**
- * Options of root locator (as createLocator second argument).
+ * Options of app root locator (as createLocator second argument).
  */
 export type RootOptions = Readonly<{
   isProduction: boolean;

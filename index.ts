@@ -3,12 +3,12 @@ import type {Attributes, CreateLocator, MapAttributes, RootOptions} from './type
 import './production';
 
 /**
- * Symbol key for cache of root locator.
+ * Symbol key for cache of locators.
  */
 const CACHE = Symbol.for('create-locator:cache');
 
 /**
- * Symbol key for options of root locator.
+ * Symbol key for options of app root locator.
  */
 const OPTIONS = Symbol.for('create-locator:options');
 
@@ -23,7 +23,7 @@ const PREFIX = Symbol.for('create-locator:prefix');
 type Cache = Record<string, ProxiedLocator>;
 
 /**
- * Options of root locator, maybe with mapping attributes function.
+ * Options of app root locator, maybe with mapping attributes function.
  */
 type Options = Partial<MapAttributes<Attributes>> & RootOptions;
 
@@ -44,7 +44,7 @@ type StringifiedLocator = Readonly<{
 }>;
 
 /**
- * Default options of root locator (without mapping attributes function).
+ * Default options of app root locator (without mapping attributes function).
  */
 const DEFAULT_OPTIONS: RootOptions = {
   isProduction: false,
@@ -119,13 +119,17 @@ const handler: ProxyHandler<ProxiedLocator> = {
  * Creates a proxy object that represents the locator at runtime.
  */
 const createProxiedLocator = (prefix: string, options: Options, cache: Cache): ProxiedLocator => {
-  const target = {__proto__: null, [CACHE]: cache, [OPTIONS]: options, [PREFIX]: prefix};
+  const target = Object.assign<object, ProxiedLocator>(
+    Object.setPrototypeOf(() => {}, null),
+    {[CACHE]: cache, [OPTIONS]: options, [PREFIX]: prefix},
+  );
 
   return new Proxy(target, handler);
 };
 
 /**
- * Creates root locator (by prefix and options) or component locator (by component properties).
+ * Creates app root locator (by prefix and options)
+ * or component root locator (by component properties).
  */
 export const createLocator = ((
   prefixOrProps: string | object,

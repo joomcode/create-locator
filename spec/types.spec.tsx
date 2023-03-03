@@ -25,6 +25,8 @@ type IsEqual<X, Y> = (<T>() => T extends X ? 1 : 2) extends <T>() => T extends Y
 type L1 = Locator<{}>;
 type N1 = Node<{}>;
 
+declare const SYMBOL: unique symbol;
+
 export type Checks = [
   Locator<{}, {}>,
   Locator<{foo: L1}, {}>,
@@ -94,6 +96,24 @@ const Label = ({level, text, ...rest}: LabelProps) => {
   return <span {...locator({level: levelString})}></span>;
 };
 
+type MultiLocator = Locator<{label: LabelLocator} | {footer: {}}>;
+
+const Multi = (props: MultiLocator) => {
+  const locator = createLocator(props);
+
+  return (
+    <div {...locator()}>
+      {/* @ts-expect-error */}
+      <span {...locator.footer({level: 'foo'})}></span>
+      <span {...locator.footer()}></span>
+      {/* @ts-expect-error */}
+      <span {...locator.label()}></span>
+      <span {...locator.label({level: 'foo'})}></span>
+      <Label text="baz" {...locator.label({level: 'foo'})} />
+    </div>
+  );
+};
+
 type HeaderLocator = Locator<{
   foo: LabelLocator;
   bar: LabelLocator;
@@ -106,12 +126,13 @@ type HeaderLocator = Locator<{
     qux: {};
     corge: Node<
       {
-        grault: {};
         garply: Node<{waldo: {}}>;
+        grault: {foo: 'baz'} | {bar: 'qux'} | {[SYMBOL]: `s${string}`};
       },
       {bar: `foo${string}`}
     >;
   }>;
+  multi: MultiLocator;
 }>;
 
 const Header = (props: HeaderLocator) => {
@@ -137,11 +158,17 @@ const Header = (props: HeaderLocator) => {
       <Label text="baz" {...locator.bind()} />
       {/* @ts-expect-error */}
       <Label text="baz" {...locator.bind} />
+      {/* @ts-expect-error */}
       <Label text="foo" {...locator.foo()} />
-      <Label text="bar" {...locator.bar()} />
+      {/* @ts-expect-error */}
+      <Label text="foo" {...locator.foo({level2: 'baz'})} />
+      <Label text="foo" {...locator.foo({level: 'baz'})} />
+      {/* @ts-expect-error */}
+      <Label text="bar" {...locator.bar({level: 2})} />
+      <Label text="bar" {...locator.bar({level: 'quux'})} />
       {/* @ts-expect-error */}
       <Label text="bar" {...locator.subtree.qux()} />
-      <Label text="bar" {...locator.subtree.quux()} />
+      <Label text="bar" {...locator.subtree.quux({level: 'foo'})} />
       <span {...locator.bind()}></span>
       {/* @ts-expect-error */}
       <span {...locator.alsosubtree.corge()}></span>
@@ -151,6 +178,14 @@ const Header = (props: HeaderLocator) => {
       <span {...locator.alsosubtree.corge.garply.waldo()}></span>
       {/* @ts-expect-error */}
       <span {...locator.alsosubtree.corge.garply.waldo({})}></span>
+      {/* @ts-expect-error */}
+      <span {...locator.alsosubtree.corge.grault()}></span>
+      {/* @ts-expect-error */}
+      <span {...locator.alsosubtree.corge.grault({[SYMBOL]: 'qux'})}></span>
+      <span {...locator.alsosubtree.corge.grault({[SYMBOL]: 'sfoo'})}></span>
+      <span {...locator.alsosubtree.corge.grault({foo: 'baz'})}></span>
+      <span {...locator.alsosubtree.corge.grault({bar: 'qux'})}></span>
+      <Multi {...locator.multi()} />
     </h1>
   );
 };
@@ -175,7 +210,27 @@ type RenderedLocator = Locator<{
   header: HeaderLocator;
 }>;
 
-declare const SYMBOL: unique symbol;
+type RenderedLocatorWithOptional = Locator<{
+  header?: HeaderLocator;
+}>;
+
+true satisfies IsEqual<RenderedLocator, RenderedLocatorWithOptional>;
+
+type RenderedLocatorWithReadonly = Locator<{
+  readonly header: HeaderLocator;
+}>;
+
+true satisfies IsEqual<RenderedLocator, RenderedLocatorWithReadonly>;
+
+type RenderedNode = Node<{
+  header: HeaderLocator;
+}>;
+
+type RenderedReadonlyOptionalNode = Node<{
+  readonly header?: HeaderLocator;
+}>;
+
+true satisfies IsEqual<RenderedNode, RenderedReadonlyOptionalNode>;
 
 type RenderedLocatorWithSymbolProperty = Locator<{
   header: HeaderLocator;
@@ -189,11 +244,7 @@ type RenderedLocatorWithSymbolInParameters = Locator<{header: HeaderLocator}, {[
 false satisfies IsEqual<RenderedLocator, RenderedLocatorWithSymbolInParameters>;
 
 type MainLocator = Locator<
-  {
-    header: HeaderLocator;
-    rendered: RenderedLocator;
-    text: {};
-  },
+  {header: HeaderLocator; rendered: RenderedLocator; text: {value?: string}},
   {text: 'foo' | 'bar'}
 >;
 type MainProps = {render: Function} & MainLocator;
@@ -211,11 +262,22 @@ const Main = ({render, ...rest}: MainProps) => {
   // @ts-expect-error
   locator({text: 'baz'});
 
+  const textValue: {readonly value: string} = {value: 'bar'};
+
   return (
     <main {...locator({text: 'foo'})}>
       <Header {...locator.header()} />
       Some main text
       {rendered}
+      {/* @ts-expect-error */}
+      <span {...locator.text()}></span>
+      {/* @ts-expect-error */}
+      <span {...locator.text({value: undefined})}></span>
+      {/* @ts-expect-error */}
+      <span {...locator.text({value: 2})}></span>
+      <span {...locator.text(textValue)}></span>
+      <span {...locator.text({})}></span>
+      <span {...locator.text({value: 'bar'})}></span>
     </main>
   );
 };
@@ -275,9 +337,17 @@ export const App = () => {
       {/* @ts-expect-error */}
       <Header {...locator.header} />
       <Header {...locator.header()} />
+      {/* @ts-expect-error */}
       <Main render={render} {...locator.main()} />
-      <Label level="1" text="baz" {...locator.label()} />
+      {/* @ts-expect-error */}
+      <Main render={render} {...locator.main({textFoo: 'foo'})} />
+      {/* @ts-expect-error */}
+      <Main render={render} {...locator.main({text: 'baz'})} />
+      <Main render={render} {...locator.main({text: 'foo'})} />
+      <Label level="1" text="baz" {...locator.label({level: 'baz'})} />
+      {/* @ts-expect-error */}
       <MainWrapper {...locator.main()} />
+      <MainWrapper {...locator.main({text: 'foo'})} />
       {/* @ts-expect-error */}
       <Wrapper {...locator.header} />
       {/* @ts-expect-error */}
@@ -308,9 +378,8 @@ createLocator<AppLocator, Selector>('app', {});
 // @ts-expect-error
 createLocator<AppLocator, Selector>('app', {mapAttributes() {}});
 createLocator<AppLocator, Selector>('app', {
-  // @ts-expect-error
   mapAttributes(attributes: {}) {
-    return {} as Selector;
+    return attributes as Selector;
   },
 });
 
