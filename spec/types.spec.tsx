@@ -27,6 +27,9 @@ type N1 = Node<{}>;
 
 declare const SYMBOL: unique symbol;
 
+/**
+ * Base checks of Locator and Node type arguments.
+ */
 export type Checks = [
   Locator<{}, {}>,
   Locator<{foo: L1}, {}>,
@@ -42,6 +45,12 @@ export type Checks = [
   Locator<N1>,
   // @ts-expect-error
   Locator<{foo: 2}>,
+  // @ts-expect-error
+  Locator<{foo: undefined}>,
+  // @ts-expect-error
+  Locator<{foo: unknown}>,
+  // @ts-expect-error
+  Locator<{foo: object}>,
   // @ts-expect-error
   Locator<{}, {foo: 2}>,
   // @ts-expect-error
@@ -68,6 +77,12 @@ export type Checks = [
   // @ts-expect-error
   Node<{}, {foo: 2}>,
   // @ts-expect-error
+  Node<{foo: undefined}>,
+  // @ts-expect-error
+  Node<{foo: unknown}>,
+  // @ts-expect-error
+  Node<{foo: object}>,
+  // @ts-expect-error
   Node<{}, {foo: {}}>,
   // @ts-expect-error
   Node<{foo: {bar: 3}}>,
@@ -75,6 +90,9 @@ export type Checks = [
   Node<{}, {foo: L1}>,
 ];
 
+/**
+ * Base tests of component, element and node locator.
+ */
 type LabelLocator = Locator<{}, {level: string}>;
 type LabelProps = {level?: string; text: string} & LabelLocator;
 
@@ -210,39 +228,6 @@ type RenderedLocator = Locator<{
   header: HeaderLocator;
 }>;
 
-type RenderedLocatorWithOptional = Locator<{
-  header?: HeaderLocator;
-}>;
-
-true satisfies IsEqual<RenderedLocator, RenderedLocatorWithOptional>;
-
-type RenderedLocatorWithReadonly = Locator<{
-  readonly header: HeaderLocator;
-}>;
-
-true satisfies IsEqual<RenderedLocator, RenderedLocatorWithReadonly>;
-
-type RenderedNode = Node<{
-  header: HeaderLocator;
-}>;
-
-type RenderedReadonlyOptionalNode = Node<{
-  readonly header?: HeaderLocator;
-}>;
-
-true satisfies IsEqual<RenderedNode, RenderedReadonlyOptionalNode>;
-
-type RenderedLocatorWithSymbolProperty = Locator<{
-  header: HeaderLocator;
-  [SYMBOL]: {foo: 'bar'};
-}>;
-
-true satisfies IsEqual<RenderedLocator, RenderedLocatorWithSymbolProperty>;
-
-type RenderedLocatorWithSymbolInParameters = Locator<{header: HeaderLocator}, {[SYMBOL]: 'baz'}>;
-
-false satisfies IsEqual<RenderedLocator, RenderedLocatorWithSymbolInParameters>;
-
 type MainLocator = Locator<
   {header: HeaderLocator; rendered: RenderedLocator; text: {value?: string}},
   {text: 'foo' | 'bar'}
@@ -300,6 +285,9 @@ const MainWrapper = (props: MainLocator) => {
   );
 };
 
+/**
+ * Base tests of root locator.
+ */
 type AppLocator = Locator<{
   header: HeaderLocator;
   readonly label: LabelLocator;
@@ -359,9 +347,12 @@ export const App = () => {
   );
 };
 
-type Selector = {isSelector: true};
+/**
+ * Base tests of root locator with attributes mapping.
+ */
+type Selector = {textContent: Promise<string>};
 
-const locator = createLocator<AppLocator, Selector>('app', {
+const rootLocator = createLocator<AppLocator, Selector>('app', {
   isProduction: true,
   locatorAttribute: 'data-testid',
   mapAttributes() {
@@ -377,19 +368,135 @@ createLocator<AppLocator, Selector>('app');
 createLocator<AppLocator, Selector>('app', {});
 // @ts-expect-error
 createLocator<AppLocator, Selector>('app', {mapAttributes() {}});
+
 createLocator<AppLocator, Selector>('app', {
   mapAttributes(attributes: {}) {
     return attributes as Selector;
   },
 });
 
-locator() satisfies Selector;
-locator.main({text: 'foo'}) satisfies Selector;
-locator.main.header.alsosubtree.corge({bar: 'foo'}) satisfies Selector;
-locator.main.header.alsosubtree.corge.garply() satisfies Selector;
+rootLocator() satisfies Selector;
+rootLocator.main({text: 'foo'}) satisfies Selector;
+rootLocator.main.header.alsosubtree.corge({bar: 'foo'}) satisfies Selector;
+rootLocator.main.header.alsosubtree.corge.garply() satisfies Selector;
 
 // @ts-expect-error
 locator.main.header.header;
 
 // @ts-expect-error
 locator.main.header.alsosubtree.corge({bar: 'baz'});
+
+/**
+ * Tests of pageObject with locator.
+ */
+type HeaderPageObjectLocator = typeof rootLocator.header;
+
+false satisfies IsEqual<HeaderPageObjectLocator, HeaderLocator>;
+
+class HeaderPageObject {
+  constructor(public locator: HeaderPageObjectLocator) {}
+
+  async assertLanguage() {
+    // @ts-expect-error
+    this.locator.foo({level: 1});
+    // @ts-expect-error
+    this.locator.foo();
+    // @ts-expect-error
+    this.locator.multi.footer({});
+    // @ts-expect-error
+    this.locator.baz;
+
+    (await this.locator.foo({level: '1'}).textContent) satisfies string;
+    (await this.locator.multi.footer().textContent) satisfies string;
+  }
+}
+
+// @ts-expect-error
+new HeaderPageObject(rootLocator);
+// @ts-expect-error
+new HeaderPageObject({});
+// @ts-expect-error
+new HeaderPageObject(rootLocator.main.header.subtree);
+// @ts-expect-error
+new HeaderPageObject(rootLocator.label);
+
+new HeaderPageObject(rootLocator.header);
+new HeaderPageObject(rootLocator.main.header);
+
+/**
+ * Tests of explicitly passing additional locator to component in a separate prop.
+ */
+type MainPageLocator = Locator<{
+  // header: HeaderLocator;
+  content: {};
+}>;
+
+type MainPageProps = {headerLocator: HeaderLocator} & MainPageLocator;
+
+const MainPage = ({headerLocator, ...rest}: MainPageProps) => {
+  const locator = createLocator(rest);
+
+  return (
+    <div {...locator()}>
+      {/* @ts-expect-error */}
+      <Header />
+      {/* @ts-expect-error */}
+      <Header {...locator.header()} />
+      <Header {...headerLocator} />
+      <div {...locator.content()}></div>
+    </div>
+  );
+};
+
+type PageWrapperLocator = Locator<{
+  header: HeaderLocator;
+  main: MainPageLocator;
+}>;
+
+export const PageWrapper = (props: PageWrapperLocator) => {
+  const locator = createLocator(props);
+
+  return (
+    <div {...locator()}>
+      {/* @ts-expect-error */}
+      <MainPage {...locator.main()} />
+      <MainPage {...locator.main()} headerLocator={locator.header()} />
+    </div>
+  );
+};
+
+/**
+ * Tests of properties modifiers and symbol properties in locator description.
+ */
+type RenderedLocatorWithOptional = Locator<{
+  header?: HeaderLocator;
+}>;
+
+true satisfies IsEqual<RenderedLocator, RenderedLocatorWithOptional>;
+
+type RenderedLocatorWithReadonly = Locator<{
+  readonly header: HeaderLocator;
+}>;
+
+true satisfies IsEqual<RenderedLocator, RenderedLocatorWithReadonly>;
+
+type RenderedNode = Node<{
+  header: HeaderLocator;
+}>;
+
+type RenderedReadonlyOptionalNode = Node<{
+  readonly header?: HeaderLocator;
+}>;
+
+true satisfies IsEqual<RenderedNode, RenderedReadonlyOptionalNode>;
+
+type RenderedLocatorWithSymbolProperty = Locator<{
+  header: HeaderLocator;
+  [SYMBOL]: {foo: 'bar'};
+}>;
+
+true satisfies IsEqual<RenderedLocator, RenderedLocatorWithSymbolProperty>;
+
+type RenderedLocatorWithSymbolInParameters = Locator<{header: HeaderLocator}, {[SYMBOL]: 'baz'}>;
+
+false satisfies IsEqual<RenderedLocator, RenderedLocatorWithSymbolInParameters>;

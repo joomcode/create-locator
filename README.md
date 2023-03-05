@@ -11,7 +11,7 @@ Creates typed (via TypeScript) component locators for unit-tests and e2e-tests.
 
 ## Install
 
-Requires [node](https://nodejs.org/en/) version 16 or higher:
+Requires [node](https://nodejs.org/en/) version 8 or higher:
 
 ```sh
 npm install create-locator
