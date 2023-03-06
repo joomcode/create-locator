@@ -21,7 +21,7 @@ that is convenient to use in tests. This tree represents a visual blocks of the 
 which is a simplified version of the project component tree.
 
 Each locator has a unique path in this locator tree, and a string with this **path**
-in the `data-test-*` attribute allows you to unambiguously find all elements
+in the some `data-test-*` path attribute allows you to unambiguously find all elements
 marked with a specific locator on the rendered HTML page.
 
 ## Basic examples
@@ -49,10 +49,10 @@ const Foo = ({···, ...rest}: Properties) => {
   const locator = createLocator(rest); // create locator by properties or rest of properties
 
   return (
-    <div {...locator()}> // mark element with locator
+    <div {...locator()}> {/* mark element with locator */}
       <span {...locator.bar()}>📌</span>
-      <Baz {...locator.baz()} /> // mark component with locator
-      <div {...locator.qux({quux: 'corge'})}> // mark element with locator with parameters
+      <Baz {...locator.baz()} /> {/* mark component with locator */}
+      <div {...locator.qux({quux: 'corge'})}> {/* mark element with locator with parameters */}
         Hello👋 world!
       </div>
     </div>
@@ -115,7 +115,7 @@ it will be rendered into HTML with such `data-test*` attributes:
 ```tsx
 <div data-testid="app-foo">
   <span data-testid="app-foo-bar">📌</span>
-  <Baz data-testid="app-foo-baz" /> // that is, the Baz with locator prefix `app-foo-baz`
+  <Baz data-testid="app-foo-baz" /> {/* that is, the Baz with locator prefix `app-foo-baz` */}
   <div data-testid="app-foo-qux" data-test-quxx="corge">
     Hello👋 world!
   </div>
