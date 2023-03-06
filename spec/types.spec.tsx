@@ -1,4 +1,4 @@
-import {createLocator, type Locator, type Node} from '../index';
+import {createLocator, getLocatorParameters, type Locator, type Node} from '../index';
 
 declare global {
   const React: object;
@@ -94,9 +94,9 @@ export type Checks = [
  * Base tests of component, element and node locator.
  */
 type LabelLocator = Locator<{}, {level: string}>;
-type LabelProps = {level?: string; text: string} & LabelLocator;
+type LabelProperties = {level?: string; text: string} & LabelLocator;
 
-const Label = ({level, text, ...rest}: LabelProps) => {
+const Label = ({level, text, ...rest}: LabelProperties) => {
   const locator = createLocator(rest);
   const levelString = String(level);
 
@@ -116,8 +116,8 @@ const Label = ({level, text, ...rest}: LabelProps) => {
 
 type MultiLocator = Locator<{label: LabelLocator} | {footer: {}}>;
 
-const Multi = (props: MultiLocator) => {
-  const locator = createLocator(props);
+const Multi = (properties: MultiLocator) => {
+  const locator = createLocator(properties);
 
   return (
     <div {...locator()}>
@@ -153,8 +153,10 @@ type HeaderLocator = Locator<{
   multi: MultiLocator;
 }>;
 
-const Header = (props: HeaderLocator) => {
-  const locator = createLocator(props);
+type HeaderProperties = {foo?: number} & HeaderLocator;
+
+const Header = ({foo, ...rest}: HeaderProperties) => {
+  const locator = createLocator(rest);
 
   // @ts-expect-error
   createLocator({}) satisfies object;
@@ -208,8 +210,8 @@ const Header = (props: HeaderLocator) => {
   );
 };
 
-const Wrapper = (props: HeaderLocator) => {
-  const locator = createLocator(props);
+const Wrapper = (properties: HeaderLocator) => {
+  const locator = createLocator(properties);
 
   return (
     <div>
@@ -232,9 +234,9 @@ type MainLocator = Locator<
   {header: HeaderLocator; rendered: RenderedLocator; text: {value?: string}},
   {text: 'foo' | 'bar'}
 >;
-type MainProps = {render: Function} & MainLocator;
+type MainProperties = {render: Function} & MainLocator;
 
-const Main = ({render, ...rest}: MainProps) => {
+const Main = ({render, ...rest}: MainProperties) => {
   const locator = createLocator(rest);
 
   locator.rendered;
@@ -267,8 +269,8 @@ const Main = ({render, ...rest}: MainProps) => {
   );
 };
 
-const MainWrapper = (props: MainLocator) => {
-  const locator = createLocator(props);
+const MainWrapper = (properties: MainLocator) => {
+  const locator = createLocator(properties);
 
   return (
     <div>
@@ -350,16 +352,16 @@ export const App = () => {
 /**
  * Base tests of root locator with attributes mapping.
  */
-type Selector = {textContent: Promise<string>};
+type Selector = {readonly textContent: Promise<string>};
 
 const rootLocator = createLocator<AppLocator, Selector>('app', {
   isProduction: true,
-  locatorAttribute: 'data-testid',
   mapAttributes() {
     return {} as Selector;
   },
-  pathDelimiter: '.',
   parameterAttributePrefix: 'data-test-',
+  pathAttribute: 'data-testid',
+  pathSeparator: '-',
 });
 
 // @ts-expect-error
@@ -385,6 +387,45 @@ locator.main.header.header;
 
 // @ts-expect-error
 locator.main.header.alsosubtree.corge({bar: 'baz'});
+
+/**
+ * Base tests of getLocatorParameters.
+ */
+type BannerLocator = Locator<{text: {}}, {id: `id${string}`}>;
+
+export const Banner = (properties: BannerLocator) => {
+  const locator = createLocator(properties);
+  const locatorParameters = getLocatorParameters(properties);
+
+  return (
+    <>
+      {/* @ts-expect-error */}
+      <div {...locator()}></div>
+      {/* @ts-expect-error */}
+      <div {...locator({id: 213})}></div>
+      {/* @ts-expect-error */}
+      <div {...locator({id: '213'})}></div>
+      <div {...locator(locatorParameters)}></div>
+      <div {...locator({id: 'id213'})}>
+        <span {...locator.text()}></span>
+      </div>
+    </>
+  );
+};
+
+export const RenderedBanner = (properties: RenderedLocator) => {
+  const locator = createLocator(properties);
+  // @ts-expect-error
+  const locatorParameters = getLocatorParameters(properties);
+
+  return (
+    <>
+      {/* @ts-expect-error */}
+      <div {...locator(locatorParameters)}></div>
+      <div {...locator()}></div>
+    </>
+  );
+};
 
 /**
  * Tests of pageObject with locator.
@@ -424,16 +465,16 @@ new HeaderPageObject(rootLocator.header);
 new HeaderPageObject(rootLocator.main.header);
 
 /**
- * Tests of explicitly passing additional locator to component in a separate prop.
+ * Tests of explicitly passing additional locator to component in a separate property.
  */
 type MainPageLocator = Locator<{
   // header: HeaderLocator;
   content: {};
 }>;
 
-type MainPageProps = {headerLocator: HeaderLocator} & MainPageLocator;
+type MainPageProperties = {headerLocator: HeaderLocator} & MainPageLocator;
 
-const MainPage = ({headerLocator, ...rest}: MainPageProps) => {
+const MainPage = ({headerLocator, ...rest}: MainPageProperties) => {
   const locator = createLocator(rest);
 
   return (
@@ -453,8 +494,8 @@ type PageWrapperLocator = Locator<{
   main: MainPageLocator;
 }>;
 
-export const PageWrapper = (props: PageWrapperLocator) => {
-  const locator = createLocator(props);
+export const PageWrapper = (properties: PageWrapperLocator) => {
+  const locator = createLocator(properties);
 
   return (
     <div {...locator()}>

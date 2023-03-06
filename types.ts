@@ -1,25 +1,25 @@
 /**
- * Inner key for saving hidden normalized tree.
+ * Symbol key for saving hidden normalized tree.
  */
 declare const HIDDEN: unique symbol;
 
 /**
- * Inner key for saving locator tree of component locator.
+ * Symbol key for saving locator tree of component locator.
  */
 declare const LOCATOR: unique symbol;
 
 /**
- * Attribute outer key to generate an error if the user forgot to call the locator.
+ * Attribute key to generate an error if the user forgot to call the locator.
  */
 declare const NO_CALL_ERROR: 'aria-invalid';
 
 /**
- * Inner key for saving locator tree of node locator.
+ * Symbol key for saving locator tree of node locator.
  */
 declare const NODE: unique symbol;
 
 /**
- * Inner key for saving locator parameters.
+ * Symbol key for saving locator parameters.
  */
 declare const PARAMETERS: unique symbol;
 
@@ -62,10 +62,10 @@ type BaseNode<Parameters, Subtree> = IsParametersEmpty<Parameters> extends true
 /**
  * createLocator overload for component locator.
  */
-type CreateComponentLocator = <Props extends AnyLocator>(
+type CreateComponentLocator = <Properties extends AnyLocator>(
   this: void,
-  props: Props,
-) => RuntimeLocator<Props[typeof LOCATOR]>;
+  properties: Properties,
+) => RuntimeLocator<Properties[typeof LOCATOR]>;
 
 /**
  * createLocator overload for root locator.
@@ -215,10 +215,10 @@ export type CreateLocator = CreateComponentLocator &
 /**
  * Type of getLocatorParameters function.
  */
-export type GetLocatorParameters = <Props extends AnyLocator<AnyNodeWithParameters>>(
+export type GetLocatorParameters = <Properties extends AnyLocator<AnyNodeWithParameters>>(
   this: void,
-  props: Props,
-) => ExtractNodeParameters<Props[typeof LOCATOR]>;
+  properties: Properties,
+) => ExtractNodeParameters<Properties[typeof LOCATOR]>;
 
 /**
  * Creates component locator type by locator description and locator parameters.
@@ -249,7 +249,7 @@ export type Node<Description extends LocatorDescription, Parameters extends AnyP
  */
 export type RootOptions = Readonly<{
   isProduction: boolean;
-  locatorAttribute: string;
-  pathDelimiter: string;
   parameterAttributePrefix: string;
+  pathAttribute: string;
+  pathSeparator: string;
 }>;

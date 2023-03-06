@@ -1,7 +1,7 @@
 {
   "name": "create-locator",
-  "version": "0.0.1",
-  "description": "Creates typed component locators for tests",
+  "version": "0.0.2",
+  "description": "Creates typed component locators for tests 📌",
   "author": "uid11",
   "bugs": "https://github.com/uid11/create-locator/issues",
   "devDependencies": {

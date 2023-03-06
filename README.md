@@ -1,4 +1,4 @@
-# create-locator
+# create-locator 📌
 
 [![NPM version][npm-image]][npm-url]
 [![dependencies: none][dependencies-none-image]][dependencies-none-url]
@@ -8,6 +8,119 @@
 [![License MIT][license-image]][license-url]
 
 Creates typed (via TypeScript) component locators for unit-tests and e2e-tests.
+
+Locators are marks on components and HTML elements that allow you to find elements in tests.
+In the HTML output, locators are usually represented as `data-test-*` attributes.
+
+Locators do not change the behavior or appearance of a component.
+In production, locators disappear completely, leaving no attributes.
+
+Passing from a component to its child components, locators form a static typed project locator tree
+that is convenient to use in tests. This tree represents a visual blocks of the project
+(pages, large blocks on pages, individual elements and controls inside blocks),
+which is a simplified version of the project component tree.
+
+Each locator has a unique path in this locator tree, and a string with this **path**
+in the `data-test-*` attribute allows you to unambiguously find all elements
+marked with a specific locator on the rendered HTML page.
+
+## Basic examples
+
+Let's mark the `Foo` component with locators (here are examples on React,
+but the markup is independent of the rendering library, and support any rendering in HTML).
+
+Let's imagine that in the `Foo` we want to mark its root HTML element,
+its two inner elements (`bar` and `qux`), and its child component `Baz`,
+which itself is already marked up:
+
+```tsx
+import {createLocator, type Locator} from 'create-locator';
+import {Baz, type BazLocator} from 'src/components/Baz';
+
+export type FooLocator = Locator<{ // declare locator type
+  bar: {}; // element locator without parameters
+  baz: BazLocator; // component locator
+  qux: {quux: string}; // element locator with parameters
+}>;
+
+type Properties = {···} & FooLocator; // mark component properties with locator type
+
+const Foo = ({···, ...rest}: Properties) => {
+  const locator = createLocator(rest); // create locator by properties or rest of properties
+
+  return (
+    <div {...locator()}> // mark element with locator
+      <span {...locator.bar()}>📌</span>
+      <Baz {...locator.baz()} /> // mark component with locator
+      <div {...locator.qux({quux: 'corge'})}> // mark element with locator with parameters
+        Hello👋 world!
+      </div>
+    </div>
+  );
+};
+```
+
+When marking up a root application component, you need to specify a root component locator type,
+and a prefix that starts the paths of all locators in this component tree:
+
+```tsx
+import {createLocator, type Locator} from 'create-locator';
+import {Foo, type FooLocator} from 'src/components/Foo';
+import {Main, type MainLocator} from 'src/components/Main';
+
+export type AppLocator = Locator<{
+  foo: FooLocator;
+  main: MainLocator;
+}>;
+
+const App = () => {
+  // create root locator by root component locator type and path prefix
+  const locator = createLocator<AppLocator>('app');
+
+  return (
+    <>
+      <Foo {...locator.foo()} />
+      <Main {...locator.main()} />
+    </>
+  );
+};
+```
+
+In addition to the prefix, as the second argument in the root locator
+you can specify options for generating attributes from locators.
+
+Here is a complete list of these options with their default values (each can be omitted):
+
+```tsx
+// create root locator by root component locator type, path prefix and options
+const locator = createLocator<AppLocator>('app', {
+  // if true, then locator attributes will not be rendered at all
+  isProduction: false,
+
+  // attribute name prefix with which locator parameters will be rendered into attributes
+  parameterAttributePrefix: 'data-test-',
+
+  // attribute to which the unique locator path in the locator tree will be rendered
+  pathAttribute: 'data-testid',
+
+  // separator between path parts in a locator path string
+  pathSeparator: '-',
+});
+```
+
+The `Foo` component defined above and inserted into the `App` has the path `app-foo`
+in the locator tree, and therefore, with these default options,
+it will be rendered into HTML with such `data-test*` attributes:
+
+```tsx
+<div data-testid="app-foo">
+  <span data-testid="app-foo-bar">📌</span>
+  <Baz data-testid="app-foo-baz" /> // that is, the Baz with locator prefix `app-foo-baz`
+  <div data-testid="app-foo-qux" data-test-quxx="corge">
+    Hello👋 world!
+  </div>
+</div>
+```
 
 ## Install
 

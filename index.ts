@@ -1,6 +1,12 @@
-import type {Attributes, CreateLocator, MapAttributes, RootOptions} from './types';
+import type {
+  Attributes,
+  CreateLocator,
+  GetLocatorParameters,
+  MapAttributes,
+  RootOptions,
+} from './types';
 
-import './production';
+import {createLocator as productionCreateLocator} from './production';
 
 /**
  * Symbol key for cache of locators.
@@ -28,6 +34,11 @@ type Cache = Record<string, ProxiedLocator>;
 type Options = Partial<MapAttributes<Attributes>> & RootOptions;
 
 /**
+ * Component properties, maybe marked with component locator.
+ */
+type Properties = Readonly<Record<string, object | StringifiedLocator>>;
+
+/**
  * Proxied presentation of locator for component render execution context.
  */
 type ProxiedLocator = Record<string, unknown> &
@@ -38,6 +49,7 @@ type ProxiedLocator = Record<string, unknown> &
  */
 type StringifiedLocator = Readonly<{
   [CACHE]: Cache;
+  parameters: object | undefined;
   prefix: string;
   toJSON(): string;
   toString(): string;
@@ -48,52 +60,51 @@ type StringifiedLocator = Readonly<{
  */
 const DEFAULT_OPTIONS: RootOptions = {
   isProduction: false,
-  locatorAttribute: 'data-testid',
-  pathDelimiter: '.',
   parameterAttributePrefix: 'data-test-',
+  pathAttribute: 'data-testid',
+  pathSeparator: '-',
 };
 
 /**
- * Get attributes object by proxied locator and given parameters.
+ * Proxy object that represents the locator at production runtime.
  */
-const getAttributes = (target: ProxiedLocator, parameters: object = {}): Attributes => {
-  const attributes = {[target[OPTIONS].locatorAttribute]: target[PREFIX]};
-
-  for (const [key, value] of Object.entries(parameters)) {
-    attributes[`${target[OPTIONS].parameterAttributePrefix}${key}`] = value;
-  }
-
-  return attributes;
-};
+const productionLocator = productionCreateLocator('app');
 
 /**
- * Method toString for stringified locator.
+ * Locator attribute for production runtime.
  */
-function toString(this: StringifiedLocator): string {
-  return this.prefix;
-}
+const productionAttribute = Object.keys(productionLocator())[0]!;
 
 /**
  * Proxy hanlder for proxied locator.
  */
 const handler: ProxyHandler<ProxiedLocator> = {
-  apply(target, thisArg, args): Attributes | Readonly<Record<string, StringifiedLocator>> {
-    if (target[OPTIONS].mapAttributes) {
-      return target[OPTIONS].mapAttributes(getAttributes(target, args[0]));
+  apply(target, thisArg, args): Attributes {
+    const attributes: Record<string, string> = {} satisfies typeof thisArg;
+
+    if (args[0]) {
+      for (const [key, value] of Object.entries(args[0] as Attributes)) {
+        attributes[`${target[OPTIONS].parameterAttributePrefix}${key}`] = value;
+      }
     }
 
-    if (args.length > 0) {
-      return getAttributes(target, args[0]) satisfies typeof thisArg;
+    if (target[OPTIONS].mapAttributes) {
+      attributes[target[OPTIONS].pathAttribute] = target[PREFIX];
+
+      return target[OPTIONS].mapAttributes(attributes);
     }
 
     const stringifiedLocator: StringifiedLocator = {
       [CACHE]: target[CACHE],
+      parameters: args[0] ? args[0] : undefined,
       prefix: target[PREFIX],
       toJSON: toString,
       toString,
     };
 
-    return {[target[OPTIONS].locatorAttribute]: stringifiedLocator};
+    attributes[target[OPTIONS].pathAttribute] = stringifiedLocator as unknown as string;
+
+    return attributes;
   },
   defineProperty: () => false,
   deleteProperty: () => false,
@@ -102,7 +113,7 @@ const handler: ProxyHandler<ProxiedLocator> = {
       return target[property as string];
     }
 
-    const newPrefix = `${target[PREFIX]}${target[OPTIONS].pathDelimiter}${property}`;
+    const newPrefix = `${target[PREFIX]}${target[OPTIONS].pathSeparator}${property}`;
 
     if (!(newPrefix in target[CACHE])) {
       target[CACHE][newPrefix] = createProxiedLocator(newPrefix, target[OPTIONS], target[CACHE]);
@@ -128,29 +139,68 @@ const createProxiedLocator = (prefix: string, options: Options, cache: Cache): P
 };
 
 /**
+ * Get stringified locator from component properties that marked with locator.
+ * Throws an error if the properties are not marked with a locator.
+ */
+const getStringifiedLocatorFromProperties = (properties: Properties): StringifiedLocator => {
+  for (const value of Object.values(properties)) {
+    if (CACHE in value) {
+      return value;
+    }
+  }
+
+  throw new TypeError(`Properties do not contain a locator (${properties})`);
+};
+
+/**
+ * Method toString for stringified locator.
+ */
+function toString(this: StringifiedLocator): string {
+  return this.prefix;
+}
+
+/**
  * Creates root locator (by prefix and options) or component locator (by component properties).
  */
 export const createLocator = ((
-  prefixOrProps: string | object,
+  prefixOrProperties: string | Properties,
   maybeOptions?: Options,
 ): ProxiedLocator => {
-  if (typeof prefixOrProps === 'string') {
-    const cache: Cache = Object.create(null);
+  if (typeof prefixOrProperties === 'string') {
     const options: Options = {...DEFAULT_OPTIONS, ...maybeOptions};
-    const proxiedLocator = createProxiedLocator(prefixOrProps, options, cache);
 
-    cache[prefixOrProps] = proxiedLocator;
+    if (options.isProduction) {
+      return productionLocator as unknown as ProxiedLocator;
+    }
+
+    const cache: Cache = Object.create(null);
+    const proxiedLocator = createProxiedLocator(prefixOrProperties, options, cache);
+
+    cache[prefixOrProperties] = proxiedLocator;
 
     return proxiedLocator;
   }
 
-  for (const value of Object.values(prefixOrProps) as Partial<StringifiedLocator>[]) {
-    if (CACHE in value) {
-      return value[CACHE][value.prefix!]!;
-    }
+  if (productionAttribute in prefixOrProperties) {
+    return productionLocator as unknown as ProxiedLocator;
   }
 
-  throw new TypeError(`Properties do not contain a locator (${prefixOrProps})`);
+  const stringifiedLocator = getStringifiedLocatorFromProperties(prefixOrProperties);
+
+  return stringifiedLocator[CACHE][stringifiedLocator.prefix]!;
 }) as CreateLocator;
+
+/**
+ * Get parameters of component locator by component properties.
+ */
+export const getLocatorParameters = ((properties: Properties) => {
+  if (productionAttribute in properties) {
+    return productionLocator;
+  }
+
+  const stringifiedLocator = getStringifiedLocatorFromProperties(properties);
+
+  return stringifiedLocator.parameters;
+}) as GetLocatorParameters;
 
 export type {Locator, Node} from './types';
