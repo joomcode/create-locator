@@ -1,8 +1,8 @@
 import {createLocator, getLocatorParameters, type Locator, type Node} from '../index';
 
-declare global {
-  const React: object;
+import {React} from './render.spec';
 
+declare global {
   namespace JSX {
     export interface IntrinsicElements {
       div: {};

@@ -7,10 +7,10 @@ const proxy: () => unknown = new Proxy(
   Object.setPrototypeOf(() => {}, null),
   {
     apply: () => attributes,
-    defineProperty: () => false,
-    deleteProperty: () => false,
+    defineProperty: () => true,
+    deleteProperty: () => true,
     get(target, property) {
-      if (property === 'toString' || property === 'toJSON') return toString;
+      if (property === Symbol.toPrimitive || property === 'toJSON') return toString;
 
       return proxy satisfies typeof target;
     },

@@ -2,8 +2,8 @@
 
 [![NPM version][npm-image]][npm-url]
 [![dependencies: none][dependencies-none-image]][dependencies-none-url]
+[![minzipped size][size-image]][size-url]
 [![code style: prettier][prettier-image]][prettier-url]
-[![TypeScript][typescript-image]][typescript-url]
 [![Conventional Commits][conventional-commits-image]][conventional-commits-url]
 [![License MIT][license-image]][license-url]
 
@@ -122,6 +122,11 @@ it will be rendered into HTML with such `data-test*` attributes:
 </div>
 ```
 
+Remember, that all attribute names in HTML documents get ASCII-lowercased automatically,
+so it makes sense to use only lower case for `parameterAttributePrefix`, `pathAttribute`
+and `pathSeparator`, and for locator parameter names
+(`create-locator` 📌 does not correct attribute names in any way by itself).
+
 ## Install
 
 Requires [node](https://nodejs.org/en/) version 8 or higher:
@@ -144,5 +149,5 @@ npm install create-locator
 [npm-url]: https://www.npmjs.com/package/create-locator
 [prettier-image]: https://img.shields.io/badge/code_style-prettier-ff69b4.svg 'Prettier code formatter'
 [prettier-url]: https://prettier.io/
-[typescript-image]: https://img.shields.io/badge/types-TypeScript-blue.svg 'Full TypeScript support'
-[typescript-url]: https://www.typescriptlang.org/
+[size-image]: https://img.shields.io/bundlephobia/minzip/create-locator 'create-locator'
+[size-url]: https://bundlephobia.com/

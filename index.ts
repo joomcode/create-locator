@@ -50,7 +50,7 @@ type ProxiedLocator = Record<string, unknown> &
 type StringifiedLocator = Readonly<{
   [CACHE]: Cache;
   parameters: object | undefined;
-  prefix: string;
+  [PREFIX]: string;
   toJSON(): string;
   toString(): string;
 }>;
@@ -80,7 +80,9 @@ const productionAttribute = Object.keys(productionLocator())[0]!;
  */
 const handler: ProxyHandler<ProxiedLocator> = {
   apply(target, thisArg, args): Attributes {
-    const attributes: Record<string, string> = {} satisfies typeof thisArg;
+    const attributes: Record<string, string> = {
+      [target[OPTIONS].pathAttribute]: target[PREFIX],
+    } satisfies typeof thisArg;
 
     if (args[0]) {
       for (const [key, value] of Object.entries(args[0] as Attributes)) {
@@ -89,15 +91,13 @@ const handler: ProxyHandler<ProxiedLocator> = {
     }
 
     if (target[OPTIONS].mapAttributes) {
-      attributes[target[OPTIONS].pathAttribute] = target[PREFIX];
-
       return target[OPTIONS].mapAttributes(attributes);
     }
 
     const stringifiedLocator: StringifiedLocator = {
       [CACHE]: target[CACHE],
       parameters: args[0] ? args[0] : undefined,
-      prefix: target[PREFIX],
+      [PREFIX]: target[PREFIX],
       toJSON: toString,
       toString,
     };
@@ -132,7 +132,7 @@ const handler: ProxyHandler<ProxiedLocator> = {
 const createProxiedLocator = (prefix: string, options: Options, cache: Cache): ProxiedLocator => {
   const target = Object.assign<object, ProxiedLocator>(
     Object.setPrototypeOf(() => {}, null),
-    {[CACHE]: cache, [OPTIONS]: options, [PREFIX]: prefix},
+    {[CACHE]: cache, [OPTIONS]: options, [PREFIX]: prefix, [Symbol.toPrimitive]: toString},
   );
 
   return new Proxy(target, handler);
@@ -144,7 +144,7 @@ const createProxiedLocator = (prefix: string, options: Options, cache: Cache): P
  */
 const getStringifiedLocatorFromProperties = (properties: Properties): StringifiedLocator => {
   for (const value of Object.values(properties)) {
-    if (CACHE in value) {
+    if (value !== null && typeof value === 'object' && CACHE in value) {
       return value;
     }
   }
@@ -156,7 +156,7 @@ const getStringifiedLocatorFromProperties = (properties: Properties): Stringifie
  * Method toString for stringified locator.
  */
 function toString(this: StringifiedLocator): string {
-  return this.prefix;
+  return this[PREFIX];
 }
 
 /**
@@ -187,7 +187,7 @@ export const createLocator = ((
 
   const stringifiedLocator = getStringifiedLocatorFromProperties(prefixOrProperties);
 
-  return stringifiedLocator[CACHE][stringifiedLocator.prefix]!;
+  return stringifiedLocator[CACHE][stringifiedLocator[PREFIX]]!;
 }) as CreateLocator;
 
 /**
