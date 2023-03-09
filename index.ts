@@ -132,7 +132,13 @@ const handler: ProxyHandler<ProxiedLocator> = {
 const createProxiedLocator = (prefix: string, options: Options, cache: Cache): ProxiedLocator => {
   const target = Object.assign<object, ProxiedLocator>(
     Object.setPrototypeOf(() => {}, null),
-    {[CACHE]: cache, [OPTIONS]: options, [PREFIX]: prefix, [Symbol.toPrimitive]: toString},
+    {
+      [CACHE]: cache,
+      [OPTIONS]: options,
+      [PREFIX]: prefix,
+      [Symbol.toPrimitive]: toString,
+      toJSON: toString,
+    },
   );
 
   return new Proxy(target, handler);

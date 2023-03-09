@@ -1,14 +1,8 @@
-import type {CreateLocator, GetLocatorParameters, Locator, Node} from '../types';
+import type {Locator, Node} from '../index';
 
-type Component = (properties: object) => object;
+import {assert, type Test} from './index.spec';
 
-export function assert(value: unknown, message: string): asserts value is true {
-  if (value !== true) {
-    throw new TypeError(`Assert "${message}" fails`);
-  }
-
-  console.log('✓', message);
-}
+type Component = (properties?: object) => object;
 
 export const React = {
   createElement(ComponentOrTag: Component | string, properties: object, ...children: object[]) {
@@ -22,11 +16,7 @@ export const React = {
   },
 };
 
-export const testRender = (
-  createLocator: CreateLocator,
-  getLocatorParameters: GetLocatorParameters,
-  environment: 'development' | 'production',
-): void => {
+export const testRender: Test = (createLocator, getLocatorParameters, environment) => {
   type FooLocator = Locator<{fooLeaf: {quux: string}}, {corge: string}>;
   type NodeLocator = Node<{subleaf: {baz: string}}, {qux: string}>;
 
@@ -95,7 +85,7 @@ export const testRender = (
 
   assert(
     JSON.stringify(<Root />) === JSON.stringify(expectedRoot),
-    `locators with custom options should render attributes correctly inside the ${environment} components tree`,
+    `${environment}: locators with custom options should render attributes correctly`,
   );
 
   type ElementType = 'image' | 'text';
@@ -252,6 +242,6 @@ export const testRender = (
 
   assert(
     JSON.stringify(<App />) === JSON.stringify(expectedApp),
-    `locators with default options should render attributes correctly inside the ${environment} components tree`,
+    `${environment}: locators with default options should render attributes correctly`,
   );
 };

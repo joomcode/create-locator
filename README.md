@@ -142,7 +142,7 @@ npm install create-locator
 [conventional-commits-image]: https://img.shields.io/badge/Conventional_Commits-1.0.0-yellow.svg 'The Conventional Commits specification'
 [conventional-commits-url]: https://www.conventionalcommits.org/en/v1.0.0/
 [dependencies-none-image]: https://img.shields.io/badge/dependencies-none-success.svg 'No dependencies'
-[dependencies-none-url]: https://github.com/uid11/create-locator/blob/main/package.json
+[dependencies-none-url]: https://github.com/joomcode/create-locator/blob/main/package.json
 [license-image]: https://img.shields.io/badge/license-MIT-blue.svg 'The MIT License'
 [license-url]: LICENSE
 [npm-image]: https://img.shields.io/npm/v/create-locator.svg 'create-locator'

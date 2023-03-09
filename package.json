@@ -1,9 +1,9 @@
 {
   "name": "create-locator",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "description": "Creates typed component locators for tests 📌",
   "author": "uid11",
-  "bugs": "https://github.com/uid11/create-locator/issues",
+  "bugs": "https://github.com/joomcode/create-locator/issues",
   "devDependencies": {
     "prettier": ">=2.8",
     "typescript": "=>4.9"
@@ -19,7 +19,7 @@
     "production.d.ts",
     "types.d.ts"
   ],
-  "homepage": "https://github.com/uid11/create-locator#readme",
+  "homepage": "https://github.com/joomcode/create-locator#readme",
   "keywords": [
     "autotest",
     "component",
@@ -31,14 +31,14 @@
   "packageManager": "npm@8",
   "repository": {
     "type": "git",
-    "url": "https://github.com/uid11/create-locator"
+    "url": "https://github.com/joomcode/create-locator"
   },
   "scripts": {
     "prebuild": "rm --force *.js *.d.ts ./spec/*.js ./spec/*.d.ts",
     "build": "tsc",
     "prettier": "prettier --cache --cache-strategy=content --write . !package-lock.json !spec",
     "postprettier": "prettier --no-semi --print-width 120 --tab-width 0 --trailing-comma none --write ./production.js",
-    "test": "npm run build && npm run prettier && node ./spec/index.spec.js",
+    "test": "export _START=$(date +%s%3N) && npm run build && npm run prettier && node ./spec/index.spec.js",
     "prepublishOnly": "npm test"
   },
   "sideEffects": false,

@@ -2,17 +2,6 @@ import {createLocator, getLocatorParameters, type Locator, type Node} from '../i
 
 import {React} from './render.spec';
 
-declare global {
-  namespace JSX {
-    export interface IntrinsicElements {
-      div: {};
-      h1: {};
-      main: {};
-      span: {};
-    }
-  }
-}
-
 /**
  * Returns true if types are exactly equal and false otherwise.
  * IsEqual<{foo: string}, {foo: string}> = true.
