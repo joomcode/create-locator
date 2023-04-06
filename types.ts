@@ -125,7 +125,9 @@ type Keys<T> = T extends unknown ? keyof T : never;
 /**
  *  Locator call result by locator tree.
  */
-type LocatorCallResult<Tree> = Tree extends object ? AnyLocator<Tree> : object;
+type LocatorCallResult<Tree> = Tree extends object
+  ? AnyLocator<Tree> & {readonly [NO_CALL_ERROR]?: undefined}
+  : object;
 
 /**
  * Description of locator tree (argument of Locator<...> and Node<...>).
@@ -164,11 +166,6 @@ type LocatorTreeNode<DescriptionNode> = [DescriptionNode] extends [AnyLocator]
   : BaseNode<DescriptionNode, void>;
 
 /**
- * Type of NO_CALL_ERROR key.
- */
-type NoCallError = typeof NO_CALL_ERROR;
-
-/**
  * Normalize base node of locator tree by base node and map result.
  */
 type NormalizeBaseNode<BaseNode, MapResult> = BaseNode extends AnyNodeWithParameters
@@ -179,7 +176,8 @@ type NormalizeBaseNode<BaseNode, MapResult> = BaseNode extends AnyNodeWithParame
  * Normalize subnodes of locator tree.
  */
 type NormalizeSubnodes<Subnodes, MapResult> = {
-  readonly [Key in string & Exclude<keyof Subnodes, NoCallError>]: Subnodes[Key] extends AnyHidden
+  readonly [Key in string &
+    Exclude<keyof Subnodes, typeof NO_CALL_ERROR>]: Subnodes[Key] extends AnyHidden
     ? MapResult extends void
       ? Subnodes[Key][HiddenKey]
       : NormalizeTree<Subnodes[Key][HiddenKey], MapResult>
@@ -202,7 +200,7 @@ type NotLocatorDescription = 'Not a locator tree description';
  */
 type RuntimeLocator<Tree> = Tree extends AnyNodeWithParameters
   ? Tree
-  : {readonly [Key in string & keyof Tree]: Tree[Key]} & ((this: void) => AnyLocator<Tree>);
+  : {readonly [Key in string & keyof Tree]: Tree[Key]} & BaseNode<{}, Tree>;
 
 /**
  * Converts union of types to intersection of this types.
@@ -244,7 +242,9 @@ export type GetLocatorParameters = <Properties extends AnyLocator<AnyNodeWithPar
 export type Locator<
   Description extends LocatorDescription,
   Parameters extends AnyParameters = {},
-> = AnyLocator<LocatorTree<Description, Parameters>>;
+> = AnyLocator<LocatorTree<Description, Parameters>> & {
+  readonly [NO_CALL_ERROR]?: 'The locator should be removed from spread properties' | undefined;
+};
 
 /**
  * Additional option of root locator for mapping attributes.
@@ -260,6 +260,14 @@ export type Node<
   Description extends LocatorDescription,
   Parameters extends AnyParameters = {},
 > = AnyNode<LocatorTree<Description, Parameters>>;
+
+/**
+ * Type of removeLocatorFromProperties function.
+ */
+export type RemoveLocatorFromProperties = <Properties extends AnyLocator>(
+  this: void,
+  properties: Properties,
+) => Omit<Properties, LocatorKey | typeof NO_CALL_ERROR>;
 
 /**
  * Options of root locator (as createLocator second argument).

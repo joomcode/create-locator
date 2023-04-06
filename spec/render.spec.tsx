@@ -1,3 +1,4 @@
+import {removeLocatorFromProperties} from '../index';
 import type {Locator, Node} from '../index';
 
 import {assert, type Test} from './index.spec';
@@ -101,8 +102,17 @@ export const testRender: Test = (createLocator, getLocatorParameters, environmen
       type: (text.length > 5 ? 'text' : 'image') as ElementType,
       ...locatorParameters,
     };
+    const restPropertiesWithoutLocator = removeLocatorFromProperties(rest);
 
-    return <span {...locator(locatorParametersWithDefaults)}>{text}</span>;
+    if ('children' in restPropertiesWithoutLocator) {
+      delete restPropertiesWithoutLocator.children;
+    }
+
+    return (
+      <span {...locator(locatorParametersWithDefaults)} {...restPropertiesWithoutLocator}>
+        {text}
+      </span>
+    );
   };
 
   type HeaderLocator = Locator<{

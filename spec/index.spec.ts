@@ -12,12 +12,18 @@ import {testRender} from './render.spec';
 declare global {
   const process: {env: {_START: string}};
 
+  type WithAriaInvalid = {
+    'aria-invalid'?: boolean | 'false' | 'true' | 'grammar' | 'spelling' | undefined;
+  };
+
   namespace JSX {
     export interface IntrinsicElements {
-      div: {};
-      h1: {};
-      main: {};
-      span: {};
+      button: WithAriaInvalid;
+      div: WithAriaInvalid;
+      h1: WithAriaInvalid;
+      label: WithAriaInvalid;
+      main: WithAriaInvalid;
+      span: WithAriaInvalid;
     }
   }
 }

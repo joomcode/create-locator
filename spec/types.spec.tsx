@@ -1,4 +1,10 @@
-import {createLocator, getLocatorParameters, type Locator, type Node} from '../index';
+import {
+  createLocator,
+  getLocatorParameters,
+  type Locator,
+  type Node,
+  removeLocatorFromProperties,
+} from '../index';
 
 import {React} from './render.spec';
 
@@ -198,6 +204,11 @@ const Header = ({foo, ...rest}: HeaderProperties) => {
       <span {...locator.alsosubtree.corge.grault({foo: 'baz'})}></span>
       <span {...locator.alsosubtree.corge.grault({bar: 'qux'})}></span>
       <Multi {...locator.multi()} />
+      {/* @ts-expect-error */}
+      <span {...locator}></span>
+      <div {...locator.foo({level: 'baz'})}></div>
+      {/* @ts-expect-error */}
+      <div {...locator.foo}></div>
     </h1>
   );
 };
@@ -214,6 +225,8 @@ const Wrapper = (properties: HeaderLocator) => {
       {/* @ts-expect-error */}
       <Header {...locator.foo()} />
       <Header {...locator()} />
+      {/* @ts-expect-error */}
+      <div {...properties}></div>
     </div>
   );
 };
@@ -262,6 +275,8 @@ const Main = ({render, ...rest}: MainProperties) => {
       <span {...locator.text(textValue)}></span>
       <span {...locator.text({})}></span>
       <span {...locator.text({value: 'bar'})}></span>
+      {/* @ts-expect-error */}
+      <span {...rest}></span>
     </main>
   );
 };
@@ -538,3 +553,26 @@ true satisfies IsEqual<RenderedLocator, RenderedLocatorWithSymbolProperty>;
 type RenderedLocatorWithSymbolInParameters = Locator<{header: HeaderLocator}, {[SYMBOL]: 'baz'}>;
 
 false satisfies IsEqual<RenderedLocator, RenderedLocatorWithSymbolInParameters>;
+
+/**
+ * Base tests of removeLocatorFromProperties.
+ */
+type ButtonLocator = Locator<{}, {type: string}>;
+type ButtonProperties = ButtonLocator & {children: unknown};
+
+export const Button = ({children, ...restProps}: ButtonProperties) => {
+  const locator = createLocator(restProps);
+  const restPropertiesWithoutLocator = removeLocatorFromProperties(restProps);
+
+  // @ts-expect-error
+  createLocator(restPropertiesWithoutLocator);
+
+  return (
+    <button {...locator({type: 'foo'})}>
+      {/* @ts-expect-error */}
+      <label {...restProps}>{children}</label>
+      <label>{children}</label>
+      <label {...restPropertiesWithoutLocator}>{children}</label>
+    </button>
+  );
+};

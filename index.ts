@@ -3,6 +3,7 @@ import type {
   CreateLocator,
   GetLocatorParameters,
   MapAttributes,
+  RemoveLocatorFromProperties,
   RootOptions,
 } from './types';
 
@@ -208,5 +209,39 @@ export const getLocatorParameters = ((properties: Properties) => {
 
   return stringifiedLocator.parameters;
 }) as GetLocatorParameters;
+
+/**
+ * Removes locator mark from properties (or rest properties) object.
+ * Returns properties without attributes produced by the locator.
+ */
+export const removeLocatorFromProperties = ((properties: Properties) => {
+  if (productionAttribute in properties) {
+    const {[productionAttribute]: unused, ...propertiesWithoutLocator} = properties;
+
+    return propertiesWithoutLocator;
+  }
+
+  const stringifiedLocator = getStringifiedLocatorFromProperties(properties);
+  const {parameters} = stringifiedLocator;
+  const target = stringifiedLocator[CACHE][stringifiedLocator[PREFIX]]!;
+
+  const locatorAttributes = [target[OPTIONS].pathAttribute];
+
+  if (parameters) {
+    for (const key of Object.keys(parameters)) {
+      locatorAttributes.push(`${target[OPTIONS].parameterAttributePrefix}${key}`);
+    }
+  }
+
+  const propertiesWithoutLocator: Record<string, unknown> = {};
+
+  for (const [key, value] of Object.entries(properties as Record<string, unknown>)) {
+    if (!locatorAttributes.includes(key)) {
+      propertiesWithoutLocator[key] = value;
+    }
+  }
+
+  return propertiesWithoutLocator;
+}) as RemoveLocatorFromProperties;
 
 export type {Locator, Node} from './types';
