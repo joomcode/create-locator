@@ -82,7 +82,7 @@ export type Checks = [
 /**
  * Base tests of component, element and node locator.
  */
-type LabelLocator = Locator<{}, {level: string}>;
+export type LabelLocator = Locator<{}, {level: string}>;
 type LabelProperties = {level?: string; text: string} & LabelLocator;
 
 const Label = ({level, text, ...rest}: LabelProperties) => {
@@ -122,7 +122,7 @@ const Multi = (properties: MultiLocator) => {
 };
 
 type HeaderLocator = Locator<{
-  foo: LabelLocator;
+  foo?: LabelLocator;
   bar: LabelLocator;
   bind: {};
   subtree: Node<{
@@ -146,6 +146,9 @@ type HeaderProperties = {foo?: number} & HeaderLocator;
 
 const Header = ({foo, ...rest}: HeaderProperties) => {
   const locator = createLocator(rest);
+
+  // @ts-expect-error
+  locator.foo = {} as unknown as any;
 
   // @ts-expect-error
   createLocator({}) satisfies object;
@@ -225,10 +228,15 @@ type MainLocator = Locator<
 >;
 type MainProperties = {render: Function} & MainLocator;
 
+declare const mainProperties: MainProperties;
+
+export const mainLocator = createLocator(mainProperties);
+
 const Main = ({render, ...rest}: MainProperties) => {
   const locator = createLocator(rest);
 
-  locator.rendered;
+  locator.rendered satisfies Function;
+
   const rendered = render();
 
   // @ts-expect-error
@@ -343,7 +351,7 @@ export const App = () => {
  */
 type Selector = {readonly textContent: Promise<string>};
 
-const rootLocator = createLocator<AppLocator, Selector>('app', {
+export const rootLocator = createLocator<AppLocator, Selector>('app', {
   isProduction: true,
   mapAttributes() {
     return {} as Selector;

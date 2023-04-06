@@ -135,6 +135,11 @@ Requires [node](https://nodejs.org/en/) version 8 or higher:
 npm install create-locator
 ```
 
+## Thanks
+
+Inspired by ideas from the package [chain-id](https://www.npmjs.com/package/chain-id)
+and from its author [leutsky](https://github.com/leutsky) ✨.
+
 ## License
 
 [MIT][license-url]
