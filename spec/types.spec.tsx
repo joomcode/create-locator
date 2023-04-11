@@ -253,6 +253,9 @@ const Main = ({render, ...rest}: MainProperties) => {
   const rendered = render();
 
   // @ts-expect-error
+  locator.header.foo;
+
+  // @ts-expect-error
   locator();
   // @ts-expect-error
   locator({});
@@ -553,6 +556,62 @@ true satisfies IsEqual<RenderedLocator, RenderedLocatorWithSymbolProperty>;
 type RenderedLocatorWithSymbolInParameters = Locator<{header: HeaderLocator}, {[SYMBOL]: 'baz'}>;
 
 false satisfies IsEqual<RenderedLocator, RenderedLocatorWithSymbolInParameters>;
+
+type RenderedLocatorWithOptionalParameters = Locator<{header: HeaderLocator}, {foo?: string}>;
+
+type LinkProperties = {link: string} & Locator<{link: RenderedLocatorWithOptionalParameters}>;
+
+export const Link = (properties: LinkProperties) => {
+  const locator = createLocator(properties);
+
+  return (
+    <span {...locator()}>
+      {/* @ts-expect-error */}
+      <a {...locator.link()}>Link</a>
+      <a {...locator.link({})}>Link</a>
+    </span>
+  );
+};
+
+type RenderedLocatorWithOtherOptionalParameters = Locator<
+  {header: HeaderLocator},
+  {foo?: `foo${string}`}
+>;
+
+const RenderedWithOptionalParameters = (properties: RenderedLocatorWithOptionalParameters) => {
+  const locator = createLocator(properties);
+
+  return <div {...locator({})}></div>;
+};
+
+const RenderedWithOtherOptionalParameters = (
+  properties: RenderedLocatorWithOtherOptionalParameters,
+) => {
+  const locator = createLocator(properties);
+
+  return <div {...locator({})}></div>;
+};
+
+type PanelLocator = Locator<{
+  rendered: RenderedLocatorWithOptionalParameters;
+  otherRendered: RenderedLocatorWithOtherOptionalParameters;
+}>;
+
+export const Panel = (properties: PanelLocator) => {
+  const locator = createLocator(properties);
+
+  return (
+    <>
+      {/* @ts-expect-error */}
+      <RenderedWithOptionalParameters {...locator.otherRendered({})} />
+      {/* @ts-expect-error */}
+      <RenderedWithOtherOptionalParameters {...locator.rendered({})} />
+
+      <RenderedWithOptionalParameters {...locator.rendered({})} />
+      <RenderedWithOtherOptionalParameters {...locator.otherRendered({})} />
+    </>
+  );
+};
 
 /**
  * Base tests of removeLocatorFromProperties.

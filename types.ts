@@ -1,4 +1,11 @@
 /**
+ * Generates a type error with some message on HTML element.
+ */
+type ElementAttributeError<Message extends string | undefined = undefined> = {
+  readonly 'aria-invalid': Message;
+};
+
+/**
  * Symbol key for saving hidden normalized tree.
  */
 export declare const HIDDEN: unique symbol;
@@ -17,11 +24,6 @@ export declare const LOCATOR: unique symbol;
  * Type of symbol key for saving locator tree of component locator.
  */
 type LocatorKey = typeof LOCATOR;
-
-/**
- * Attribute key to generate an error if the user forgot to call the locator.
- */
-declare const NO_CALL_ERROR: 'aria-invalid';
 
 /**
  * Symbol key for saving locator tree of node locator.
@@ -72,12 +74,10 @@ type AnyParameters = Attributes;
  * Base node of locator tree (by parameters and optional subtree).
  */
 type BaseNode<Parameters, Subtree> = IsParametersEmpty<Parameters> extends true
-  ? ((this: void) => LocatorCallResult<Subtree>) & {
-      readonly [NO_CALL_ERROR]: 'The locator should be called';
-    }
-  : WithParameters<Parameters, LocatorCallResult<Subtree>> & {
-      readonly [NO_CALL_ERROR]: 'The locator should be called (with parameters)';
-    };
+  ? ((this: void) => LocatorCallResult<Subtree>) &
+      ElementAttributeError<'The locator should be called'>
+  : WithParameters<Parameters, LocatorCallResult<Subtree>> &
+      ElementAttributeError<'The locator should be called (with parameters)'>;
 
 /**
  * createLocator overload for component locator.
@@ -126,7 +126,7 @@ type Keys<T> = T extends unknown ? keyof T : never;
  *  Locator call result by locator tree.
  */
 type LocatorCallResult<Tree> = Tree extends object
-  ? AnyLocator<Tree> & {readonly [NO_CALL_ERROR]?: undefined}
+  ? AnyLocator<Tree> & Partial<ElementAttributeError>
   : object;
 
 /**
@@ -177,7 +177,7 @@ type NormalizeBaseNode<BaseNode, MapResult> = BaseNode extends AnyNodeWithParame
  */
 type NormalizeSubnodes<Subnodes, MapResult> = {
   readonly [Key in string &
-    Exclude<keyof Subnodes, typeof NO_CALL_ERROR>]: Subnodes[Key] extends AnyHidden
+    Exclude<keyof Subnodes, keyof ElementAttributeError>]: Subnodes[Key] extends AnyHidden
     ? MapResult extends void
       ? Subnodes[Key][HiddenKey]
       : NormalizeTree<Subnodes[Key][HiddenKey], MapResult>
@@ -242,9 +242,13 @@ export type GetLocatorParameters = <Properties extends AnyLocator<AnyNodeWithPar
 export type Locator<
   Description extends LocatorDescription,
   Parameters extends AnyParameters = {},
-> = AnyLocator<LocatorTree<Description, Parameters>> & {
-  readonly [NO_CALL_ERROR]?: 'The locator should be removed from spread properties' | undefined;
-};
+> = AnyLocator<LocatorTree<Description, Parameters>> &
+  Partial<
+    ElementAttributeError<
+      | 'The locator should be removed from spread properties with "removeLocatorFromProperties"'
+      | undefined
+    >
+  >;
 
 /**
  * Additional option of root locator for mapping attributes.
@@ -267,7 +271,7 @@ export type Node<
 export type RemoveLocatorFromProperties = <Properties extends AnyLocator>(
   this: void,
   properties: Properties,
-) => Omit<Properties, LocatorKey | typeof NO_CALL_ERROR>;
+) => Omit<Properties, LocatorKey | keyof ElementAttributeError>;
 
 /**
  * Options of root locator (as createLocator second argument).

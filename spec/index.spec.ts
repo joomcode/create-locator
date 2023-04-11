@@ -18,6 +18,7 @@ declare global {
 
   namespace JSX {
     export interface IntrinsicElements {
+      a: WithAriaInvalid;
       button: WithAriaInvalid;
       div: WithAriaInvalid;
       h1: WithAriaInvalid;
