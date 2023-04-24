@@ -46,26 +46,6 @@ export declare const PARAMETERS: unique symbol;
 type ParametersKey = typeof PARAMETERS;
 
 /**
- * Any hidden normalized tree of locators.
- */
-type AnyHidden<NormalizedTree = object> = Readonly<Record<HiddenKey, NormalizedTree>>;
-
-/**
- * Any locator type, maybe with locator tree constraint (result of Locator<...>).
- */
-type AnyLocator<Tree = object> = Readonly<Record<LocatorKey, Tree>>;
-
-/**
- * Any node locator type (result of Node<...>).
- */
-type AnyNode<Tree = object> = Readonly<Record<NodeKey, Tree>>;
-
-/**
- * Any node of locator tree with some parameters.
- */
-type AnyNodeWithParameters<Parameters = object> = Readonly<Record<ParametersKey, Parameters>>;
-
-/**
  * Any locator parameters (general type for constraints).
  */
 type AnyParameters = Attributes;
@@ -76,21 +56,21 @@ type AnyParameters = Attributes;
 type BaseNode<Parameters, Subtree> = IsParametersEmpty<Parameters> extends true
   ? ((this: void) => LocatorCallResult<Subtree>) &
       ElementAttributeError<'The locator should be called'>
-  : WithParameters<Parameters, LocatorCallResult<Subtree>> &
+  : NodeWithParameters<Parameters, LocatorCallResult<Subtree>> &
       ElementAttributeError<'The locator should be called (with parameters)'>;
 
 /**
  * createLocator overload for component locator.
  */
-type CreateComponentLocator = <Properties extends AnyLocator>(
+type CreateComponentLocator = <Properties extends Partial<WithLocator>>(
   this: void,
   properties: Properties,
-) => RuntimeLocator<Properties[LocatorKey]>;
+) => RuntimeLocator<Exclude<Properties[LocatorKey], undefined>>;
 
 /**
  * createLocator overload for root locator.
  */
-type CreateRootLocator = <RootLocator extends AnyLocator>(
+type CreateRootLocator = <RootLocator extends WithLocator>(
   this: void,
   rootPrefix: string,
   rootOptions?: Partial<RootOptions>,
@@ -99,7 +79,7 @@ type CreateRootLocator = <RootLocator extends AnyLocator>(
 /**
  * createLocator overload for root locator with attributes mapping.
  */
-type CreateRootLocatorWithMapping = <RootLocator extends AnyLocator, MapResult>(
+type CreateRootLocatorWithMapping = <RootLocator extends WithLocator, MapResult>(
   this: void,
   rootPrefix: string,
   rootOptions: Partial<RootOptions> & MapAttributes<MapResult>,
@@ -108,7 +88,7 @@ type CreateRootLocatorWithMapping = <RootLocator extends AnyLocator, MapResult>(
 /**
  * Extracts parameters from some base or normalized node.
  */
-type ExtractNodeParameters<SomeNode> = SomeNode extends AnyNodeWithParameters
+type ExtractNodeParameters<SomeNode> = SomeNode extends WithParameters
   ? SomeNode[ParametersKey]
   : {};
 
@@ -126,19 +106,19 @@ type Keys<T> = T extends unknown ? keyof T : never;
  *  Locator call result by locator tree.
  */
 type LocatorCallResult<Tree> = Tree extends object
-  ? AnyLocator<Tree> & Partial<ElementAttributeError>
+  ? WithLocator<Tree> & Partial<ElementAttributeError>
   : object;
 
 /**
  * Description of locator tree (argument of Locator<...> and Node<...>).
  */
 type LocatorDescription = Readonly<
-  Record<string, AnyLocator | AnyNode | AnyParameters> &
+  Record<string, WithLocator | WithNode | AnyParameters> &
     Partial<
-      AnyHidden<NotLocatorDescription> &
-        AnyLocator<NotLocatorDescription> &
-        AnyNode<NotLocatorDescription> &
-        AnyNodeWithParameters<NotLocatorDescription>
+      WithHidden<NotLocatorDescription> &
+        WithLocator<NotLocatorDescription> &
+        WithNode<NotLocatorDescription> &
+        WithParameters<NotLocatorDescription>
     >
 >;
 
@@ -158,18 +138,25 @@ type LocatorTree<
 /**
  * Creates locator tree node by locator description node.
  */
-type LocatorTreeNode<DescriptionNode> = [DescriptionNode] extends [AnyLocator]
+type LocatorTreeNode<DescriptionNode> = [DescriptionNode] extends [WithLocator]
   ? BaseNode<ExtractNodeParameters<DescriptionNode[LocatorKey]>, DescriptionNode[LocatorKey]> &
-      AnyHidden<NormalizeTree<DescriptionNode[LocatorKey]>>
-  : [DescriptionNode] extends [AnyNode]
+      WithHidden<NormalizeTree<DescriptionNode[LocatorKey]>>
+  : [DescriptionNode] extends [WithNode]
   ? DescriptionNode[NodeKey]
   : BaseNode<DescriptionNode, void>;
 
 /**
+ * The parameter-dependent part of the base node.
+ */
+type NodeWithParameters<Parameters, Return> = {
+  (this: void, parameters: Parameters): Return;
+} & WithParameters<Parameters>;
+
+/**
  * Normalize base node of locator tree by base node and map result.
  */
-type NormalizeBaseNode<BaseNode, MapResult> = BaseNode extends AnyNodeWithParameters
-  ? WithParameters<BaseNode[ParametersKey], MapResult>
+type NormalizeBaseNode<BaseNode, MapResult> = BaseNode extends WithParameters
+  ? NodeWithParameters<BaseNode[ParametersKey], MapResult>
   : (this: void) => MapResult;
 
 /**
@@ -177,7 +164,7 @@ type NormalizeBaseNode<BaseNode, MapResult> = BaseNode extends AnyNodeWithParame
  */
 type NormalizeSubnodes<Subnodes, MapResult> = {
   readonly [Key in string &
-    Exclude<keyof Subnodes, keyof ElementAttributeError>]: Subnodes[Key] extends AnyHidden
+    Exclude<keyof Subnodes, keyof ElementAttributeError>]: Subnodes[Key] extends WithHidden
     ? MapResult extends void
       ? Subnodes[Key][HiddenKey]
       : NormalizeTree<Subnodes[Key][HiddenKey], MapResult>
@@ -198,7 +185,7 @@ type NotLocatorDescription = 'Not a locator tree description';
 /**
  * Type of runtime locator object by locator tree.
  */
-type RuntimeLocator<Tree> = Tree extends AnyNodeWithParameters
+type RuntimeLocator<Tree> = Tree extends WithParameters
   ? Tree
   : {readonly [Key in string & keyof Tree]: Tree[Key]} & BaseNode<{}, Tree>;
 
@@ -210,11 +197,24 @@ type UnionToIntersection<U> = (U extends any ? (k: U) => void : never) extends (
   : never;
 
 /**
- * The parameter-dependent part of the base node.
+ * Object with hidden normalized tree of locators.
  */
-type WithParameters<Parameters, Return> = {
-  (this: void, parameters: Parameters): Return;
-} & AnyNodeWithParameters<Parameters>;
+type WithHidden<NormalizedTree = object> = Readonly<Record<HiddenKey, NormalizedTree>>;
+
+/**
+ * Object with locator tree (unnormalized tree of locators, produced by Locator<...>).
+ */
+type WithLocator<Tree = object> = Readonly<Record<LocatorKey, Tree>>;
+
+/**
+ * Object with node locator (produced by Node<...>).
+ */
+type WithNode<Tree = object> = Readonly<Record<NodeKey, Tree>>;
+
+/**
+ * Any node of locator tree with some parameters.
+ */
+type WithParameters<Parameters = object> = Readonly<Record<ParametersKey, Parameters>>;
 
 /**
  * Attributes object.
@@ -231,7 +231,7 @@ export type CreateLocator = CreateComponentLocator &
 /**
  * Type of getLocatorParameters function.
  */
-export type GetLocatorParameters = <Properties extends AnyLocator<AnyNodeWithParameters>>(
+export type GetLocatorParameters = <Properties extends WithLocator<WithParameters>>(
   this: void,
   properties: Properties,
 ) => ExtractNodeParameters<Properties[LocatorKey]>;
@@ -242,7 +242,7 @@ export type GetLocatorParameters = <Properties extends AnyLocator<AnyNodeWithPar
 export type Locator<
   Description extends LocatorDescription,
   Parameters extends AnyParameters = {},
-> = AnyLocator<LocatorTree<Description, Parameters>> &
+> = WithLocator<LocatorTree<Description, Parameters>> &
   Partial<
     ElementAttributeError<
       | 'The locator should be removed from spread properties with "removeLocatorFromProperties"'
@@ -263,12 +263,12 @@ export type MapAttributes<MapResult> = {
 export type Node<
   Description extends LocatorDescription,
   Parameters extends AnyParameters = {},
-> = AnyNode<LocatorTree<Description, Parameters>>;
+> = WithNode<LocatorTree<Description, Parameters>>;
 
 /**
  * Type of removeLocatorFromProperties function.
  */
-export type RemoveLocatorFromProperties = <Properties extends AnyLocator>(
+export type RemoveLocatorFromProperties = <Properties extends WithLocator>(
   this: void,
   properties: Properties,
 ) => Omit<Properties, LocatorKey | keyof ElementAttributeError>;

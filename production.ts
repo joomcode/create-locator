@@ -1,6 +1,6 @@
 import type {CreateLocator, GetLocatorParameters} from './types';
 
-const attributes = {'data-test-create-locator': undefined};
+const attributes = {'data-test-production-create-locator': undefined};
 const toString = () => '';
 
 const proxy: () => unknown = new Proxy(

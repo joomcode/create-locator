@@ -85,6 +85,8 @@ export type Checks = [
   Node<{}, {foo: L1}>,
 ];
 
+const locatorForEmptyProperties = createLocator({}) satisfies object;
+
 /**
  * Base tests of component, element and node locator.
  */
@@ -155,9 +157,6 @@ const Header = ({foo, ...rest}: HeaderProperties) => {
 
   // @ts-expect-error
   locator.foo = {} as unknown as any;
-
-  // @ts-expect-error
-  createLocator({}) satisfies object;
 
   locator.bind() satisfies object;
 
@@ -315,6 +314,9 @@ export const App = () => {
   const locator = createLocator<AppLocator>('app');
 
   // @ts-expect-error
+  createLocator<Partial<AppLocator>>('app');
+
+  // @ts-expect-error
   createLocator<AppLocator>();
 
   // @ts-expect-error
@@ -385,6 +387,13 @@ createLocator<AppLocator, Selector>('app');
 createLocator<AppLocator, Selector>('app', {});
 // @ts-expect-error
 createLocator<AppLocator, Selector>('app', {mapAttributes() {}});
+
+// @ts-expect-error
+createLocator<Partial<AppLocator>, Selector>('app', {
+  mapAttributes(attributes: {}) {
+    return attributes as Selector;
+  },
+});
 
 createLocator<AppLocator, Selector>('app', {
   mapAttributes(attributes: {}) {
@@ -524,11 +533,11 @@ export const PageWrapper = (properties: PageWrapperLocator) => {
 /**
  * Tests of properties modifiers and symbol properties in locator description.
  */
-type RenderedLocatorWithOptional = Locator<{
+type RenderedLocatorWithOptionalField = Locator<{
   header?: HeaderLocator;
 }>;
 
-true satisfies IsEqual<RenderedLocator, RenderedLocatorWithOptional>;
+true satisfies IsEqual<RenderedLocator, RenderedLocatorWithOptionalField>;
 
 type RenderedLocatorWithReadonly = Locator<{
   readonly header: HeaderLocator;
@@ -614,24 +623,74 @@ export const Panel = (properties: PanelLocator) => {
 };
 
 /**
+ * Tests of optional locator.
+ */
+type OptionalPanelLocator = Partial<PanelLocator>;
+
+const panelProperties = {} as PanelLocator;
+const panelLocator = createLocator(panelProperties);
+
+export const PanelWithOptionalLocator = (properties: OptionalPanelLocator) => {
+  const locator = createLocator(properties);
+
+  true satisfies IsEqual<typeof locator, typeof panelLocator>;
+  false satisfies IsEqual<typeof locator, typeof locatorForEmptyProperties>;
+
+  return (
+    <>
+      <Panel {...locator()} />
+      {/* @ts-expect-error */}
+      <Link link="foo" {...locator()} />
+    </>
+  );
+};
+
+export const PanelWithoutLocator = (properties: {}) => {
+  const locator = createLocator(properties);
+  const locatorForObjectType = createLocator({} as object);
+
+  true satisfies IsEqual<typeof locator, typeof locatorForEmptyProperties>;
+  true satisfies IsEqual<typeof locatorForObjectType, typeof locatorForEmptyProperties>;
+
+  return <div {...locator()}></div>;
+};
+
+export const panels = (
+  <>
+    {/* @ts-expect-error */}
+    <Panel />
+    <PanelWithOptionalLocator />
+    <PanelWithOptionalLocator {...panelLocator()} />
+    <PanelWithoutLocator />
+    <PanelWithoutLocator {...locatorForEmptyProperties()} />
+  </>
+);
+
+/**
  * Base tests of removeLocatorFromProperties.
  */
-type ButtonLocator = Locator<{}, {type: string}>;
+type ButtonLocator = Locator<{bar: {}}, {type: string}>;
 type ButtonProperties = ButtonLocator & {children: unknown};
 
 export const Button = ({children, ...restProps}: ButtonProperties) => {
   const locator = createLocator(restProps);
   const restPropertiesWithoutLocator = removeLocatorFromProperties(restProps);
 
-  // @ts-expect-error
-  createLocator(restPropertiesWithoutLocator);
+  const locatorWithoutType = createLocator(restPropertiesWithoutLocator);
+
+  true satisfies IsEqual<typeof locatorForEmptyProperties, typeof locatorWithoutType>;
 
   return (
     <button {...locator({type: 'foo'})}>
       {/* @ts-expect-error */}
       <label {...restProps}>{children}</label>
-      <label>{children}</label>
+      {/* @ts-expect-error */}
+      <label {...locatorWithoutType}>{children}</label>
+      <label {...locatorWithoutType()}>{children}</label>
+      {/* @ts-expect-error */}
+      <label {...locatorWithoutType.bar()}>{children}</label>
       <label {...restPropertiesWithoutLocator}>{children}</label>
+      <label {...locator.bar()}>{children}</label>
     </button>
   );
 };

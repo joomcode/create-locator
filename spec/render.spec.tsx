@@ -17,7 +17,7 @@ export const React = {
   },
 };
 
-export const testRender: Test = (createLocator, getLocatorParameters, environment) => {
+export const testRender: Test = ([createLocator, getLocatorParameters], environment) => {
   type FooLocator = Locator<{fooLeaf: {quux: string}}, {corge: string}>;
   type NodeLocator = Node<{subleaf: {baz: string}}, {qux: string}>;
 
@@ -86,7 +86,7 @@ export const testRender: Test = (createLocator, getLocatorParameters, environmen
 
   assert(
     JSON.stringify(<Root />) === JSON.stringify(expectedRoot),
-    `${environment}: locators with custom options should render attributes correctly`,
+    'with custom options should render attributes correctly',
   );
 
   type ElementType = 'image' | 'text';
@@ -252,6 +252,6 @@ export const testRender: Test = (createLocator, getLocatorParameters, environmen
 
   assert(
     JSON.stringify(<App />) === JSON.stringify(expectedApp),
-    `${environment}: locators with default options should render attributes correctly`,
+    'with default options should render attributes correctly',
   );
 };
