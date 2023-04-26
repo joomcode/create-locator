@@ -72,11 +72,6 @@ const DEFAULT_OPTIONS: RootOptions = {
 const productionLocator = productionCreateLocator('app');
 
 /**
- * Locator attribute for production runtime.
- */
-const productionAttribute = Object.keys(productionLocator())[0]!;
-
-/**
  * Proxy hanlder for proxied locator.
  */
 const handler: ProxyHandler<ProxiedLocator> = {
@@ -149,14 +144,16 @@ const createProxiedLocator = (prefix: string, options: Options, cache: Cache): P
  * Get stringified locator from component properties that marked with locator.
  * Throws an error if the properties are not marked with a locator.
  */
-const getStringifiedLocatorFromProperties = (properties: Properties): StringifiedLocator => {
+const getStringifiedLocatorFromProperties = (
+  properties: Properties,
+): StringifiedLocator | undefined => {
   for (const value of Object.values(properties)) {
     if (value !== null && typeof value === 'object' && CACHE in value) {
       return value;
     }
   }
 
-  throw new TypeError(`Properties do not contain a locator (${properties})`);
+  return;
 };
 
 /**
@@ -188,24 +185,24 @@ export const createLocator = ((
     return proxiedLocator;
   }
 
-  if (productionAttribute in prefixOrProperties) {
+  const stringifiedLocator = getStringifiedLocatorFromProperties(prefixOrProperties);
+
+  if (!stringifiedLocator) {
     return productionLocator as unknown as ProxiedLocator;
   }
 
-  const stringifiedLocator = getStringifiedLocatorFromProperties(prefixOrProperties);
-
   return stringifiedLocator[CACHE][stringifiedLocator[PREFIX]]!;
-}) as CreateLocator;
+}) as unknown as CreateLocator;
 
 /**
  * Get parameters of component locator by component properties.
  */
 export const getLocatorParameters = ((properties: Properties) => {
-  if (productionAttribute in properties) {
+  const stringifiedLocator = getStringifiedLocatorFromProperties(properties);
+
+  if (!stringifiedLocator) {
     return productionLocator;
   }
-
-  const stringifiedLocator = getStringifiedLocatorFromProperties(properties);
 
   return stringifiedLocator.parameters;
 }) as GetLocatorParameters;
@@ -215,13 +212,12 @@ export const getLocatorParameters = ((properties: Properties) => {
  * Returns properties without attributes produced by the locator.
  */
 export const removeLocatorFromProperties = ((properties: Properties) => {
-  if (productionAttribute in properties) {
-    const {[productionAttribute]: unused, ...propertiesWithoutLocator} = properties;
+  const stringifiedLocator = getStringifiedLocatorFromProperties(properties);
 
-    return propertiesWithoutLocator;
+  if (!stringifiedLocator) {
+    return properties;
   }
 
-  const stringifiedLocator = getStringifiedLocatorFromProperties(properties);
   const {parameters} = stringifiedLocator;
   const target = stringifiedLocator[CACHE][stringifiedLocator[PREFIX]]!;
 

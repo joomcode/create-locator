@@ -6,9 +6,19 @@ type RootLocator = Locator<{toString: {foo: string}; bar: Node<{baz: {}}>}, {qux
 
 export const testBasicInteractions: Test = ([createLocator, getLocatorParameters], environment) => {
   const locator = createLocator<RootLocator>('root');
+  const SYMBOL = Symbol();
 
   const anyLocator: any = locator.toString;
-  const propertiesWihtoutLocator = {foo: {}, bar: null, baz: '', qux: 0} as unknown as RootLocator;
+  const parameters = {qux: 'quux'};
+  const propertiesWithoutLocator = {
+    foo: {},
+    bar: null,
+    baz: '',
+    [SYMBOL]: 3,
+    qux: 0,
+  } as unknown as RootLocator;
+  const propertiesWithParameters = {...locator(parameters)};
+
   let locatorAsNumber: number = anyLocator;
   let throwCounter = 0;
 
@@ -26,16 +36,7 @@ export const testBasicInteractions: Test = ([createLocator, getLocatorParameters
   Number(locator);
   Symbol(anyLocator);
 
-  let expectedThrowCounter = environment === 'development' ? 6 : 1;
-
-  if (environment.endsWith('WithDevParameters')) {
-    expectedThrowCounter += 1;
-  }
-
-  if (environment.startsWith('productionFromOptions')) {
-    expectedThrowCounter += 1;
-  }
-
+  const expectedThrowCounter = environment === 'development' ? 4 : 1;
   const path = environment === 'development' ? 'root-bar-baz' : '';
   const toStringPath = environment === 'development' ? 'root-toString' : '';
 
@@ -69,25 +70,22 @@ export const testBasicInteractions: Test = ([createLocator, getLocatorParameters
     'locator with toString in path correctly converts to JSON',
   );
 
-  try {
-    createLocator(propertiesWihtoutLocator);
-  } catch (error) {
-    throwCounter += 1;
+  assert(
+    Boolean(createLocator(propertiesWithoutLocator)),
+    'createLocator do not throws an exception if properties do not contain a locator',
+  );
+
+  if (environment === 'development') {
     assert(
-      error instanceof TypeError && error.message.includes('Properties do not contain a locator'),
-      'createLocator throws an exception if properties do not contain a locator',
+      getLocatorParameters(propertiesWithParameters) === parameters,
+      'getLocatorParameters returns correct parameters',
     );
   }
 
-  try {
-    getLocatorParameters(propertiesWihtoutLocator);
-  } catch (error) {
-    throwCounter += 1;
-    assert(
-      error instanceof TypeError && error.message.includes('Properties do not contain a locator'),
-      'getLocatorParameters throws an exception if properties do not contain a locator',
-    );
-  }
+  assert(
+    getLocatorParameters(propertiesWithoutLocator) === getLocatorParameters({}),
+    'getLocatorParameters returns one single value for properties without parameters',
+  );
 
   try {
     delete anyLocator.corge;

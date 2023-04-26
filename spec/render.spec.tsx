@@ -159,6 +159,35 @@ export const testRender: Test = ([createLocator, getLocatorParameters], environm
     );
   };
 
+  type FooterLocator = Locator<{faq: {}}, {link: string}>;
+  type FooterProperties = Partial<FooterLocator>;
+
+  const Footer = (properties: FooterProperties) => {
+    const locator = createLocator(properties);
+    const propertiesWithoutLocator = removeLocatorFromProperties(properties);
+    const locatorWithoutType = createLocator(propertiesWithoutLocator);
+
+    const parameters = getLocatorParameters(properties);
+    const parametersWithoutType = getLocatorParameters(propertiesWithoutLocator);
+
+    assert(
+      Object.keys(parameters).length === 0,
+      'parameters are empty if the component is not marked with locator',
+    );
+
+    assert(
+      parameters === parametersWithoutType,
+      'parameters from all properties without locator is the same object',
+    );
+
+    return (
+      <div {...locator(parameters)}>
+        <a {...locator.faq()}>FAQ</a>
+        <span {...locatorWithoutType()}></span>
+      </div>
+    );
+  };
+
   type AppLocator = Locator<{
     header: HeaderLocator;
     label: LabelLocator;
@@ -179,6 +208,7 @@ export const testRender: Test = ([createLocator, getLocatorParameters], environm
         <Header text="content" {...locator.header()} />
         <Main render={render} {...locator.main()} />
         <Label level="1" text="baz" {...locator.label({})} />
+        <Footer />
       </div>
     );
   };
@@ -219,6 +249,10 @@ export const testRender: Test = ([createLocator, getLocatorParameters], environm
       <span data-testid="app-label" data-test-level="1" data-test-type="image">
         baz
       </span>
+      <div>
+        <a>FAQ</a>
+        <span></span>
+      </div>
     </div>
   );
 
@@ -244,6 +278,10 @@ export const testRender: Test = ([createLocator, getLocatorParameters], environm
         </h1>
       </main>
       <span>baz</span>
+      <div>
+        <a>FAQ</a>
+        <span></span>
+      </div>
     </div>
   );
 

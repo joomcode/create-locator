@@ -60,7 +60,7 @@ const createLocatorWithIsProduction = ((...args: Parameters<typeof createLocator
   }
 
   return createLocator(...args);
-}) as typeof createLocator;
+}) as unknown as typeof createLocator;
 
 const environments: Readonly<Record<string, Api>> = {
   development: [createLocator, getLocatorParameters],

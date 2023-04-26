@@ -62,7 +62,7 @@ type BaseNode<Parameters, Subtree> = IsParametersEmpty<Parameters> extends true
 /**
  * createLocator overload for component locator.
  */
-type CreateComponentLocator = <Properties extends Partial<WithLocator>>(
+type CreateComponentLocator = <Properties extends Partial<WithLocator> & object>(
   this: void,
   properties: Properties,
 ) => RuntimeLocator<Exclude<Properties[LocatorKey], undefined>>;
@@ -185,9 +185,10 @@ type NotLocatorDescription = 'Not a locator tree description';
 /**
  * Type of runtime locator object by locator tree.
  */
-type RuntimeLocator<Tree> = Tree extends WithParameters
-  ? Tree
-  : {readonly [Key in string & keyof Tree]: Tree[Key]} & BaseNode<{}, Tree>;
+type RuntimeLocator<Tree> = {readonly [Key in string & keyof Tree]: Tree[Key]} & BaseNode<
+  Tree extends WithParameters ? Tree[ParametersKey] : {},
+  Tree
+>;
 
 /**
  * Converts union of types to intersection of this types.
@@ -231,10 +232,12 @@ export type CreateLocator = CreateComponentLocator &
 /**
  * Type of getLocatorParameters function.
  */
-export type GetLocatorParameters = <Properties extends WithLocator<WithParameters>>(
+export type GetLocatorParameters = <
+  Properties extends Partial<WithLocator | WithLocator<WithParameters | undefined>>,
+>(
   this: void,
   properties: Properties,
-) => ExtractNodeParameters<Properties[LocatorKey]>;
+) => ExtractNodeParameters<Exclude<Properties[LocatorKey], undefined>>;
 
 /**
  * Creates component locator type by locator description and locator parameters.
@@ -268,7 +271,7 @@ export type Node<
 /**
  * Type of removeLocatorFromProperties function.
  */
-export type RemoveLocatorFromProperties = <Properties extends WithLocator>(
+export type RemoveLocatorFromProperties = <Properties extends Partial<WithLocator>>(
   this: void,
   properties: Properties,
 ) => Omit<Properties, LocatorKey | keyof ElementAttributeError>;
