@@ -62,10 +62,14 @@ type BaseNode<Parameters, Subtree> = IsParametersEmpty<Parameters> extends true
 /**
  * createLocator overload for component locator.
  */
-type CreateComponentLocator = <Properties extends Partial<WithLocator> & object>(
+type CreateComponentLocator = <Properties extends Partial<WithLocator>>(
   this: void,
   properties: Properties,
-) => RuntimeLocator<Exclude<Properties[LocatorKey], undefined>>;
+) => RuntimeLocator<
+  unknown extends Exclude<Properties[LocatorKey], undefined>
+    ? object
+    : Exclude<Properties[LocatorKey], undefined>
+>;
 
 /**
  * createLocator overload for root locator.

@@ -75,14 +75,14 @@ const productionLocator = productionCreateLocator('app');
  * Proxy hanlder for proxied locator.
  */
 const handler: ProxyHandler<ProxiedLocator> = {
-  apply(target, thisArg, args): Attributes {
+  apply(target, thisArg, [parameters]): Attributes {
     const attributes: Record<string, string> = {
       [target[OPTIONS].pathAttribute]: target[PREFIX],
     } satisfies typeof thisArg;
 
-    if (args[0]) {
-      for (const [key, value] of Object.entries(args[0] as Attributes)) {
-        attributes[`${target[OPTIONS].parameterAttributePrefix}${key}`] = value;
+    if (parameters) {
+      for (const key of Object.keys(parameters)) {
+        attributes[`${target[OPTIONS].parameterAttributePrefix}${key}`] = parameters[key];
       }
     }
 
@@ -92,7 +92,7 @@ const handler: ProxyHandler<ProxiedLocator> = {
 
     const stringifiedLocator: StringifiedLocator = {
       [CACHE]: target[CACHE],
-      parameters: args[0] ? args[0] : undefined,
+      parameters,
       [PREFIX]: target[PREFIX],
       toJSON: toString,
       toString,
@@ -147,7 +147,9 @@ const createProxiedLocator = (prefix: string, options: Options, cache: Cache): P
 const getStringifiedLocatorFromProperties = (
   properties: Properties,
 ): StringifiedLocator | undefined => {
-  for (const value of Object.values(properties)) {
+  for (const key of Object.keys(properties || true)) {
+    const value = properties[key];
+
     if (value !== null && typeof value === 'object' && CACHE in value) {
       return value;
     }
@@ -200,11 +202,7 @@ export const createLocator = ((
 export const getLocatorParameters = ((properties: Properties) => {
   const stringifiedLocator = getStringifiedLocatorFromProperties(properties);
 
-  if (!stringifiedLocator) {
-    return productionLocator;
-  }
-
-  return stringifiedLocator.parameters;
+  return stringifiedLocator?.parameters || productionLocator;
 }) as GetLocatorParameters;
 
 /**
@@ -229,11 +227,17 @@ export const removeLocatorFromProperties = ((properties: Properties) => {
     }
   }
 
-  const propertiesWithoutLocator: Record<string, unknown> = {};
+  const propertiesWithoutLocator: Record<string, unknown> = Object.create(
+    Object.getPrototypeOf(properties),
+  );
 
-  for (const [key, value] of Object.entries(properties as Record<string, unknown>)) {
-    if (!locatorAttributes.includes(key)) {
-      propertiesWithoutLocator[key] = value;
+  for (const key of Reflect.ownKeys(properties)) {
+    if (!locatorAttributes.includes(key as string)) {
+      Object.defineProperty(
+        propertiesWithoutLocator,
+        key,
+        Object.getOwnPropertyDescriptor(properties, key)!,
+      );
     }
   }
 

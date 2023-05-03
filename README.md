@@ -135,6 +135,8 @@ Requires [node](https://nodejs.org/en/) version 8 or higher:
 npm install create-locator
 ```
 
+`create-locator` 📌 works in any environment that supports ES2015 (uses `Proxy` internally).
+
 ## Thanks
 
 Inspired by ideas from the package [chain-id](https://www.npmjs.com/package/chain-id)

@@ -1,4 +1,3 @@
-import {removeLocatorFromProperties} from '../index';
 import type {Locator, Node} from '../index';
 
 import {assert, type Test} from './index.spec';
@@ -17,7 +16,10 @@ export const React = {
   },
 };
 
-export const testRender: Test = ([createLocator, getLocatorParameters], environment) => {
+export const testRender: Test = (
+  [createLocator, getLocatorParameters, removeLocatorFromProperties],
+  environment,
+) => {
   type FooLocator = Locator<{fooLeaf: {quux: string}}, {corge: string}>;
   type NodeLocator = Node<{subleaf: {baz: string}}, {qux: string}>;
 
@@ -25,6 +27,8 @@ export const testRender: Test = ([createLocator, getLocatorParameters], environm
     {component: FooLocator; leaf: {foo: string}; node: NodeLocator},
     {bar: string}
   >;
+
+  const SYMBOL = Symbol();
 
   const rootLocator = createLocator<RootLocator>('root', {
     parameterAttributePrefix: 'data-prefix-',
@@ -38,9 +42,13 @@ export const testRender: Test = ([createLocator, getLocatorParameters], environm
 
     locatorParameters.corge += '-grault';
 
+    // @ts-expect-error
+    locatorParameters[SYMBOL] = 'baz';
+
     return (
       <div {...locator(locatorParameters)}>
-        <span {...locator.fooLeaf({quux: 'garply'})}></span>
+        {/* @ts-expect-error */}
+        <span {...locator.fooLeaf({quux: 'garply', [SYMBOL]: 'bar'})}></span>
       </div>
     );
   };

@@ -100,6 +100,7 @@ const Label = ({level, text, ...rest}: LabelProperties) => {
   // @ts-expect-error
   createLocator();
 
+  // @ts-expect-error
   createLocator({} as {foo: string});
 
   // @ts-expect-error
@@ -313,6 +314,9 @@ type AppLocator = Locator<{
 
 export const App = () => {
   const locator = createLocator<AppLocator>('app');
+  const locatorByProperties = createLocator({} as AppLocator);
+
+  true satisfies IsEqual<typeof locator, typeof locatorByProperties>;
 
   // @ts-expect-error
   createLocator<Partial<AppLocator>>('app');
@@ -416,11 +420,14 @@ locator.main.header.alsosubtree.corge({bar: 'baz'});
 /**
  * Base tests of getLocatorParameters.
  */
-type BannerLocator = Locator<{text: {}}, {id: `id${string}`; [SYMBOL]?: number}>;
+type BannerParameters = {id: `id${string}`; [SYMBOL]?: number};
+type BannerLocator = Locator<{text: {}}, BannerParameters>;
 
 export const Banner = (properties: BannerLocator) => {
   const locator = createLocator(properties);
   const locatorParameters = getLocatorParameters(properties);
+
+  true satisfies IsEqual<typeof locatorParameters, BannerParameters>;
 
   return (
     <>
@@ -474,12 +481,15 @@ export const Button = ({children, ...restProps}: ButtonProperties) => {
   true satisfies IsEqual<ButtonOwnPropertiesWithReadonly, typeof propertiesWithoutLocator>;
 
   const locatorWithFullProperties = createLocator(properties);
+  // @ts-expect-error
   const locatorByPropertiesWithoutLocator = createLocator(propertiesWithoutLocator);
 
   true satisfies IsEqual<ButtonOwnPropertiesWithReadonly, typeof propertiesWithoutLocator>;
 
+  // @ts-expect-error
   const locatorWithoutType = createLocator(restPropertiesWithoutLocator);
 
+  // @ts-expect-error
   createLocator({} as unknown as {[SYMBOL]: 'bar'});
 
   true satisfies IsEqual<typeof locatorForEmptyProperties, typeof locatorWithoutType>;
@@ -669,6 +679,7 @@ const RenderedWithOptionalParameters = (properties: RenderedLocatorWithOptionalP
 
   const propertiesWithoutLocator = removeLocatorFromProperties(propertiesWithSymbol);
 
+  // @ts-expect-error
   createLocator(propertiesWithoutLocator);
 
   return <div {...locator({})}></div>;
@@ -682,11 +693,14 @@ const RenderedWithOtherOptionalParameters = (
   return <div {...locator({})}></div>;
 };
 
-type PanelLocator = Locator<{
-  rendered: RenderedLocatorWithOptionalParameters;
-  otherRendered: RenderedLocatorWithOtherOptionalParameters;
-  renderedWithParameters: RenderedNodeWithParameters;
-}>;
+type PanelLocator = Locator<
+  {
+    rendered: RenderedLocatorWithOptionalParameters;
+    otherRendered: RenderedLocatorWithOtherOptionalParameters;
+    renderedWithParameters: RenderedNodeWithParameters;
+  },
+  {quux: string}
+>;
 
 const Panel = (properties: PanelLocator) => {
   const locator = createLocator(properties);
@@ -771,7 +785,7 @@ export const withParameters = (
 /**
  * Tests of optional locator.
  */
-type OptionalPanelLocator = Partial<PanelLocator>;
+type OptionalPanelLocator = Partial<{qux: string} & PanelLocator>;
 
 const panelProperties = {} as PanelLocator;
 
@@ -789,13 +803,44 @@ const PanelWithOptionalLocator = (properties: OptionalPanelLocator) => {
 
   const parameters = getLocatorParameters(panelProperties);
   const parametersWithOptionalLocator = getLocatorParameters(properties);
-  const parametersWithoutLocator = getLocatorParameters(propertiesWithoutLocator);
+
+  const someProperties = {} as {foo: 'bar'};
+  const somePropertiesWithSymbol = {} as typeof someProperties & {[SYMBOL]: 'baz'};
+
+  createLocator({});
+
+  // @ts-expect-error
+  createLocator(someProperties);
+  // @ts-expect-error
+  createLocator(somePropertiesWithSymbol);
+  // @ts-expect-error
+  createLocator(propertiesWithoutLocator);
+
+  const parametersForEmptyProperties = getLocatorParameters({});
+
+  // @ts-expect-error
+  getLocatorParameters(someProperties);
+  // @ts-expect-error
+  getLocatorParameters(somePropertiesWithSymbol);
+  // @ts-expect-error
+  getLocatorParameters(propertiesWithoutLocator);
+
+  const propertiesForEmptyProperties = removeLocatorFromProperties({});
+
+  // @ts-expect-error
+  removeLocatorFromProperties(someProperties);
+  // @ts-expect-error
+  removeLocatorFromProperties(somePropertiesWithSymbol);
+  // @ts-expect-error
+  removeLocatorFromProperties(propertiesWithoutLocator);
 
   true satisfies IsEqual<typeof parameters, typeof parametersWithOptionalLocator>;
-  true satisfies IsEqual<typeof parameters, typeof parametersWithoutLocator>;
+  true satisfies IsEqual<typeof parametersForEmptyProperties, typeof propertiesForEmptyProperties>;
 
   return (
     <>
+      <Panel {...locator({quux: 'foo'})} />
+      {/* @ts-expect-error */}
       <Panel {...locator()} />
       {/* @ts-expect-error */}
       <Link link="foo" {...locator()} />
@@ -822,6 +867,10 @@ export const panels = (
     {/* @ts-expect-error */}
     <Panel />
     <PanelWithOptionalLocator />
+    <PanelWithOptionalLocator {...panelLocator({quux: 'baz'})} />
+    {/* @ts-expect-error */}
+    <PanelWithOptionalLocator {...panelLocator({foo: 'baz'})} />
+    {/* @ts-expect-error */}
     <PanelWithOptionalLocator {...panelLocator()} />
     <PanelWithoutLocator />
     <PanelWithoutLocator {...locatorForEmptyProperties()} />

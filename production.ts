@@ -1,6 +1,6 @@
-import type {CreateLocator, GetLocatorParameters} from './types';
+import type {CreateLocator, GetLocatorParameters, RemoveLocatorFromProperties} from './types';
 
-const attributes = {'data-test-production-create-locator': undefined};
+const attributes = {};
 const toString = () => '';
 
 const proxy: () => unknown = new Proxy(
@@ -21,5 +21,8 @@ const proxy: () => unknown = new Proxy(
 export const createLocator = (() => proxy) as unknown as CreateLocator;
 
 export const getLocatorParameters = (() => proxy) as GetLocatorParameters;
+
+export const removeLocatorFromProperties = ((properties) =>
+  properties) as RemoveLocatorFromProperties;
 
 export type {Locator, Node} from './types';

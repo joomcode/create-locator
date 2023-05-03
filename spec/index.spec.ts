@@ -1,10 +1,11 @@
-import {createLocator, getLocatorParameters} from '../index';
+import {createLocator, getLocatorParameters, removeLocatorFromProperties} from '../index';
 import {
   createLocator as productionCreateLocator,
   getLocatorParameters as productionGetLocatorParameters,
+  removeLocatorFromProperties as productionRemoveLocatorFromProperties,
 } from '../production';
 
-import type {CreateLocator, GetLocatorParameters} from '../types';
+import type {CreateLocator, GetLocatorParameters, RemoveLocatorFromProperties} from '../types';
 
 import {testBasicInteractions} from './basicInteractions.spec';
 import {testRender} from './render.spec';
@@ -29,7 +30,11 @@ declare global {
   }
 }
 
-type Api = readonly [createLocator: CreateLocator, getLocatorParameters: GetLocatorParameters];
+type Api = readonly [
+  createLocator: CreateLocator,
+  getLocatorParameters: GetLocatorParameters,
+  removeLocatorFromProperties: RemoveLocatorFromProperties,
+];
 
 const {log} = console;
 let testsCount = 0;
@@ -63,13 +68,26 @@ const createLocatorWithIsProduction = ((...args: Parameters<typeof createLocator
 }) as unknown as typeof createLocator;
 
 const environments: Readonly<Record<string, Api>> = {
-  development: [createLocator, getLocatorParameters],
-  production: [productionCreateLocator, productionGetLocatorParameters],
-  productionWithDevParameters: [productionCreateLocator, getLocatorParameters],
-  productionFromOptionsWithDevParameters: [createLocatorWithIsProduction, getLocatorParameters],
+  development: [createLocator, getLocatorParameters, removeLocatorFromProperties],
+  production: [
+    productionCreateLocator,
+    productionGetLocatorParameters,
+    productionRemoveLocatorFromProperties,
+  ],
+  productionWithDevParameters: [
+    productionCreateLocator,
+    getLocatorParameters,
+    productionRemoveLocatorFromProperties,
+  ],
+  productionFromOptionsWithDevParameters: [
+    createLocatorWithIsProduction,
+    getLocatorParameters,
+    productionRemoveLocatorFromProperties,
+  ],
   productionFromOptionsWithProdParameters: [
     createLocatorWithIsProduction,
     productionGetLocatorParameters,
+    productionRemoveLocatorFromProperties,
   ],
 };
 const tests: readonly Test[] = [testBasicInteractions, testRender];
