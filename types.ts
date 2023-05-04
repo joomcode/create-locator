@@ -252,7 +252,7 @@ export type Locator<
 > = WithLocator<LocatorTree<Description, Parameters>> &
   Partial<
     ElementAttributeError<
-      | 'The locator should be removed from spread properties with "removeLocatorFromProperties"'
+      | 'The locator should be removed from spread properties with removeLocatorFromProperties'
       | undefined
     >
   >;

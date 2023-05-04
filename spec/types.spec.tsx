@@ -429,6 +429,16 @@ export const Banner = (properties: BannerLocator) => {
 
   true satisfies IsEqual<typeof locatorParameters, BannerParameters>;
 
+  type LocatorWithEmptyParameters = Locator<{foo: {}}, {}>;
+
+  const propertiesWithEmptyParameters = {} as LocatorWithEmptyParameters;
+  const locatorWithEmptyParameters = createLocator(propertiesWithEmptyParameters);
+
+  locatorWithEmptyParameters();
+
+  // @ts-expect-error
+  locatorWithEmptyParameters({});
+
   return (
     <>
       {/* @ts-expect-error */}

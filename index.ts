@@ -10,9 +10,9 @@ import type {
 import {createLocator as productionCreateLocator} from './production';
 
 /**
- * Symbol key for cache of locators.
+ * Symbol key for locator in path attribute value.
  */
-const CACHE = Symbol.for('create-locator:cache');
+const LOCATOR = Symbol.for('create-locator:locator');
 
 /**
  * Symbol key for options of root locator.
@@ -20,14 +20,9 @@ const CACHE = Symbol.for('create-locator:cache');
 const OPTIONS = Symbol.for('create-locator:options');
 
 /**
- * Symbol key for prefix of locator.
+ * Symbol key for path of locator.
  */
-const PREFIX = Symbol.for('create-locator:prefix');
-
-/**
- * Cache with proxied locators by their prefix.
- */
-type Cache = Record<string, ProxiedLocator>;
+const PATH = Symbol.for('create-locator:path');
 
 /**
  * Options of root locator, maybe with mapping attributes function.
@@ -35,26 +30,105 @@ type Cache = Record<string, ProxiedLocator>;
 type Options = Partial<MapAttributes<Attributes>> & RootOptions;
 
 /**
+ * Some locator parameters.
+ */
+type Parameters = Readonly<Record<string, unknown>>;
+
+/**
  * Component properties, maybe marked with component locator.
  */
-type Properties = Readonly<Record<string, object | StringifiedLocator>>;
+type Properties = Readonly<Record<string, object | PathAttributeValue>>;
 
 /**
- * Proxied presentation of locator for component render execution context.
+ * Locator proxy object.
  */
-type ProxiedLocator = Record<string, unknown> &
-  Readonly<{[CACHE]: Cache; [OPTIONS]: Options; [PREFIX]: string}>;
+type LocatorProxy = Record<string, unknown> & {
+  [LOCATOR]: LocatorProxy;
+  [OPTIONS]: Options;
+  [PATH]: string;
+};
 
 /**
- * Stringified presentation of locator for attributes object.
+ * Path attribute value with locator and locator parameters.
  */
-type StringifiedLocator = Readonly<{
-  [CACHE]: Cache;
-  parameters: object | undefined;
-  [PREFIX]: string;
+type PathAttributeValue = Readonly<{
+  [LOCATOR]: LocatorProxy;
+  parameters: Parameters | undefined;
   toJSON(): string;
   toString(): string;
 }>;
+
+/**
+ * Set attributes from parameters to attributes object.
+ */
+const setAttributesFromParameters = (
+  attributes: Record<string, string>,
+  parameterAttributePrefix: string,
+  parameters: Parameters | undefined,
+): void => {
+  if (parameters) {
+    for (const key of Object.keys(parameters)) {
+      attributes[`${parameterAttributePrefix}${key}`] = String(parameters[key]);
+    }
+  }
+};
+
+/**
+ * Proxy handler for locator proxy.
+ */
+const handler: ProxyHandler<LocatorProxy> = {
+  apply(target, thisArg, [parameters]): Attributes {
+    const {mapAttributes, parameterAttributePrefix, pathAttribute} = target[OPTIONS];
+    const attributes: Record<string, string> = {[pathAttribute]: target[PATH]};
+
+    setAttributesFromParameters(attributes, parameterAttributePrefix, parameters);
+
+    if (mapAttributes) {
+      return mapAttributes(attributes);
+    }
+
+    const pathAttributeValue: PathAttributeValue = {
+      [LOCATOR]: target[LOCATOR],
+      parameters,
+      toJSON: toString,
+      toString,
+    };
+
+    attributes[pathAttribute] = pathAttributeValue as unknown as string satisfies typeof thisArg;
+
+    return attributes;
+  },
+  defineProperty: () => false,
+  deleteProperty: () => false,
+  get(target, property) {
+    if (typeof property !== 'string' || property in target) {
+      return target[property as string];
+    }
+
+    const options = target[OPTIONS];
+    const newPath = `${target[PATH]}${options.pathSeparator}${property}`;
+
+    target[property] = createLocatorProxy(options, newPath);
+
+    return target[property];
+  },
+  preventExtensions: () => false,
+};
+
+/**
+ * Creates a proxy object that represents the locator at runtime, by root options and path.
+ */
+const createLocatorProxy = (options: Options, path: string): LocatorProxy => {
+  const target = Object.assign<object, Omit<LocatorProxy, typeof LOCATOR>>(
+    Object.setPrototypeOf(() => {}, null),
+    {[OPTIONS]: options, [PATH]: path, [Symbol.toPrimitive]: toJSON, toJSON},
+  ) as LocatorProxy;
+  const locatorProxy = new Proxy(target, handler);
+
+  target[LOCATOR] = locatorProxy;
+
+  return locatorProxy;
+};
 
 /**
  * Default options of root locator (without mapping attributes function).
@@ -67,90 +141,15 @@ const DEFAULT_OPTIONS: RootOptions = {
 };
 
 /**
- * Proxy object that represents the locator at production runtime.
+ * Get path attribute value from component properties that marked with locator.
  */
-const productionLocator = productionCreateLocator('app');
-
-/**
- * Proxy hanlder for proxied locator.
- */
-const handler: ProxyHandler<ProxiedLocator> = {
-  apply(target, thisArg, [parameters]): Attributes {
-    const attributes: Record<string, string> = {
-      [target[OPTIONS].pathAttribute]: target[PREFIX],
-    } satisfies typeof thisArg;
-
-    if (parameters) {
-      for (const key of Object.keys(parameters)) {
-        attributes[`${target[OPTIONS].parameterAttributePrefix}${key}`] = parameters[key];
-      }
-    }
-
-    if (target[OPTIONS].mapAttributes) {
-      return target[OPTIONS].mapAttributes(attributes);
-    }
-
-    const stringifiedLocator: StringifiedLocator = {
-      [CACHE]: target[CACHE],
-      parameters,
-      [PREFIX]: target[PREFIX],
-      toJSON: toString,
-      toString,
-    };
-
-    attributes[target[OPTIONS].pathAttribute] = stringifiedLocator as unknown as string;
-
-    return attributes;
-  },
-  defineProperty: () => false,
-  deleteProperty: () => false,
-  get(target, property) {
-    if (typeof property !== 'string' || property in target) {
-      return target[property as string];
-    }
-
-    const newPrefix = `${target[PREFIX]}${target[OPTIONS].pathSeparator}${property}`;
-
-    if (!(newPrefix in target[CACHE])) {
-      target[CACHE][newPrefix] = createProxiedLocator(newPrefix, target[OPTIONS], target[CACHE]);
-    }
-
-    target[property] = target[CACHE][newPrefix];
-
-    return target[property];
-  },
-  preventExtensions: () => false,
-};
-
-/**
- * Creates a proxy object that represents the locator at runtime, by prefix, root options and cache.
- */
-const createProxiedLocator = (prefix: string, options: Options, cache: Cache): ProxiedLocator => {
-  const target = Object.assign<object, ProxiedLocator>(
-    Object.setPrototypeOf(() => {}, null),
-    {
-      [CACHE]: cache,
-      [OPTIONS]: options,
-      [PREFIX]: prefix,
-      [Symbol.toPrimitive]: toString,
-      toJSON: toString,
-    },
-  );
-
-  return new Proxy(target, handler);
-};
-
-/**
- * Get stringified locator from component properties that marked with locator.
- * Throws an error if the properties are not marked with a locator.
- */
-const getStringifiedLocatorFromProperties = (
+const getPathAttributeValueFromProperties = (
   properties: Properties,
-): StringifiedLocator | undefined => {
+): PathAttributeValue | undefined => {
   for (const key of Object.keys(properties || true)) {
     const value = properties[key];
 
-    if (value !== null && typeof value === 'object' && CACHE in value) {
+    if (value !== null && typeof value === 'object' && LOCATOR in value) {
       return value;
     }
   }
@@ -159,10 +158,22 @@ const getStringifiedLocatorFromProperties = (
 };
 
 /**
- * Method toString for stringified locator.
+ * Proxy object that represents the locator at production runtime.
  */
-function toString(this: StringifiedLocator): string {
-  return this[PREFIX];
+const productionLocator = productionCreateLocator('app');
+
+/**
+ * Method toJSON (and, in fact, toString) for locator proxy.
+ */
+function toJSON(this: LocatorProxy): string {
+  return this[PATH];
+}
+
+/**
+ * Method toString for path attribute value.
+ */
+function toString(this: PathAttributeValue): string {
+  return this[LOCATOR][PATH];
 }
 
 /**
@@ -171,38 +182,33 @@ function toString(this: StringifiedLocator): string {
 export const createLocator = ((
   prefixOrProperties: string | Properties,
   maybeOptions?: Options,
-): ProxiedLocator => {
+): LocatorProxy => {
   if (typeof prefixOrProperties === 'string') {
     const options: Options = {...DEFAULT_OPTIONS, ...maybeOptions};
 
     if (options.isProduction) {
-      return productionLocator as unknown as ProxiedLocator;
+      return productionLocator as unknown as LocatorProxy;
     }
 
-    const cache: Cache = Object.create(null);
-    const proxiedLocator = createProxiedLocator(prefixOrProperties, options, cache);
-
-    cache[prefixOrProperties] = proxiedLocator;
-
-    return proxiedLocator;
+    return createLocatorProxy(options, prefixOrProperties);
   }
 
-  const stringifiedLocator = getStringifiedLocatorFromProperties(prefixOrProperties);
+  const pathAttributeValue = getPathAttributeValueFromProperties(prefixOrProperties);
 
-  if (!stringifiedLocator) {
-    return productionLocator as unknown as ProxiedLocator;
+  if (!pathAttributeValue) {
+    return productionLocator as unknown as LocatorProxy;
   }
 
-  return stringifiedLocator[CACHE][stringifiedLocator[PREFIX]]!;
+  return pathAttributeValue[LOCATOR];
 }) as unknown as CreateLocator;
 
 /**
  * Get parameters of component locator by component properties.
  */
 export const getLocatorParameters = ((properties: Properties) => {
-  const stringifiedLocator = getStringifiedLocatorFromProperties(properties);
+  const pathAttributeValue = getPathAttributeValueFromProperties(properties);
 
-  return stringifiedLocator?.parameters || productionLocator;
+  return pathAttributeValue?.parameters || productionLocator;
 }) as GetLocatorParameters;
 
 /**
@@ -210,29 +216,21 @@ export const getLocatorParameters = ((properties: Properties) => {
  * Returns properties without attributes produced by the locator.
  */
 export const removeLocatorFromProperties = ((properties: Properties) => {
-  const stringifiedLocator = getStringifiedLocatorFromProperties(properties);
+  const pathAttributeValue = getPathAttributeValueFromProperties(properties);
 
-  if (!stringifiedLocator) {
+  if (!pathAttributeValue) {
     return properties;
   }
 
-  const {parameters} = stringifiedLocator;
-  const target = stringifiedLocator[CACHE][stringifiedLocator[PREFIX]]!;
+  const {[LOCATOR]: locator, parameters} = pathAttributeValue;
+  const {parameterAttributePrefix, pathAttribute} = locator[OPTIONS];
+  const attributes = {__proto__: null, [pathAttribute]: ''} as Attributes;
+  const propertiesWithoutLocator = {__proto__: Object.getPrototypeOf(properties)};
 
-  const locatorAttributes = [target[OPTIONS].pathAttribute];
-
-  if (parameters) {
-    for (const key of Object.keys(parameters)) {
-      locatorAttributes.push(`${target[OPTIONS].parameterAttributePrefix}${key}`);
-    }
-  }
-
-  const propertiesWithoutLocator: Record<string, unknown> = Object.create(
-    Object.getPrototypeOf(properties),
-  );
+  setAttributesFromParameters(attributes, parameterAttributePrefix, parameters);
 
   for (const key of Reflect.ownKeys(properties)) {
-    if (!locatorAttributes.includes(key as string)) {
+    if (!(key in attributes)) {
       Object.defineProperty(
         propertiesWithoutLocator,
         key,

@@ -21,7 +21,7 @@ export const testRender: Test = (
   environment,
 ) => {
   type FooLocator = Locator<{fooLeaf: {quux: string}}, {corge: string}>;
-  type NodeLocator = Node<{subleaf: {baz: string}}, {qux: string}>;
+  type NodeLocator = Node<{subLeaf: {baz: string}}, {qux: string}>;
 
   type RootLocator = Locator<
     {component: FooLocator; leaf: {foo: string}; node: NodeLocator},
@@ -58,7 +58,7 @@ export const testRender: Test = (
       <Foo {...rootLocator.component({corge: 'fred'})} />
       <span {...rootLocator.leaf({foo: 'plugh'})}>📌</span>
       <div {...rootLocator.node({qux: 'xyzzy'})}>
-        <span {...rootLocator.node.subleaf({baz: 'thud'})}></span>
+        <span {...rootLocator.node.subLeaf({baz: 'thud'})}></span>
       </div>
     </div>
   );
@@ -72,7 +72,7 @@ export const testRender: Test = (
         📌
       </span>
       <div data-path="root.node" data-prefix-qux="xyzzy">
-        <span data-path="root.node.subleaf" data-prefix-baz="thud"></span>
+        <span data-path="root.node.subLeaf" data-prefix-baz="thud"></span>
       </div>
     </div>
   );
@@ -100,7 +100,7 @@ export const testRender: Test = (
   type ElementType = 'image' | 'text';
 
   type LabelLocator = Locator<{}, {level?: string; type?: ElementType}>;
-  type LabelProperties = {level?: string; text: string} & LabelLocator;
+  type LabelProperties = {children?: object[]; level?: string; text: string} & LabelLocator;
 
   const Label = ({level = '3', text, ...rest}: LabelProperties) => {
     const locator = createLocator(rest);
@@ -110,11 +110,7 @@ export const testRender: Test = (
       type: (text.length > 5 ? 'text' : 'image') as ElementType,
       ...locatorParameters,
     };
-    const restPropertiesWithoutLocator = removeLocatorFromProperties(rest);
-
-    if ('children' in restPropertiesWithoutLocator) {
-      delete restPropertiesWithoutLocator.children;
-    }
+    const {children, ...restPropertiesWithoutLocator} = removeLocatorFromProperties(rest);
 
     return (
       <span {...locator(locatorParametersWithDefaults)} {...restPropertiesWithoutLocator}>

@@ -105,14 +105,50 @@ export const testBasicInteractions: Test = (
 
   assert(Object(locator) === locator && typeof locator === 'function', 'locator is function');
 
-  const attributes = locator({qux: 'bar'});
+  // @ts-expect-error
+  const attributes = locator({qux: 'bar', null: null, undefined: undefined});
 
   assert(attributes instanceof Object, 'call of locator returns attributes object');
 
   assert(
-    Object.keys(attributes).length === (isDevelopment ? 2 : 0),
+    Object.keys(attributes).length === (isDevelopment ? 4 : 0),
     'attributes object has correct number of properties',
   );
+
+  const expectedAttributes = isDevelopment
+    ? {
+        'data-testid': 'root',
+        'data-test-qux': 'bar',
+        'data-test-null': 'null',
+        'data-test-undefined': 'undefined',
+      }
+    : {};
+
+  assert(
+    JSON.stringify(attributes) === JSON.stringify(expectedAttributes),
+    'locator produce correct attributes',
+  );
+
+  if (isDevelopment) {
+    const pathAttributeValue = Object.values(attributes)[0];
+
+    assert(
+      String(pathAttributeValue) === 'root',
+      'pathAttributeValue correctly converts to string',
+    );
+
+    assert(
+      JSON.stringify(pathAttributeValue) === JSON.stringify('root'),
+      'pathAttributeValue correctly converts to JSON',
+    );
+  } else {
+    assert(String(locator) === '', 'production proxy correctly converts to string');
+
+    assert(
+      JSON.stringify(locator) === JSON.stringify(''),
+      'production proxy correctly converts to JSON',
+    );
+  }
 
   assert(String(locator.bar.baz) === '' + locator.bar.baz, 'locator converts to string in one way');
   assert(String(locator.bar.baz) === path, 'locator correctly converts to string');
