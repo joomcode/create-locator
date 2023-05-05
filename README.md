@@ -111,6 +111,9 @@ const rootLocator = createLocator<AppLocator>('app', {
 });
 ```
 
+You should not use the `pathAttribute` and attributes starting with `parameterAttributePrefix`
+on component properties and on HTML elements because they will now place by `create-locator` 📌.
+
 The `Foo` component defined above and inserted into the `App` has the path `app-foo`
 in the locator tree, and therefore, with these default options,
 it will be rendered into HTML with such `data-test*` attributes:
