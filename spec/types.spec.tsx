@@ -47,6 +47,8 @@ export type Checks = [
   // @ts-expect-error
   Locator<{foo: object}>,
   // @ts-expect-error
+  Locator<{foo: {}}, object>,
+  // @ts-expect-error
   Locator<{}, {foo: 2}>,
   // @ts-expect-error
   Locator<{}, {foo: {}}>,
@@ -77,6 +79,8 @@ export type Checks = [
   Node<{foo: unknown}>,
   // @ts-expect-error
   Node<{foo: object}>,
+  // @ts-expect-error
+  Node<{foo: {}}, object>,
   // @ts-expect-error
   Node<{}, {foo: {}}>,
   // @ts-expect-error
@@ -312,11 +316,12 @@ type AppLocator = Locator<{
   main: MainLocator;
 }>;
 
+const appLocator = createLocator<AppLocator>('app');
+
 export const App = () => {
-  const locator = createLocator<AppLocator>('app');
   const locatorByProperties = createLocator({} as AppLocator);
 
-  true satisfies IsEqual<typeof locator, typeof locatorByProperties>;
+  true satisfies IsEqual<typeof appLocator, typeof locatorByProperties>;
 
   // @ts-expect-error
   createLocator<Partial<AppLocator>>('app');
@@ -332,41 +337,41 @@ export const App = () => {
     createLocator<RenderedLocator>();
 
     // @ts-expect-error
-    (<Header {...locator.header} />) satisfies object;
+    (<Header {...appLocator.header} />) satisfies object;
 
     // @ts-expect-error
-    locator.header.foo;
+    appLocator.header.foo;
 
-    return <Header {...locator.header()} />;
+    return <Header {...appLocator.header()} />;
   };
 
   // @ts-expect-error
-  locator.foo;
+  appLocator.foo;
 
   return (
-    <div {...locator()}>
+    <div {...appLocator()}>
       Hello👋 world!
       {/* @ts-expect-error */}
-      <Header {...locator.header} />
-      <Header {...locator.header()} />
+      <Header {...appLocator.header} />
+      <Header {...appLocator.header()} />
       {/* @ts-expect-error */}
-      <Main render={render} {...locator.main()} />
+      <Main render={render} {...appLocator.main()} />
       {/* @ts-expect-error */}
-      <Main render={render} {...locator.main({textFoo: 'foo'})} />
+      <Main render={render} {...appLocator.main({textFoo: 'foo'})} />
       {/* @ts-expect-error */}
-      <Main render={render} {...locator.main({text: 'baz'})} />
-      <Main render={render} {...locator.main({text: 'foo'})} />
-      <Label level="1" text="baz" {...locator.label({level: 'baz'})} />
+      <Main render={render} {...appLocator.main({text: 'baz'})} />
+      <Main render={render} {...appLocator.main({text: 'foo'})} />
+      <Label level="1" text="baz" {...appLocator.label({level: 'baz'})} />
       {/* @ts-expect-error */}
-      <MainWrapper {...locator.main()} />
-      <MainWrapper {...locator.main({text: 'foo'})} />
+      <MainWrapper {...appLocator.main()} />
+      <MainWrapper {...appLocator.main({text: 'foo'})} />
       {/* @ts-expect-error */}
-      <Wrapper {...locator.header} />
+      <Wrapper {...appLocator.header} />
       {/* @ts-expect-error */}
-      <Wrapper {...locator()} />
+      <Wrapper {...appLocator()} />
       {/* @ts-expect-error */}
-      <Wrapper {...locator} />
-      <Wrapper {...locator.header()} />
+      <Wrapper {...appLocator} />
+      <Wrapper {...appLocator.header()} />
     </div>
   );
 };
@@ -434,6 +439,15 @@ export const Banner = (properties: BannerLocator) => {
   const propertiesWithEmptyParameters = {} as LocatorWithEmptyParameters;
   const locatorWithEmptyParameters = createLocator(propertiesWithEmptyParameters);
 
+  // @ts-expect-error
+  getLocatorParameters(propertiesWithEmptyParameters);
+
+  // @ts-expect-error
+  getLocatorParameters();
+
+  // @ts-expect-error
+  getLocatorParameters({foo: 2});
+
   locatorWithEmptyParameters();
 
   // @ts-expect-error
@@ -460,7 +474,13 @@ export const Banner = (properties: BannerLocator) => {
 
 export const RenderedBanner = (properties: RenderedLocator) => {
   const locator = createLocator(properties);
+  // @ts-expect-error
   const locatorParameters = getLocatorParameters(properties);
+
+  const optionalProperties = {} as Partial<RenderedLocator>;
+
+  // @ts-expect-error
+  getLocatorParameters(optionalProperties);
 
   return (
     <>
@@ -733,6 +753,7 @@ const Panel = (properties: PanelLocator) => {
  * Tests of locator with parameters.
  */
 type PanelWithParametersLocator = Locator<{}, {foo: string}>;
+type SomeProperties = {foo: 'bar'};
 
 const PanelWithParameters = (properties: PanelWithParametersLocator) => {
   const locator = createLocator(properties);
@@ -740,8 +761,9 @@ const PanelWithParameters = (properties: PanelWithParametersLocator) => {
   return <div {...locator({foo: 'bar'})}></div>;
 };
 
-const panelWithParametersProperties = {} as PanelWithParametersLocator;
-const optionalPanelWithParametersProperties = {} as Partial<PanelWithParametersLocator>;
+const panelWithParametersProperties = {} as PanelWithParametersLocator & SomeProperties;
+const optionalPanelWithParametersProperties = {} as Partial<PanelWithParametersLocator> &
+  SomeProperties;
 
 const panelParameters = getLocatorParameters(panelWithParametersProperties);
 const optionalPanelParameters = getLocatorParameters(optionalPanelWithParametersProperties);
@@ -772,9 +794,11 @@ false satisfies IsEqual<
 >;
 
 const panelParametersWithoutLocator = getLocatorParameters(
+  // @ts-expect-error
   panelWithParametersPropertiesWithoutLocator,
 );
 const panelParametersWithOptionalLocator = getLocatorParameters(
+  // @ts-expect-error
   optionalPanelWithParametersPropertiesWithoutLocator,
 );
 
@@ -845,7 +869,9 @@ const PanelWithOptionalLocator = (properties: OptionalPanelLocator) => {
   removeLocatorFromProperties(propertiesWithoutLocator);
 
   true satisfies IsEqual<typeof parameters, typeof parametersWithOptionalLocator>;
-  true satisfies IsEqual<typeof parametersForEmptyProperties, typeof propertiesForEmptyProperties>;
+
+  true satisfies IsEqual<typeof parametersForEmptyProperties, {}>;
+  true satisfies IsEqual<typeof propertiesForEmptyProperties, {}>;
 
   return (
     <>

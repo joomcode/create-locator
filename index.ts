@@ -10,6 +10,11 @@ import type {
 import {createLocator as productionCreateLocator} from './production';
 
 /**
+ * Symbol key for cache of locator attributes.
+ */
+const CACHE = Symbol.for('create-locator:cache');
+
+/**
  * Symbol key for locator in path attribute value.
  */
 const LOCATOR = Symbol.for('create-locator:locator');
@@ -43,6 +48,7 @@ type Properties = Readonly<Record<string, object | PathAttributeValue>>;
  * Locator proxy object.
  */
 type LocatorProxy = Record<string, unknown> & {
+  [CACHE]: Record<string, Attributes>;
   [LOCATOR]: LocatorProxy;
   [OPTIONS]: Options;
   [PATH]: string;
@@ -57,6 +63,31 @@ type PathAttributeValue = Readonly<{
   toJSON(): string;
   toString(): string;
 }>;
+
+/**
+ * Adds before the string its length.
+ */
+const addLength = (value: unknown): string => {
+  const str = String(value);
+
+  return `${str.length}:${str}`;
+};
+
+/**
+ * Get string key for any value for its memoization.
+ */
+const getKey = (value: unknown): string => {
+  const type = typeof value;
+  const parts = [type, addLength(value)];
+
+  if (value && (type === 'object' || type === 'function')) {
+    for (const key of Reflect.ownKeys(value)) {
+      parts.push(addLength(key), addLength((value as Attributes)[key as string]));
+    }
+  }
+
+  return parts.join('');
+};
 
 /**
  * Set attributes from parameters to attributes object.
@@ -78,13 +109,24 @@ const setAttributesFromParameters = (
  */
 const handler: ProxyHandler<LocatorProxy> = {
   apply(target, thisArg, [parameters]): Attributes {
+    const cache = target[CACHE];
+    const key = getKey(parameters);
+
+    if (key in cache) {
+      return cache[key]!;
+    }
+
     const {mapAttributes, parameterAttributePrefix, pathAttribute} = target[OPTIONS];
     const attributes: Record<string, string> = {[pathAttribute]: target[PATH]};
 
     setAttributesFromParameters(attributes, parameterAttributePrefix, parameters);
 
     if (mapAttributes) {
-      return mapAttributes(attributes);
+      const mapped = mapAttributes(attributes);
+
+      cache[key] = mapped;
+
+      return mapped;
     }
 
     const pathAttributeValue: PathAttributeValue = {
@@ -95,6 +137,8 @@ const handler: ProxyHandler<LocatorProxy> = {
     };
 
     attributes[pathAttribute] = pathAttributeValue as unknown as string satisfies typeof thisArg;
+
+    cache[key] = attributes;
 
     return attributes;
   },
@@ -119,9 +163,10 @@ const handler: ProxyHandler<LocatorProxy> = {
  * Creates a proxy object that represents the locator at runtime, by root options and path.
  */
 const createLocatorProxy = (options: Options, path: string): LocatorProxy => {
+  const cache = {__proto__: null} as unknown as Record<string, Attributes>;
   const target = Object.assign<object, Omit<LocatorProxy, typeof LOCATOR>>(
     Object.setPrototypeOf(() => {}, null),
-    {[OPTIONS]: options, [PATH]: path, [Symbol.toPrimitive]: toJSON, toJSON},
+    {[CACHE]: cache, [OPTIONS]: options, [PATH]: path, [Symbol.toPrimitive]: toJSON, toJSON},
   ) as LocatorProxy;
   const locatorProxy = new Proxy(target, handler);
 

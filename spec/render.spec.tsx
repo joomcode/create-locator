@@ -17,9 +17,20 @@ export const React = {
 };
 
 export const testRender: Test = (
-  [createLocator, getLocatorParameters, removeLocatorFromProperties],
+  [originalCreateLocator, getLocatorParameters, removeLocatorFromProperties],
   environment,
 ) => {
+  const locatorsSet = new Set();
+
+  const createLocator = ((...args: unknown[]) => {
+    // @ts-expect-error
+    const locator = originalCreateLocator(...args);
+
+    locatorsSet.add(locator);
+
+    return locator;
+  }) as typeof originalCreateLocator;
+
   type FooLocator = Locator<{fooLeaf: {quux: string}}, {corge: string}>;
   type NodeLocator = Node<{subLeaf: {baz: string}}, {qux: string}>;
 
@@ -199,19 +210,19 @@ export const testRender: Test = (
     render: HeaderLocator;
   }>;
 
-  const App = () => {
-    const locator = createLocator<AppLocator>('app');
+  const appLocator = createLocator<AppLocator>('app');
 
+  const App = () => {
     const render = () => {
-      return <Header {...locator.render()} />;
+      return <Header {...appLocator.render()} />;
     };
 
     return (
-      <div {...locator()}>
+      <div {...appLocator()}>
         Hello👋 world!
-        <Header text="content" {...locator.header()} />
-        <Main render={render} {...locator.main()} />
-        <Label level="1" text="baz" {...locator.label({})} />
+        <Header text="content" {...appLocator.header()} />
+        <Main render={render} {...appLocator.main()} />
+        <Label level="1" text="baz" {...appLocator.label({})} />
         <Footer />
       </div>
     );
@@ -296,4 +307,11 @@ export const testRender: Test = (
     JSON.stringify(<App />) === JSON.stringify(expectedApp),
     'with default options should render attributes correctly',
   );
+
+  const numberOfLocators = locatorsSet.size;
+
+  <App />;
+  <Root />;
+
+  assert(numberOfLocators === locatorsSet.size, 'locator tree is cached');
 };

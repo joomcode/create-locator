@@ -8,6 +8,7 @@ import {
 import type {CreateLocator, GetLocatorParameters, RemoveLocatorFromProperties} from '../types';
 
 import {testBasicInteractions} from './basicInteractions.spec';
+import {testCache} from './cache.spec';
 import {testRender} from './render.spec';
 
 declare global {
@@ -39,15 +40,46 @@ type Api = readonly [
 const {log} = console;
 let testsCount = 0;
 
-export function assert(value: unknown, message: string): asserts value is true {
+export function assert(value: unknown, message?: string): asserts value is true {
   if (value !== true) {
     throw new TypeError(`❌ Assert "${message}" fails`);
   }
 
-  testsCount += 1;
+  if (message) {
+    testsCount += 1;
 
-  log('  ✅', message);
+    log('  ✅', message);
+  }
 }
+
+export const assertPropertiesAreEqual = (
+  keys: readonly (string | symbol)[],
+  a: object,
+  b: object,
+  message?: string,
+): void => {
+  for (const key of keys) {
+    const descriptorA = Object.getOwnPropertyDescriptor(a, key)!;
+    const descriptorB = Object.getOwnPropertyDescriptor(b, key)!;
+    const descriptorKeys = Object.keys(descriptorA) as (keyof typeof descriptorA)[];
+
+    assert(
+      descriptorKeys.length === Object.keys(descriptorB).length,
+      message ? `${message}: descriptors for key "${String(key)}" has equal length` : undefined,
+    );
+
+    for (const descriptorKey of descriptorKeys) {
+      assert(
+        descriptorA[descriptorKey] === descriptorB[descriptorKey],
+        message
+          ? `${message}: descriptor properties "${descriptorKey}" are equal for key "${String(
+              key,
+            )}"`
+          : undefined,
+      );
+    }
+  }
+};
 
 export type {Checks} from './types.spec';
 
@@ -90,7 +122,7 @@ const environments: Readonly<Record<string, Api>> = {
     productionRemoveLocatorFromProperties,
   ],
 };
-const tests: readonly Test[] = [testBasicInteractions, testRender];
+const tests: readonly Test[] = [testBasicInteractions, testCache, testRender];
 
 for (const test of tests) {
   log(`${test.name}<`);

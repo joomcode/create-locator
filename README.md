@@ -73,18 +73,21 @@ export type AppLocator = Locator<{
   main: MainLocator;
 }>;
 
-const App = () => {
-  // create root locator by root component locator type and path prefix
-  const locator = createLocator<AppLocator>('app');
+// create root locator by root component locator type and path prefix
+const rootLocator = createLocator<AppLocator>('app');
 
+const App = () => {
   return (
     <>
-      <Foo {...locator.foo()} />
-      <Main {...locator.main()} />
+      <Foo {...rootLocator.foo()} />
+      <Main {...rootLocator.main()} />
     </>
   );
 };
 ```
+
+The root locator is always created outside the component, as a singleton
+(so as not to be re-created on re-renders).
 
 In addition to the prefix, as the second argument in the root locator
 you can specify options for generating attributes from locators.
@@ -93,7 +96,7 @@ Here is a complete list of these options with their default values (each can be 
 
 ```tsx
 // create root locator by root component locator type, path prefix and options
-const locator = createLocator<AppLocator>('app', {
+const rootLocator = createLocator<AppLocator>('app', {
   // if true, then locator attributes will not be rendered at all
   isProduction: false,
 

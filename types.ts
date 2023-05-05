@@ -236,9 +236,7 @@ export type CreateLocator = CreateComponentLocator &
 /**
  * Type of getLocatorParameters function.
  */
-export type GetLocatorParameters = <
-  Properties extends Partial<WithLocator | WithLocator<WithParameters | undefined>>,
->(
+export type GetLocatorParameters = <Properties extends Partial<WithLocator<WithParameters>>>(
   this: void,
   properties: Properties,
 ) => ExtractNodeParameters<Exclude<Properties[LocatorKey], undefined>>;

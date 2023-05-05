@@ -1,6 +1,6 @@
 import type {Locator, Node} from '../index';
 
-import {assert, type Test} from './index.spec';
+import {assert, assertPropertiesAreEqual, type Test} from './index.spec';
 
 type RootLocator = Locator<{toString: {foo: string}; bar: Node<{baz: {}}>}, {qux: string}>;
 
@@ -18,6 +18,8 @@ export const testBasicInteractions: Test = (
   Object.defineProperty(parameters, 'bar', {value: 'baz'});
 
   const propertiesWithParameters = {...locator(parameters)};
+  // @ts-expect-error
+  const propertiesWithoutParameters = {...locator()};
   const keysWithLocator = Object.keys(propertiesWithParameters);
 
   assert(
@@ -105,21 +107,25 @@ export const testBasicInteractions: Test = (
 
   assert(Object(locator) === locator && typeof locator === 'function', 'locator is function');
 
-  // @ts-expect-error
-  const attributes = locator({qux: 'bar', null: null, undefined: undefined});
+  const quux = {toString: () => 'toString'};
+  const extendedParameters = {null: null, qux: 'bar', quux, undefined: undefined};
+
+  const attributes = locator(extendedParameters);
 
   assert(attributes instanceof Object, 'call of locator returns attributes object');
 
   assert(
-    Object.keys(attributes).length === (isDevelopment ? 4 : 0),
+    Object.keys(attributes).length ===
+      (isDevelopment ? 1 + Object.keys(extendedParameters).length : 0),
     'attributes object has correct number of properties',
   );
 
   const expectedAttributes = isDevelopment
     ? {
         'data-testid': 'root',
-        'data-test-qux': 'bar',
         'data-test-null': 'null',
+        'data-test-qux': 'bar',
+        'data-test-quux': 'toString',
         'data-test-undefined': 'undefined',
       }
     : {};
@@ -176,6 +182,9 @@ export const testBasicInteractions: Test = (
 
   const locatorByProperties = createLocator(propertiesWithoutLocator);
   const parametersFromProperties = getLocatorParameters(propertiesWithParameters);
+  const parametersFromPropertiesWithoutParameters = getLocatorParameters(
+    propertiesWithoutParameters,
+  );
 
   assert(
     // @ts-expect-error
@@ -190,7 +199,9 @@ export const testBasicInteractions: Test = (
 
   assert(
     // @ts-expect-error
-    createLocator(undefined) === createLocator(null) && createLocator() === locatorByProperties,
+    [createLocator(undefined), createLocator(null), createLocator()].every(
+      (item: object) => item === locatorByProperties,
+    ),
     'createLocator do not throws an exception on falsy properties',
   );
 
@@ -200,17 +211,42 @@ export const testBasicInteractions: Test = (
   );
 
   assert(
+    getLocatorParameters(propertiesWithoutLocator) === parametersFromPropertiesWithoutParameters,
+    'getLocatorParameters returns production singleton if there is no parameters',
+  );
+
+  assert(
     (getLocatorParameters(propertiesWithoutLocator) === parametersFromProperties) ===
       !isDevelopment,
     'getLocatorParameters returns singleton in production and only in production',
   );
 
+  // @ts-expect-error
+  const parametersForEmptyProperties = getLocatorParameters();
+
+  assert(
+    [
+      getLocatorParameters(propertiesWithoutLocator),
+      // @ts-expect-error
+      getLocatorParameters(undefined),
+      // @ts-expect-error
+      getLocatorParameters(null),
+    ].every((item) => item === parametersForEmptyProperties),
+    'getLocatorParameters returns one single value for properties without parameters',
+  );
+
   assert(
     // @ts-expect-error
-    getLocatorParameters(propertiesWithoutLocator) === getLocatorParameters() &&
-      // @ts-expect-error
-      getLocatorParameters(undefined) === getLocatorParameters(null),
-    'getLocatorParameters returns one single value for properties without parameters',
+    getLocatorParameters({...locator('bar')}) ===
+      (isDevelopment ? 'bar' : getLocatorParameters(propertiesWithoutLocator)),
+    'getLocatorParameters returns truthy string parameters',
+  );
+
+  assert(
+    // @ts-expect-error
+    getLocatorParameters({...locator(18)}) ===
+      (isDevelopment ? 18 : getLocatorParameters(propertiesWithoutLocator)),
+    'getLocatorParameters returns truthy number parameters',
   );
 
   assert(
@@ -230,6 +266,18 @@ export const testBasicInteractions: Test = (
     'removeLocatorFromProperties returns null for null',
   );
 
+  assert(
+    // @ts-expect-error
+    removeLocatorFromProperties('foo') === 'foo',
+    'removeLocatorFromProperties returns the same string for string',
+  );
+
+  assert(
+    // @ts-expect-error
+    removeLocatorFromProperties(13) === 13,
+    'removeLocatorFromProperties returns the same number for number',
+  );
+
   const propertiesAfterRemovingLocator = removeLocatorFromProperties(propertiesWithParameters);
 
   assert(
@@ -238,18 +286,12 @@ export const testBasicInteractions: Test = (
     'removeLocatorFromProperties copies properties prototype',
   );
 
-  for (const key of propertiesWithParametersKeys) {
-    const originalDescriptor = Object.getOwnPropertyDescriptor(propertiesWithParameters, key)!;
-    const descriptor = Object.getOwnPropertyDescriptor(propertiesAfterRemovingLocator, key);
-
-    for (const descriptorKey of Object.keys(originalDescriptor)) {
-      assert(
-        (originalDescriptor as Record<string, unknown>)[descriptorKey] ===
-          (descriptor as Record<string, unknown>)[descriptorKey],
-        `removeLocatorFromProperties saves descriptor key ${descriptorKey} for key ${String(key)}`,
-      );
-    }
-  }
+  assertPropertiesAreEqual(
+    propertiesWithParametersKeys,
+    propertiesWithParameters,
+    propertiesAfterRemovingLocator,
+    'removeLocatorFromProperties copies properties with correct descriptors',
+  );
 
   assert(
     createLocator(propertiesAfterRemovingLocator) === createLocator({}),
