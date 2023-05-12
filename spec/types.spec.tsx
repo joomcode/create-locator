@@ -1,12 +1,15 @@
 import {
   createLocator,
+  type CreateLocator,
   getLocatorParameters,
+  type GetLocatorParameters,
   type Locator,
   type Node,
   removeLocatorFromProperties,
+  type RemoveLocatorFromProperties,
 } from '../index';
 
-import {React} from './render.spec';
+import {React} from './utils';
 
 /**
  * Returns true if types are exactly equal and false otherwise.
@@ -293,6 +296,11 @@ const Main = ({render, ...rest}: MainProperties) => {
 const MainWrapper = (properties: MainLocator) => {
   const locator = createLocator(properties);
 
+  true satisfies IsEqual<typeof locator, CreateLocator<MainLocator>>;
+  true satisfies IsEqual<typeof locator, CreateLocator<MainProperties>>;
+  true satisfies IsEqual<typeof locator, CreateLocator<Partial<MainLocator>>>;
+  true satisfies IsEqual<typeof locator, CreateLocator<typeof properties>>;
+
   return (
     <div>
       {/* @ts-expect-error */}
@@ -398,18 +406,12 @@ createLocator<AppLocator, Selector>('app', {});
 // @ts-expect-error
 createLocator<AppLocator, Selector>('app', {mapAttributes() {}});
 
-// @ts-expect-error
-createLocator<Partial<AppLocator>, Selector>('app', {
-  mapAttributes(attributes: {}) {
-    return attributes as Selector;
-  },
-});
+const mapAttributes = (attributes: {}) => attributes as Selector;
 
-createLocator<AppLocator, Selector>('app', {
-  mapAttributes(attributes: {}) {
-    return attributes as Selector;
-  },
-});
+// @ts-expect-error
+createLocator<Partial<AppLocator>, Selector>('app', {mapAttributes});
+
+createLocator<AppLocator, Selector>('app', {mapAttributes});
 
 rootLocator() satisfies Selector;
 rootLocator.main({text: 'foo'}) satisfies Selector;
@@ -423,6 +425,21 @@ locator.main.header.header;
 locator.main.header.alsosubtree.corge({bar: 'baz'});
 
 /**
+ * Base tests of CreateLocator.
+ */
+export type RootLocatorVariable = CreateLocator<AppLocator, Selector>;
+
+// @ts-expect-error
+Object satisfies CreateLocator<{}>;
+
+true satisfies IsEqual<typeof rootLocator, RootLocatorVariable>;
+
+true satisfies IsEqual<never, CreateLocator<Partial<AppLocator>, Selection>>;
+
+true satisfies IsEqual<typeof appLocator, CreateLocator<AppLocator>>;
+true satisfies IsEqual<typeof appLocator, CreateLocator<Partial<AppLocator>>>;
+
+/**
  * Base tests of getLocatorParameters.
  */
 type BannerParameters = {id: `id${string}`; [SYMBOL]?: number};
@@ -433,8 +450,12 @@ export const Banner = (properties: BannerLocator) => {
   const locatorParameters = getLocatorParameters(properties);
 
   true satisfies IsEqual<typeof locatorParameters, BannerParameters>;
+  true satisfies IsEqual<typeof locatorParameters, GetLocatorParameters<typeof properties>>;
 
   type LocatorWithEmptyParameters = Locator<{foo: {}}, {}>;
+
+  // @ts-expect-error
+  Object satisfies GetLocatorParameters<LocatorWithEmptyParameters>;
 
   const propertiesWithEmptyParameters = {} as LocatorWithEmptyParameters;
   const locatorWithEmptyParameters = createLocator(propertiesWithEmptyParameters);
@@ -477,6 +498,9 @@ export const RenderedBanner = (properties: RenderedLocator) => {
   // @ts-expect-error
   const locatorParameters = getLocatorParameters(properties);
 
+  // @ts-expect-error
+  Object satisfies GetLocatorParameters<typeof properties>;
+
   const optionalProperties = {} as Partial<RenderedLocator>;
 
   // @ts-expect-error
@@ -490,6 +514,15 @@ export const RenderedBanner = (properties: RenderedLocator) => {
     </>
   );
 };
+
+/**
+ * Base tests of GetLocatorParameters.
+ */
+true satisfies IsEqual<BannerParameters, GetLocatorParameters<BannerLocator>>;
+true satisfies IsEqual<BannerParameters, GetLocatorParameters<Partial<BannerLocator>>>;
+
+// @ts-expect-error
+Object satisfies GetLocatorParameters<{foo: ''}>;
 
 /**
  * Base tests of removeLocatorFromProperties.
@@ -508,6 +541,10 @@ export const Button = ({children, ...restProps}: ButtonProperties) => {
   const properties = {} as ButtonLocator & ButtonOwnPropertiesWithReadonly;
   const propertiesWithoutLocator = removeLocatorFromProperties(properties);
 
+  true satisfies IsEqual<
+    RemoveLocatorFromProperties<typeof properties>,
+    typeof propertiesWithoutLocator
+  >;
   true satisfies IsEqual<ButtonOwnPropertiesWithReadonly, typeof propertiesWithoutLocator>;
 
   const locatorWithFullProperties = createLocator(properties);
@@ -543,6 +580,20 @@ export const Button = ({children, ...restProps}: ButtonProperties) => {
     </button>
   );
 };
+
+/**
+ * Base tests of RemoveLocatorFromProperties.
+ */
+true satisfies RemoveLocatorFromProperties<ButtonProperties> extends ButtonOwnProperties
+  ? true
+  : false;
+
+false satisfies ButtonOwnProperties extends RemoveLocatorFromProperties<ButtonProperties>
+  ? true
+  : false;
+
+// @ts-expect-error
+({foo: ''}) satisfies RemoveLocatorFromProperties<{foo: string}>;
 
 /**
  * Tests of pageObject with locator.

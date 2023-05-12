@@ -1,9 +1,9 @@
 import type {
   Attributes,
-  CreateLocator,
-  GetLocatorParameters,
+  CreateLocatorFunction,
+  GetLocatorParametersFunction,
   MapAttributes,
-  RemoveLocatorFromProperties,
+  RemoveLocatorFromPropertiesFunction,
   RootOptions,
 } from './types';
 
@@ -229,7 +229,7 @@ export const createLocator = ((
   maybeOptions?: Options,
 ): LocatorProxy => {
   if (typeof prefixOrProperties === 'string') {
-    const options: Options = {...DEFAULT_OPTIONS, ...maybeOptions};
+    const options: Options = Object.assign({}, DEFAULT_OPTIONS, maybeOptions);
 
     if (options.isProduction) {
       return productionLocator as unknown as LocatorProxy;
@@ -245,7 +245,7 @@ export const createLocator = ((
   }
 
   return pathAttributeValue[LOCATOR];
-}) as unknown as CreateLocator;
+}) as unknown as CreateLocatorFunction;
 
 /**
  * Get parameters of component locator by component properties.
@@ -254,7 +254,7 @@ export const getLocatorParameters = ((properties: Properties) => {
   const pathAttributeValue = getPathAttributeValueFromProperties(properties);
 
   return pathAttributeValue?.parameters || productionLocator;
-}) as GetLocatorParameters;
+}) as GetLocatorParametersFunction;
 
 /**
  * Removes locator mark from properties (or rest properties) object.
@@ -285,6 +285,12 @@ export const removeLocatorFromProperties = ((properties: Properties) => {
   }
 
   return propertiesWithoutLocator;
-}) as RemoveLocatorFromProperties;
+}) as RemoveLocatorFromPropertiesFunction;
 
-export type {Locator, Node} from './types';
+export type {
+  CreateLocator,
+  GetLocatorParameters,
+  Locator,
+  Node,
+  RemoveLocatorFromProperties,
+} from './types';

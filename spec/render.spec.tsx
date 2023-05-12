@@ -1,20 +1,6 @@
 import type {Locator, Node} from '../index';
 
-import {assert, type Test} from './index.spec';
-
-type Component = (properties?: object) => object;
-
-export const React = {
-  createElement(ComponentOrTag: Component | string, properties: object, ...children: object[]) {
-    properties = {children, ...properties};
-
-    if (typeof ComponentOrTag === 'function') {
-      return ComponentOrTag(properties);
-    }
-
-    return {tag: ComponentOrTag, properties};
-  },
-};
+import {assert, React, type Test} from './utils';
 
 export const testRender: Test = (
   [originalCreateLocator, getLocatorParameters, removeLocatorFromProperties],

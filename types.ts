@@ -227,16 +227,41 @@ type WithParameters<Parameters = object> = Readonly<Record<ParametersKey, Parame
 export type Attributes = Readonly<Record<string, string>>;
 
 /**
+ * Presentation of createLocator function in types.
+ * Creates type of locator variable by properties and optional MapResult type.
+ */
+export type CreateLocator<Properties extends Partial<WithLocator>, MapResult = never> = [
+  MapResult,
+] extends [never]
+  ? RuntimeLocator<
+      unknown extends Exclude<Properties[LocatorKey], undefined>
+        ? object
+        : Exclude<Properties[LocatorKey], undefined>
+    >
+  : Properties extends WithLocator
+  ? NormalizeTree<Properties[LocatorKey], MapResult>
+  : never;
+
+/**
  * Type of createLocator function (with overloads).
  */
-export type CreateLocator = CreateComponentLocator &
+export type CreateLocatorFunction = CreateComponentLocator &
   CreateRootLocator &
   CreateRootLocatorWithMapping;
 
 /**
+ * Presentation of getLocatorParameters function in types.
+ * Get type of parameters of component locator by component properties.
+ */
+export type GetLocatorParameters<Properties extends Partial<WithLocator<WithParameters>>> =
+  ExtractNodeParameters<Exclude<Properties[LocatorKey], undefined>>;
+
+/**
  * Type of getLocatorParameters function.
  */
-export type GetLocatorParameters = <Properties extends Partial<WithLocator<WithParameters>>>(
+export type GetLocatorParametersFunction = <
+  Properties extends Partial<WithLocator<WithParameters>>,
+>(
   this: void,
   properties: Properties,
 ) => ExtractNodeParameters<Exclude<Properties[LocatorKey], undefined>>;
@@ -271,9 +296,18 @@ export type Node<
 > = WithNode<LocatorTree<Description, Parameters>>;
 
 /**
+ * Presentation of removeLocatorFromProperties function in types.
+ * Returns type of properties without attributes produced by the locator.
+ */
+export type RemoveLocatorFromProperties<Properties extends Partial<WithLocator>> = Omit<
+  Properties,
+  LocatorKey | keyof ElementAttributeError
+>;
+
+/**
  * Type of removeLocatorFromProperties function.
  */
-export type RemoveLocatorFromProperties = <Properties extends Partial<WithLocator>>(
+export type RemoveLocatorFromPropertiesFunction = <Properties extends Partial<WithLocator>>(
   this: void,
   properties: Properties,
 ) => Omit<Properties, LocatorKey | keyof ElementAttributeError>;

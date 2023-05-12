@@ -1,6 +1,6 @@
 import type {Locator, Node} from '../index';
 
-import {assert, assertPropertiesAreEqual, type Test} from './index.spec';
+import {assert, assertPropertiesAreEqual, getShallowCopy, type Test} from './utils';
 
 type RootLocator = Locator<{toString: {foo: string}; bar: Node<{baz: {}}>}, {qux: string}>;
 
@@ -136,7 +136,7 @@ export const testBasicInteractions: Test = (
   );
 
   if (isDevelopment) {
-    const pathAttributeValue = Object.values(attributes)[0];
+    const pathAttributeValue = attributes[Object.keys(attributes)[0] as keyof typeof attributes];
 
     assert(
       String(pathAttributeValue) === 'root',
@@ -203,6 +203,52 @@ export const testBasicInteractions: Test = (
       (item: object) => item === locatorByProperties,
     ),
     'createLocator do not throws an exception on falsy properties',
+  );
+
+  let deepLocator = locator;
+  let deepAttributeName = 'root';
+
+  for (const key of Object.getOwnPropertyNames(Object.prototype)) {
+    // @ts-expect-error
+    deepLocator = deepLocator[key];
+
+    deepAttributeName += `-${key}`;
+
+    // @ts-expect-error
+    const attributesPair: Record<string, unknown> = {...locator[key]({foo: 'bar'})};
+    const keys = Object.keys(attributesPair);
+
+    assert(
+      keys.length === (isDevelopment ? 2 : 0),
+      `${key}: one parameter creates one additional attribute`,
+    );
+
+    assert(
+      '' + attributesPair['data-testid'] === (isDevelopment ? `root-${key}` : 'undefined'),
+      `${key}: creates correct path attribute value`,
+    );
+
+    assert(
+      attributesPair['data-test-foo'] === (isDevelopment ? 'bar' : undefined),
+      `${key}: creates correct attribute for parameter`,
+    );
+  }
+
+  const deepAttributes: Record<string, unknown> = deepLocator({qux: 'bar'});
+
+  assert(
+    Object.keys(deepAttributes).length === (isDevelopment ? 2 : 0),
+    'deepAttributes: one parameter creates one additional attribute',
+  );
+
+  assert(
+    '' + deepAttributes['data-testid'] === (isDevelopment ? deepAttributeName : 'undefined'),
+    'deepAttributes: creates correct path attribute value',
+  );
+
+  assert(
+    deepAttributes['data-test-qux'] === (isDevelopment ? 'bar' : undefined),
+    'deepAttributes: creates correct attribute for parameter',
   );
 
   assert(
@@ -296,6 +342,31 @@ export const testBasicInteractions: Test = (
   assert(
     createLocator(propertiesAfterRemovingLocator) === createLocator({}),
     'removeLocatorFromProperties really remove locator ',
+  );
+
+  const propertiesFromObjectPrototype = getShallowCopy(Object.prototype);
+
+  Object.assign(propertiesFromObjectPrototype, {...locator({qux: 'foo'})});
+
+  const objectPrototypePropertiesAfterRemoving = removeLocatorFromProperties(
+    propertiesFromObjectPrototype,
+  );
+
+  assertPropertiesAreEqual(
+    Object.getOwnPropertyNames(Object.prototype),
+    Object.prototype,
+    objectPrototypePropertiesAfterRemoving,
+  );
+
+  assertPropertiesAreEqual(
+    Object.getOwnPropertyNames(Object.prototype),
+    propertiesFromObjectPrototype,
+    objectPrototypePropertiesAfterRemoving,
+  );
+
+  assert(
+    isDevelopment === (propertiesFromObjectPrototype !== objectPrototypePropertiesAfterRemoving),
+    'removeLocatorFromProperties copies properties object only in production',
   );
 
   try {

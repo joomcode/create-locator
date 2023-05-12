@@ -1,4 +1,8 @@
-import type {CreateLocator, GetLocatorParameters, RemoveLocatorFromProperties} from './types';
+import type {
+  CreateLocatorFunction,
+  GetLocatorParametersFunction,
+  RemoveLocatorFromPropertiesFunction,
+} from './types';
 
 const attributes = {};
 const toString = () => '';
@@ -18,11 +22,17 @@ const proxy: () => unknown = new Proxy(
   },
 );
 
-export const createLocator = (() => proxy) as unknown as CreateLocator;
+export const createLocator = (() => proxy) as unknown as CreateLocatorFunction;
 
-export const getLocatorParameters = (() => proxy) as GetLocatorParameters;
+export const getLocatorParameters = (() => proxy) as GetLocatorParametersFunction;
 
 export const removeLocatorFromProperties = ((properties) =>
-  properties) as RemoveLocatorFromProperties;
+  properties) as RemoveLocatorFromPropertiesFunction;
 
-export type {Locator, Node} from './types';
+export type {
+  CreateLocator,
+  GetLocatorParameters,
+  Locator,
+  Node,
+  RemoveLocatorFromProperties,
+} from './types';

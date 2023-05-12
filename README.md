@@ -10,7 +10,7 @@
 Creates typed (via TypeScript) component locators for unit-tests and e2e-tests.
 
 Locators are marks on components and HTML elements that allow you to find elements in tests.
-In the HTML output, locators are usually represented as `data-test-*` attributes.
+In the HTML output, locators are usually represented as `data-test*` attributes.
 
 Locators do not change the behavior or appearance of a component.
 In production, locators disappear completely, leaving no attributes.
@@ -21,7 +21,7 @@ that is convenient to use in tests. This tree represents a visual blocks of the 
 which is a simplified version of the project component tree.
 
 Each locator has a unique path in this locator tree, and a string with this **path**
-in the some `data-test-*` path attribute allows you to unambiguously find all elements
+in the some `data-test*` path attribute allows you to unambiguously find all elements
 marked with a specific locator on the rendered HTML page.
 
 ## Basic examples
@@ -112,7 +112,8 @@ const rootLocator = createLocator<AppLocator>('app', {
 ```
 
 You should not use the `pathAttribute` and attributes starting with `parameterAttributePrefix`
-on component properties and on HTML elements because they will now place by `create-locator` 📌.
+on component properties and on HTML elements because they will now place by `create-locator` 📌
+(usually it's just all `data-test*` attributes).
 
 The `Foo` component defined above and inserted into the `App` has the path `app-foo`
 in the locator tree, and therefore, with these default options,
@@ -142,6 +143,25 @@ npm install create-locator
 ```
 
 `create-locator` 📌 works in any environment that supports ES2015 (uses `Proxy` internally).
+
+## Production entry point
+
+The production mode is enabled using the `isProduction` field in the options on the root locator
+(this is a mode in which the `create-locator` 📌 does not add any attributes to component
+properties and to HTML elements).
+
+But you can also use a separate `create-locator/production` entry point to build
+your application in production (for example, replacing the `create-locator` in production with the
+`create-locator/production` using the [resolve.alias](https://webpack.js.org/configuration/resolve/#resolvealias)
+setting or other similar settings of your bundler).
+
+The `create-locator/production` entry point has exactly the same API as the `create-locator`
+(including exported types), but all functions exported from `create-locator/production` already work
+in production mode (and only in it, so **try not to mix imports** from `create-locator/production`
+and from `create-locator` in one build).
+
+The `create-locator/production` entry point is about five times smaller than the `create-locator`
+(less than 500 bytes after minification), and the functions from it do not consume CPU and memory resources.
 
 ## Thanks
 

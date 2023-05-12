@@ -5,87 +5,10 @@ import {
   removeLocatorFromProperties as productionRemoveLocatorFromProperties,
 } from '../production';
 
-import type {CreateLocator, GetLocatorParameters, RemoveLocatorFromProperties} from '../types';
-
 import {testBasicInteractions} from './basicInteractions.spec';
 import {testCache} from './cache.spec';
 import {testRender} from './render.spec';
-
-declare global {
-  const process: {env: {_START: string}};
-
-  type WithAriaInvalid = {
-    'aria-invalid'?: boolean | 'false' | 'true' | 'grammar' | 'spelling' | undefined;
-  };
-
-  namespace JSX {
-    export interface IntrinsicElements {
-      a: WithAriaInvalid;
-      button: WithAriaInvalid;
-      div: WithAriaInvalid;
-      h1: WithAriaInvalid;
-      label: WithAriaInvalid;
-      main: WithAriaInvalid;
-      span: WithAriaInvalid;
-    }
-  }
-}
-
-type Api = readonly [
-  createLocator: CreateLocator,
-  getLocatorParameters: GetLocatorParameters,
-  removeLocatorFromProperties: RemoveLocatorFromProperties,
-];
-
-const {log} = console;
-let testsCount = 0;
-
-export function assert(value: unknown, message?: string): asserts value is true {
-  if (value !== true) {
-    throw new TypeError(`❌ Assert "${message}" fails`);
-  }
-
-  if (message) {
-    testsCount += 1;
-
-    log('  ✅', message);
-  }
-}
-
-export const assertPropertiesAreEqual = (
-  keys: readonly (string | symbol)[],
-  a: object,
-  b: object,
-  message?: string,
-): void => {
-  for (const key of keys) {
-    const descriptorA = Object.getOwnPropertyDescriptor(a, key)!;
-    const descriptorB = Object.getOwnPropertyDescriptor(b, key)!;
-    const descriptorKeys = Object.keys(descriptorA) as (keyof typeof descriptorA)[];
-
-    assert(
-      descriptorKeys.length === Object.keys(descriptorB).length,
-      message ? `${message}: descriptors for key "${String(key)}" has equal length` : undefined,
-    );
-
-    for (const descriptorKey of descriptorKeys) {
-      assert(
-        descriptorA[descriptorKey] === descriptorB[descriptorKey],
-        message
-          ? `${message}: descriptor properties "${descriptorKey}" are equal for key "${String(
-              key,
-            )}"`
-          : undefined,
-      );
-    }
-  }
-};
-
-export type {Checks} from './types.spec';
-
-export type Test = (api: Api, environment: string) => void;
-
-const ok = (message: string) => log(`\x1B[32m[OK]\x1B[39m ${message}`);
+import {type Api, log, ok, type Test, testsCount} from './utils';
 
 const startTestsTime = Date.now();
 
@@ -127,9 +50,9 @@ const tests: readonly Test[] = [testBasicInteractions, testCache, testRender];
 for (const test of tests) {
   log(`${test.name}<`);
 
-  for (const [environment, api] of Object.entries(environments)) {
+  for (const environment of Object.keys(environments)) {
     log(` ${environment}:`);
-    test(api, environment);
+    test(environments[environment]!, environment);
   }
 
   log('>');

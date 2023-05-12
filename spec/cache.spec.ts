@@ -1,32 +1,10 @@
 import type {Locator} from '../index';
 
-import {assert, assertPropertiesAreEqual, type Test} from './index.spec';
-
-type RootLocator = Locator<{foo: Record<string, string>}, Record<string, string>>;
+import {assert, assertShallowEqual, getShallowCopy, type Test} from './utils';
 
 type AnyLocator = (parameters?: unknown) => object;
 
-const assertShallowEqual = (a: object, b: object): void => {
-  const keys = Reflect.ownKeys(a);
-
-  assert(keys.length === Reflect.ownKeys(b).length);
-
-  assertPropertiesAreEqual(keys, a, b);
-};
-
-const getShallowCopy = <T>(value: T): T => {
-  if (!value || (typeof value !== 'object' && typeof value !== 'function')) {
-    return value;
-  }
-
-  const copy = Object.create(Object.getPrototypeOf(value));
-
-  for (const key of Reflect.ownKeys(value as object)) {
-    Object.defineProperty(copy, key, Object.getOwnPropertyDescriptor(value, key)!);
-  }
-
-  return copy;
-};
+type RootLocator = Locator<{foo: Record<string, string>}, Record<string, string>>;
 
 const attributesAreCached = (
   locator: AnyLocator,
