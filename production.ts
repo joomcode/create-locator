@@ -5,7 +5,6 @@ import type {
 } from './types';
 
 const attributes = {};
-const toString = () => '';
 
 const proxy: () => unknown = new Proxy(
   Object.setPrototypeOf(() => {}, null),
@@ -22,6 +21,8 @@ const proxy: () => unknown = new Proxy(
   },
 );
 
+const toString = () => '';
+
 export const createLocator = (() => proxy) as unknown as CreateLocatorFunction;
 
 export const getLocatorParameters = (() => proxy) as GetLocatorParametersFunction;
@@ -34,5 +35,7 @@ export type {
   GetLocatorParameters,
   Locator,
   Node,
+  PropertiesWithLocator,
+  PropertiesWithLocatorWithParameters,
   RemoveLocatorFromProperties,
 } from './types';

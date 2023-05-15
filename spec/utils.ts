@@ -4,8 +4,14 @@ import type {
   RemoveLocatorFromPropertiesFunction,
 } from '../types';
 
+import type {Tree} from './memory.spec';
+
 declare global {
-  const process: {env: {_START: string}};
+  const process: {
+    env: {_START: string};
+    memoryUsage(): Readonly<Record<string, number>>;
+    nextTick(fn: () => void): void;
+  };
 
   type WithAriaInvalid = {
     'aria-invalid'?: boolean | 'false' | 'true' | 'grammar' | 'spelling' | undefined;
@@ -26,13 +32,13 @@ declare global {
 
 type Component = (properties?: object) => object;
 
+const getRandomString = (): string => Math.random().toString(27).slice(2);
+
 export type Api = readonly [
   createLocator: CreateLocatorFunction,
   getLocatorParameters: GetLocatorParametersFunction,
   removeLocatorFromProperties: RemoveLocatorFromPropertiesFunction,
 ];
-
-export let testsCount = 0;
 
 export function assert(value: unknown, message?: string): asserts value is true {
   if (value !== true) {
@@ -85,6 +91,31 @@ export const assertShallowEqual = (a: object, b: object): void => {
 
 export type {Checks} from './types.spec';
 
+export const createRandomTree = (): Tree => {
+  const tree: Tree = {};
+
+  for (let i = 0; i < 3; i += 1) {
+    const subtree: Tree = {};
+
+    for (let j = 0; j < 3; j += 1) {
+      subtree[getRandomString()] = getRandomString();
+    }
+
+    tree[getRandomString()] = subtree;
+  }
+
+  return tree;
+};
+
+/**
+ * Returns true if types are exactly equal and false otherwise.
+ * IsEqual<{foo: string}, {foo: string}> = true.
+ * IsEqual<{readonly foo: string}, {foo: string}> = false.
+ */
+export type IsEqual<X, Y> = (<T>() => T extends X ? 1 : 2) extends <T>() => T extends Y ? 1 : 2
+  ? true
+  : false;
+
 export const getShallowCopy = <T>(value: T): T => {
   if (!value || (typeof value !== 'object' && typeof value !== 'function')) {
     return value;
@@ -116,3 +147,5 @@ export const React = {
 };
 
 export type Test = (api: Api, environment: string) => void;
+
+export let testsCount = 0;

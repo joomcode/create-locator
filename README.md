@@ -144,11 +144,34 @@ npm install create-locator
 
 `create-locator` 📌 works in any environment that supports ES2015 (uses `Proxy` internally).
 
+## Optional locators
+
+If the component you need to mark up with locators may not get markup at runtime in some cases,
+you can mark the component properties with an optional (partial) locator type
+(for example, if this is a public component of your library, whose users may not use locators for testing).
+
+In this case, when marking the component properties with a locator type,
+it is enough to wrap the locator type in a standard `Partial` generic:
+
+```tsx
+type Properties = {···} & Partial<FooLocator>; // mark component properties with optional locator type
+```
+
+The markup code inside the component does not need to be changed, it does not depend on whether
+the locator is optional or required. But marking the properties of a component
+(which using locators) with at least an optional locator remains mandatory,
+the `create-locator` 📌 will check this at the type level.
+
+If there is no locator in the component properties at runtime
+(i.e. we render `<Foo />` instead of `<Foo {...rootLocator.foo()} />`), then the locators
+inside the `Foo` component (and its children) go into production mode, that is,
+they do not add any attributes to properties of components and to HTML elements.
+
 ## Production entry point
 
 The production mode is enabled using the `isProduction` field in the options on the root locator
-(this is a mode in which the `create-locator` 📌 does not add any attributes to component
-properties and to HTML elements).
+(this is a mode in which the `create-locator` 📌 does not add any attributes to
+properties of components and to HTML elements).
 
 But you can also use a separate `create-locator/production` entry point to build
 your application in production (for example, replacing the `create-locator` in production with the

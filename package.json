@@ -1,6 +1,6 @@
 {
   "name": "create-locator",
-  "version": "0.0.6",
+  "version": "0.0.7",
   "description": "Creates typed component locators for tests 📌",
   "author": "uid11",
   "bugs": "https://github.com/joomcode/create-locator/issues",
@@ -38,6 +38,7 @@
     "build": "tsc",
     "prettier": "prettier --cache --cache-strategy=content --write . !package-lock.json !spec",
     "test": "export _START=$(date +%s%3N) && npm run build && npm run prettier && node ./spec/index.spec.js",
+    "test:memory": "node ./spec/memory.spec.js",
     "prepublishOnly": "npm test"
   },
   "sideEffects": false,

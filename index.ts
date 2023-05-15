@@ -74,6 +74,32 @@ const addLength = (value: unknown): string => {
 };
 
 /**
+ * Creates a proxy object that represents the locator at runtime, by root options and path.
+ */
+const createLocatorProxy = (options: Options, path: string): LocatorProxy => {
+  const cache = {__proto__: null} as unknown as Record<string, Attributes>;
+  const target = Object.assign<object, Omit<LocatorProxy, typeof LOCATOR>>(
+    Object.setPrototypeOf(() => {}, null),
+    {[CACHE]: cache, [OPTIONS]: options, [PATH]: path, [Symbol.toPrimitive]: toJSON, toJSON},
+  ) as LocatorProxy;
+  const locatorProxy = new Proxy(target, handler);
+
+  target[LOCATOR] = locatorProxy;
+
+  return locatorProxy;
+};
+
+/**
+ * Default options of root locator (without mapping attributes function).
+ */
+const DEFAULT_OPTIONS: RootOptions = {
+  isProduction: false,
+  parameterAttributePrefix: 'data-test-',
+  pathAttribute: 'data-testid',
+  pathSeparator: '-',
+};
+
+/**
  * Get string key for any value for its memoization.
  */
 const getKey = (value: unknown): string => {
@@ -90,18 +116,20 @@ const getKey = (value: unknown): string => {
 };
 
 /**
- * Set attributes from parameters to attributes object.
+ * Get path attribute value from component properties that marked with locator.
  */
-const setAttributesFromParameters = (
-  attributes: Record<string, string>,
-  parameterAttributePrefix: string,
-  parameters: Parameters | undefined,
-): void => {
-  if (parameters) {
-    for (const key of Object.keys(parameters)) {
-      attributes[`${parameterAttributePrefix}${key}`] = String(parameters[key]);
+const getPathAttributeValueFromProperties = (
+  properties: Properties,
+): PathAttributeValue | undefined => {
+  for (const key of Object.keys(properties || true)) {
+    const value = properties[key];
+
+    if (value !== null && typeof value === 'object' && LOCATOR in value) {
+      return value;
     }
   }
+
+  return;
 };
 
 /**
@@ -160,52 +188,24 @@ const handler: ProxyHandler<LocatorProxy> = {
 };
 
 /**
- * Creates a proxy object that represents the locator at runtime, by root options and path.
- */
-const createLocatorProxy = (options: Options, path: string): LocatorProxy => {
-  const cache = {__proto__: null} as unknown as Record<string, Attributes>;
-  const target = Object.assign<object, Omit<LocatorProxy, typeof LOCATOR>>(
-    Object.setPrototypeOf(() => {}, null),
-    {[CACHE]: cache, [OPTIONS]: options, [PATH]: path, [Symbol.toPrimitive]: toJSON, toJSON},
-  ) as LocatorProxy;
-  const locatorProxy = new Proxy(target, handler);
-
-  target[LOCATOR] = locatorProxy;
-
-  return locatorProxy;
-};
-
-/**
- * Default options of root locator (without mapping attributes function).
- */
-const DEFAULT_OPTIONS: RootOptions = {
-  isProduction: false,
-  parameterAttributePrefix: 'data-test-',
-  pathAttribute: 'data-testid',
-  pathSeparator: '-',
-};
-
-/**
- * Get path attribute value from component properties that marked with locator.
- */
-const getPathAttributeValueFromProperties = (
-  properties: Properties,
-): PathAttributeValue | undefined => {
-  for (const key of Object.keys(properties || true)) {
-    const value = properties[key];
-
-    if (value !== null && typeof value === 'object' && LOCATOR in value) {
-      return value;
-    }
-  }
-
-  return;
-};
-
-/**
  * Proxy object that represents the locator at production runtime.
  */
 const productionLocator = productionCreateLocator('app');
+
+/**
+ * Set attributes from parameters to attributes object.
+ */
+const setAttributesFromParameters = (
+  attributes: Record<string, string>,
+  parameterAttributePrefix: string,
+  parameters: Parameters | undefined,
+): void => {
+  if (parameters) {
+    for (const key of Object.keys(parameters)) {
+      attributes[`${parameterAttributePrefix}${key}`] = String(parameters[key]);
+    }
+  }
+};
 
 /**
  * Method toJSON (and, in fact, toString) for locator proxy.
@@ -292,5 +292,7 @@ export type {
   GetLocatorParameters,
   Locator,
   Node,
+  PropertiesWithLocator,
+  PropertiesWithLocatorWithParameters,
   RemoveLocatorFromProperties,
 } from './types';

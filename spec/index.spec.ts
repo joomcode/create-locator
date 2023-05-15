@@ -45,6 +45,7 @@ const environments: Readonly<Record<string, Api>> = {
     productionRemoveLocatorFromProperties,
   ],
 };
+
 const tests: readonly Test[] = [testBasicInteractions, testCache, testRender];
 
 for (const test of tests) {

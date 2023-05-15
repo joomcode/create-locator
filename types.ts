@@ -1,7 +1,13 @@
 /**
+ * Value of DOM `aria-invalid` attribute from specification.
+ * {@link https://w3c.github.io/aria/#aria-invalid}.
+ */
+export type AriaInvalidValue = boolean | 'false' | 'true' | 'grammar' | 'spelling' | undefined;
+
+/**
  * Generates a type error with some message on HTML element.
  */
-type ElementAttributeError<Message extends string | undefined = undefined> = {
+type ElementAttributeError<Message extends boolean | string | undefined = undefined> = {
   readonly 'aria-invalid': Message;
 };
 
@@ -275,8 +281,8 @@ export type Locator<
 > = WithLocator<LocatorTree<Description, Parameters>> &
   Partial<
     ElementAttributeError<
-      | 'The locator should be removed from spread properties with removeLocatorFromProperties'
-      | undefined
+      | 'The locator should be removed from spreaded properties using the removeLocatorFromProperties'
+      | AriaInvalidValue
     >
   >;
 
@@ -294,6 +300,16 @@ export type Node<
   Description extends LocatorDescription,
   Parameters extends AnyParameters = {},
 > = WithNode<LocatorTree<Description, Parameters>>;
+
+/**
+ * Properties object with any locator (general type for constraints).
+ */
+export type PropertiesWithLocator = WithLocator;
+
+/**
+ * Any locator type with parameters (general type for constraints).
+ */
+export type PropertiesWithLocatorWithParameters = WithLocator<WithParameters>;
 
 /**
  * Presentation of removeLocatorFromProperties function in types.

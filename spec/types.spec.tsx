@@ -5,20 +5,15 @@ import {
   type GetLocatorParameters,
   type Locator,
   type Node,
+  type PropertiesWithLocator,
+  type PropertiesWithLocatorWithParameters,
   removeLocatorFromProperties,
   type RemoveLocatorFromProperties,
 } from '../index';
 
-import {React} from './utils';
+import type {AriaInvalidValue} from '../types';
 
-/**
- * Returns true if types are exactly equal and false otherwise.
- * IsEqual<{foo: string}, {foo: string}> = true.
- * IsEqual<{readonly foo: string}, {foo: string}> = false.
- */
-type IsEqual<X, Y> = (<T>() => T extends X ? 1 : 2) extends <T>() => T extends Y ? 1 : 2
-  ? true
-  : false;
+import {type IsEqual, React} from './utils';
 
 type L1 = Locator<{}>;
 type N1 = Node<{}>;
@@ -94,11 +89,13 @@ export type Checks = [
 
 const locatorForEmptyProperties = createLocator({}) satisfies object;
 
+const propertiesWithAriaInvalid = {} as {'aria-invalid': AriaInvalidValue};
+
 /**
  * Base tests of component, element and node locator.
  */
 export type LabelLocator = Locator<{}, {level: string}>;
-type LabelProperties = {level?: string; text: string} & LabelLocator;
+export type LabelProperties = {level?: string; text: string} & LabelLocator;
 
 const Label = ({level, text, ...rest}: LabelProperties) => {
   const locator = createLocator(rest);
@@ -135,6 +132,7 @@ const Multi = (properties: MultiLocator) => {
       <span {...locator.label()}></span>
       <span {...locator.label({level: 'foo'})}></span>
       <Label text="baz" {...locator.label({level: 'foo'})} />
+      <Label text="bar" {...locator.label({level: 'foo'})} {...propertiesWithAriaInvalid} />
     </div>
   );
 };
@@ -324,7 +322,7 @@ type AppLocator = Locator<{
   main: MainLocator;
 }>;
 
-const appLocator = createLocator<AppLocator>('app');
+export const appLocator = createLocator<AppLocator>('app');
 
 export const App = () => {
   const locatorByProperties = createLocator({} as AppLocator);
@@ -432,6 +430,9 @@ export type RootLocatorVariable = CreateLocator<AppLocator, Selector>;
 // @ts-expect-error
 Object satisfies CreateLocator<{}>;
 
+// @ts-expect-error
+export type ConvertTypes<SomeLocator> = CreateLocator<SomeLocator>;
+
 true satisfies IsEqual<typeof rootLocator, RootLocatorVariable>;
 
 true satisfies IsEqual<never, CreateLocator<Partial<AppLocator>, Selection>>;
@@ -523,6 +524,89 @@ true satisfies IsEqual<BannerParameters, GetLocatorParameters<Partial<BannerLoca
 
 // @ts-expect-error
 Object satisfies GetLocatorParameters<{foo: ''}>;
+
+/**
+ * Base tests of PropertiesWithLocator.
+ */
+const labelProperties = {} as LabelProperties;
+
+// @ts-expect-error
+({}) satisfies PropertiesWithLocator;
+
+labelProperties satisfies PropertiesWithLocator;
+labelProperties satisfies Partial<PropertiesWithLocator>;
+
+true satisfies ButtonProperties extends PropertiesWithLocator ? true : false;
+true satisfies ButtonProperties extends Partial<PropertiesWithLocator> ? true : false;
+
+const optionalPanelLocatorProperties = {} as OptionalPanelLocator;
+
+optionalPanelLocatorProperties satisfies Partial<PropertiesWithLocator>;
+
+false satisfies OptionalPanelLocator extends PropertiesWithLocator ? true : false;
+true satisfies OptionalPanelLocator extends Partial<PropertiesWithLocator> ? true : false;
+
+const multiLocatorProperties = {} as MultiLocator;
+
+multiLocatorProperties satisfies PropertiesWithLocator;
+multiLocatorProperties satisfies Partial<PropertiesWithLocator>;
+
+true satisfies MultiLocator extends PropertiesWithLocator ? true : false;
+true satisfies MultiLocator extends Partial<PropertiesWithLocator> ? true : false;
+
+false satisfies Partial<MultiLocator> extends PropertiesWithLocator ? true : false;
+true satisfies Partial<MultiLocator> extends Partial<PropertiesWithLocator> ? true : false;
+
+export type WrapCreateLocator<Properties extends PropertiesWithLocator> = CreateLocator<Properties>;
+export type WrapGetLocatorParameters<Properties extends PropertiesWithLocator> =
+  // @ts-expect-error
+  GetLocatorParameters<Properties>;
+export type WrapRemoveLocatorFromProperties<Properties extends PropertiesWithLocator> =
+  RemoveLocatorFromProperties<Properties>;
+
+/**
+ * Base tests of PropertiesWithLocatorWithParameters.
+ */
+// @ts-expect-error
+({}) satisfies PropertiesWithLocatorWithParameters;
+
+labelProperties satisfies PropertiesWithLocatorWithParameters;
+labelProperties satisfies Partial<PropertiesWithLocatorWithParameters>;
+
+true satisfies ButtonProperties extends PropertiesWithLocatorWithParameters ? true : false;
+true satisfies ButtonProperties extends Partial<PropertiesWithLocatorWithParameters> ? true : false;
+
+optionalPanelLocatorProperties satisfies Partial<PropertiesWithLocatorWithParameters>;
+
+false satisfies OptionalPanelLocator extends PropertiesWithLocatorWithParameters ? true : false;
+true satisfies OptionalPanelLocator extends Partial<PropertiesWithLocatorWithParameters>
+  ? true
+  : false;
+
+// @ts-expect-error
+multiLocatorProperties satisfies PropertiesWithLocatorWithParameters;
+// @ts-expect-error
+multiLocatorProperties satisfies Partial<PropertiesWithLocatorWithParameters>;
+
+false satisfies MultiLocator extends PropertiesWithLocatorWithParameters ? true : false;
+false satisfies MultiLocator extends Partial<PropertiesWithLocatorWithParameters> ? true : false;
+
+false satisfies Partial<MultiLocator> extends PropertiesWithLocatorWithParameters ? true : false;
+false satisfies Partial<MultiLocator> extends Partial<PropertiesWithLocatorWithParameters>
+  ? true
+  : false;
+
+export type WrapCreateLocatorWithParameters<
+  Properties extends PropertiesWithLocatorWithParameters,
+> = CreateLocator<Properties>;
+
+export type WrapGetLocatorParametersWithParameters<
+  Properties extends PropertiesWithLocatorWithParameters,
+> = GetLocatorParameters<Properties>;
+
+export type WrapRemoveLocatorFromPropertiesWithParameters<
+  Properties extends PropertiesWithLocatorWithParameters,
+> = RemoveLocatorFromProperties<Properties>;
 
 /**
  * Base tests of removeLocatorFromProperties.
@@ -795,6 +879,11 @@ const Panel = (properties: PanelLocator) => {
 
       <RenderedWithOptionalParameters {...locator.rendered({})} />
       <RenderedWithOtherOptionalParameters {...locator.otherRendered({})} />
+
+      {/* @ts-expect-error */}
+      <div {...locator.renderedWithParameters()}></div>
+      {/* @ts-expect-error */}
+      <div {...locator.renderedWithParameters({})}></div>
       <div {...locator.renderedWithParameters({[SYMBOL]: 3})}></div>
     </>
   );
@@ -926,11 +1015,16 @@ const PanelWithOptionalLocator = (properties: OptionalPanelLocator) => {
 
   return (
     <>
+      <PanelWithOptionalLocator />
+      <PanelWithOptionalLocator {...locator({quux: 'foo'})} />
+      <PanelWithOptionalLocator {...locator({quux: 'foo'})} {...propertiesWithAriaInvalid} />
       <Panel {...locator({quux: 'foo'})} />
       {/* @ts-expect-error */}
       <Panel {...locator()} />
       {/* @ts-expect-error */}
       <Link link="foo" {...locator()} />
+      {/* @ts-expect-error */}
+      <div {...properties}></div>
     </>
   );
 };
@@ -963,3 +1057,6 @@ export const panels = (
     <PanelWithoutLocator {...locatorForEmptyProperties()} />
   </>
 );
+
+// @ts-expect-error
+export type TextAreaLocator = Partial<Locator<{button: Partial<Locator<{}>>; input: {}}>>;
