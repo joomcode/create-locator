@@ -70,7 +70,7 @@ type BaseNode<Parameters, Subtree> = IsParametersEmpty<Parameters> extends true
  */
 type CreateComponentLocator = <Properties extends Partial<WithLocator>>(
   this: void,
-  properties: Properties,
+  properties: Properties extends Partial<WithLocator<never>> ? never : Properties,
 ) => RuntimeLocator<
   unknown extends Exclude<Properties[LocatorKey], undefined>
     ? object
@@ -269,7 +269,7 @@ export type GetLocatorParametersFunction = <
   Properties extends Partial<WithLocator<WithParameters>>,
 >(
   this: void,
-  properties: Properties,
+  properties: Properties extends Partial<WithLocator<never>> ? never : Properties,
 ) => ExtractNodeParameters<Exclude<Properties[LocatorKey], undefined>>;
 
 /**
@@ -325,7 +325,7 @@ export type RemoveLocatorFromProperties<Properties extends Partial<WithLocator>>
  */
 export type RemoveLocatorFromPropertiesFunction = <Properties extends Partial<WithLocator>>(
   this: void,
-  properties: Properties,
+  properties: Properties extends Partial<WithLocator<never>> ? never : Properties,
 ) => Omit<Properties, LocatorKey | keyof ElementAttributeError>;
 
 /**

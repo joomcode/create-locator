@@ -87,7 +87,10 @@ export type Checks = [
   Node<{}, {foo: L1}>,
 ];
 
-const locatorForEmptyProperties = createLocator({}) satisfies object;
+// @ts-expect-error
+const locatorForEmptyProperties = createLocator({});
+
+locatorForEmptyProperties satisfies object;
 
 const propertiesWithAriaInvalid = {} as {'aria-invalid': AriaInvalidValue};
 
@@ -103,6 +106,12 @@ const Label = ({level, text, ...rest}: LabelProperties) => {
 
   // @ts-expect-error
   createLocator();
+
+  // @ts-expect-error
+  createLocator({});
+
+  // @ts-expect-error
+  createLocator({} as object);
 
   // @ts-expect-error
   createLocator({} as {foo: string});
@@ -431,6 +440,9 @@ export type RootLocatorVariable = CreateLocator<AppLocator, Selector>;
 Object satisfies CreateLocator<{}>;
 
 // @ts-expect-error
+Object satisfies CreateLocator<object>;
+
+// @ts-expect-error
 export type ConvertTypes<SomeLocator> = CreateLocator<SomeLocator>;
 
 true satisfies IsEqual<typeof rootLocator, RootLocatorVariable>;
@@ -678,6 +690,72 @@ false satisfies ButtonOwnProperties extends RemoveLocatorFromProperties<ButtonPr
 
 // @ts-expect-error
 ({foo: ''}) satisfies RemoveLocatorFromProperties<{foo: string}>;
+
+/**
+ * Base tests of component inheritance (via properties extension).
+ */
+
+export const ButtonWithoutLocator = (properties: ButtonOwnProperties & {children: unknown}) => {
+  // @ts-expect-error
+  return <button {...properties}></button>;
+};
+
+type LogButtonLocator = Locator<{button: ButtonLocator; close: Record<never, string>}>;
+type LogButtonProperties = ButtonProperties & {namespace: string} & LogButtonLocator;
+
+export const LogButton = ({namespace, ...rest}: LogButtonProperties) => {
+  // @ts-expect-error
+  const locator = createLocator(rest);
+
+  // @ts-expect-error
+  getLocatorParameters(rest);
+
+  // @ts-expect-error
+  removeLocatorFromProperties(rest);
+
+  console.log(namespace);
+
+  return (
+    <>
+      {/* TODO: should be an error */}
+      <Button {...rest} />
+      {/* @ts-expect-error */}
+      <Button {...locator.button()} {...rest} />
+      {/* @ts-expect-error */}
+      <Button {...rest} {...locator.button()} />
+      {/* @ts-expect-error */}
+      <Button {...rest} {...locator()} />
+      {/* @ts-expect-error */}
+      <Button {...rest} {...locator} />
+      <ButtonWithoutLocator {...rest} />
+    </>
+  );
+};
+
+type ClearedLogButtonProperties = RemoveLocatorFromProperties<ButtonProperties> & {
+  namespace: string;
+} & LogButtonLocator;
+
+export const ClearedLogButton = ({namespace, ...rest}: ClearedLogButtonProperties) => {
+  const locator = createLocator(rest);
+
+  console.log(namespace);
+
+  return (
+    <>
+      <Button {...rest} {...locator.button({type: 'foo'})} />
+      {/* @ts-expect-error */}
+      <Button {...locator.button({type: 'foo'})} {...rest} />
+      {/* @ts-expect-error */}
+      <Button {...rest} />
+      {/* @ts-expect-error */}
+      <Button {...rest} {...locator()} />
+      {/* @ts-expect-error */}
+      <Button {...rest} {...locator} />
+      <ButtonWithoutLocator {...rest} />
+    </>
+  );
+};
 
 /**
  * Tests of pageObject with locator.
@@ -981,8 +1059,6 @@ const PanelWithOptionalLocator = (properties: OptionalPanelLocator) => {
   const someProperties = {} as {foo: 'bar'};
   const somePropertiesWithSymbol = {} as typeof someProperties & {[SYMBOL]: 'baz'};
 
-  createLocator({});
-
   // @ts-expect-error
   createLocator(someProperties);
   // @ts-expect-error
@@ -990,7 +1066,11 @@ const PanelWithOptionalLocator = (properties: OptionalPanelLocator) => {
   // @ts-expect-error
   createLocator(propertiesWithoutLocator);
 
+  // @ts-expect-error
   const parametersForEmptyProperties = getLocatorParameters({});
+
+  // @ts-expect-error
+  getLocatorParameters({} as object);
 
   // @ts-expect-error
   getLocatorParameters(someProperties);
@@ -999,7 +1079,11 @@ const PanelWithOptionalLocator = (properties: OptionalPanelLocator) => {
   // @ts-expect-error
   getLocatorParameters(propertiesWithoutLocator);
 
+  // @ts-expect-error
   const propertiesForEmptyProperties = removeLocatorFromProperties({});
+
+  // @ts-expect-error
+  removeLocatorFromProperties({} as object);
 
   // @ts-expect-error
   removeLocatorFromProperties(someProperties);
@@ -1030,12 +1114,15 @@ const PanelWithOptionalLocator = (properties: OptionalPanelLocator) => {
 };
 
 const PanelWithoutLocator = (properties: {}) => {
+  // @ts-expect-error
   const locator = createLocator(properties);
+  // @ts-expect-error
   const locatorForObjectType = createLocator({} as object);
 
   true satisfies IsEqual<typeof locator, typeof locatorForEmptyProperties>;
   true satisfies IsEqual<typeof locatorForObjectType, typeof locatorForEmptyProperties>;
 
+  // @ts-expect-error
   const propertiesWithoutLocator = removeLocatorFromProperties(properties);
 
   true satisfies IsEqual<typeof properties, typeof propertiesWithoutLocator>;

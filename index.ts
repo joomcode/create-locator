@@ -78,10 +78,19 @@ const addLength = (value: unknown): string => {
  */
 const createLocatorProxy = (options: Options, path: string): LocatorProxy => {
   const cache = {__proto__: null} as unknown as Record<string, Attributes>;
-  const target = Object.assign<object, Omit<LocatorProxy, typeof LOCATOR>>(
-    Object.setPrototypeOf(() => {}, null),
-    {[CACHE]: cache, [OPTIONS]: options, [PATH]: path, [Symbol.toPrimitive]: toJSON, toJSON},
-  ) as LocatorProxy;
+  const target: LocatorProxy = Object.setPrototypeOf(() => {}, null);
+
+  delete target['length'];
+  delete target['name'];
+
+  Object.assign<object, Omit<LocatorProxy, typeof LOCATOR>>(target, {
+    [CACHE]: cache,
+    [OPTIONS]: options,
+    [PATH]: path,
+    [Symbol.toPrimitive]: toJSON,
+    toJSON,
+  });
+
   const locatorProxy = new Proxy(target, handler);
 
   target[LOCATOR] = locatorProxy;

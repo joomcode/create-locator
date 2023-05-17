@@ -208,7 +208,7 @@ export const testBasicInteractions: Test = (
   let deepLocator = locator;
   let deepAttributeName = 'root';
 
-  for (const key of Object.getOwnPropertyNames(Object.prototype)) {
+  for (const key of [...Object.getOwnPropertyNames(Object.prototype), 'length', 'name']) {
     // @ts-expect-error
     deepLocator = deepLocator[key];
 
@@ -340,6 +340,7 @@ export const testBasicInteractions: Test = (
   );
 
   assert(
+    // @ts-expect-error
     createLocator(propertiesAfterRemovingLocator) === createLocator({}),
     'removeLocatorFromProperties really remove locator ',
   );
@@ -349,6 +350,7 @@ export const testBasicInteractions: Test = (
   Object.assign(propertiesFromObjectPrototype, {...locator({qux: 'foo'})});
 
   const objectPrototypePropertiesAfterRemoving = removeLocatorFromProperties(
+    // @ts-expect-error
     propertiesFromObjectPrototype,
   );
 

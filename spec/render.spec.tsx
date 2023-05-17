@@ -166,9 +166,11 @@ export const testRender: Test = (
   const Footer = (properties: FooterProperties) => {
     const locator = createLocator(properties);
     const propertiesWithoutLocator = removeLocatorFromProperties(properties);
+    // @ts-expect-error
     const locatorWithoutType = createLocator(propertiesWithoutLocator);
 
     const parameters = getLocatorParameters(properties);
+    // @ts-expect-error
     const parametersWithoutType = getLocatorParameters(propertiesWithoutLocator);
 
     assert(

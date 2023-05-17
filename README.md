@@ -154,7 +154,8 @@ In this case, when marking the component properties with a locator type,
 it is enough to wrap the locator type in a standard `Partial` generic:
 
 ```tsx
-type Properties = {···} & Partial<FooLocator>; // mark component properties with optional locator type
+// mark component properties with optional locator type
+type Properties = {···} & Partial<FooLocator>;
 ```
 
 The markup code inside the component does not need to be changed, it does not depend on whether
