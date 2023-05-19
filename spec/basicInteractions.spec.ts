@@ -208,7 +208,7 @@ export const testBasicInteractions: Test = (
   let deepLocator = locator;
   let deepAttributeName = 'root';
 
-  for (const key of [...Object.getOwnPropertyNames(Object.prototype), 'length', 'name']) {
+  for (const key of [...Object.getOwnPropertyNames(Object.prototype), 'length', 'name', '']) {
     // @ts-expect-error
     deepLocator = deepLocator[key];
 

@@ -154,7 +154,7 @@ type HeaderLocator = Locator<{
     qux: {};
     quux: LabelLocator;
   }>;
-  alsosubtree: Node<{
+  alsoSubtree: Node<{
     qux: {};
     corge: Node<
       {
@@ -205,20 +205,20 @@ const Header = ({foo, ...rest}: HeaderProperties) => {
       <Label text="bar" {...locator.subtree.quux({level: 'foo'})} />
       <span {...locator.bind()}></span>
       {/* @ts-expect-error */}
-      <span {...locator.alsosubtree.corge()}></span>
+      <span {...locator.alsoSubtree.corge()}></span>
       {/* @ts-expect-error */}
-      <span {...locator.alsosubtree.corge({bar: 'baz'})}></span>
-      <span {...locator.alsosubtree.corge({bar: 'foobar'})}></span>
-      <span {...locator.alsosubtree.corge.garply.waldo()}></span>
+      <span {...locator.alsoSubtree.corge({bar: 'baz'})}></span>
+      <span {...locator.alsoSubtree.corge({bar: 'foobar'})}></span>
+      <span {...locator.alsoSubtree.corge.garply.waldo()}></span>
       {/* @ts-expect-error */}
-      <span {...locator.alsosubtree.corge.garply.waldo({})}></span>
+      <span {...locator.alsoSubtree.corge.garply.waldo({})}></span>
       {/* @ts-expect-error */}
-      <span {...locator.alsosubtree.corge.grault()}></span>
+      <span {...locator.alsoSubtree.corge.grault()}></span>
       {/* @ts-expect-error */}
-      <span {...locator.alsosubtree.corge.grault({[SYMBOL]: 'qux'})}></span>
-      <span {...locator.alsosubtree.corge.grault({[SYMBOL]: 'sfoo'})}></span>
-      <span {...locator.alsosubtree.corge.grault({foo: 'baz'})}></span>
-      <span {...locator.alsosubtree.corge.grault({bar: 'qux'})}></span>
+      <span {...locator.alsoSubtree.corge.grault({[SYMBOL]: 'qux'})}></span>
+      <span {...locator.alsoSubtree.corge.grault({[SYMBOL]: 'sfoo'})}></span>
+      <span {...locator.alsoSubtree.corge.grault({foo: 'baz'})}></span>
+      <span {...locator.alsoSubtree.corge.grault({bar: 'qux'})}></span>
       <Multi {...locator.multi()} />
       {/* @ts-expect-error */}
       <span {...locator}></span>
@@ -413,6 +413,14 @@ createLocator<AppLocator, Selector>('app', {});
 // @ts-expect-error
 createLocator<AppLocator, Selector>('app', {mapAttributes() {}});
 
+declare const mapAttributesToNever: () => never;
+
+const mappedToNeverLocator = createLocator<AppLocator, never>('app', {
+  mapAttributes: mapAttributesToNever,
+});
+
+mappedToNeverLocator.header() satisfies never;
+
 const mapAttributes = (attributes: {}) => attributes as Selector;
 
 // @ts-expect-error
@@ -422,14 +430,14 @@ createLocator<AppLocator, Selector>('app', {mapAttributes});
 
 rootLocator() satisfies Selector;
 rootLocator.main({text: 'foo'}) satisfies Selector;
-rootLocator.main.header.alsosubtree.corge({bar: 'foo'}) satisfies Selector;
-rootLocator.main.header.alsosubtree.corge.garply() satisfies Selector;
+rootLocator.main.header.alsoSubtree.corge({bar: 'foo'}) satisfies Selector;
+rootLocator.main.header.alsoSubtree.corge.garply() satisfies Selector;
 
 // @ts-expect-error
 locator.main.header.header;
 
 // @ts-expect-error
-locator.main.header.alsosubtree.corge({bar: 'baz'});
+locator.main.header.alsoSubtree.corge({bar: 'baz'});
 
 /**
  * Base tests of CreateLocator.
@@ -447,7 +455,19 @@ export type ConvertTypes<SomeLocator> = CreateLocator<SomeLocator>;
 
 true satisfies IsEqual<typeof rootLocator, RootLocatorVariable>;
 
-true satisfies IsEqual<never, CreateLocator<Partial<AppLocator>, Selection>>;
+true satisfies IsEqual<never, CreateLocator<Partial<AppLocator>, Selector>>;
+
+declare const mappedToBigint: CreateLocator<Locator<{foo: {}}>, bigint>;
+
+mappedToBigint.foo() satisfies bigint;
+
+declare const mappedToNever: CreateLocator<Locator<{foo: {}}>, never>;
+
+mappedToNever.foo() satisfies never;
+
+declare const mappedWithLocatorToNever: CreateLocator<Locator<{foo: Locator<{}>}>, never>;
+
+mappedWithLocatorToNever.foo() satisfies never;
 
 true satisfies IsEqual<typeof appLocator, CreateLocator<AppLocator>>;
 true satisfies IsEqual<typeof appLocator, CreateLocator<Partial<AppLocator>>>;
@@ -763,6 +783,8 @@ export const ClearedLogButton = ({namespace, ...rest}: ClearedLogButtonPropertie
 type HeaderPageObjectLocator = typeof rootLocator.header;
 
 false satisfies IsEqual<HeaderPageObjectLocator, HeaderLocator>;
+
+true satisfies IsEqual<CreateLocator<HeaderLocator, Selector>, HeaderPageObjectLocator>;
 
 class HeaderPageObject {
   constructor(public locator: HeaderPageObjectLocator) {}

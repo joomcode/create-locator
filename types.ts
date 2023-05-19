@@ -71,29 +71,25 @@ type BaseNode<Parameters, Subtree> = IsParametersEmpty<Parameters> extends true
 type CreateComponentLocator = <Properties extends Partial<WithLocator>>(
   this: void,
   properties: Properties extends Partial<WithLocator<never>> ? never : Properties,
-) => RuntimeLocator<
-  unknown extends Exclude<Properties[LocatorKey], undefined>
-    ? object
-    : Exclude<Properties[LocatorKey], undefined>
->;
+) => CreateLocator<Properties>;
 
 /**
  * createLocator overload for root locator.
  */
 type CreateRootLocator = <RootLocator extends WithLocator>(
   this: void,
-  rootPrefix: string,
+  pathPrefix: string,
   rootOptions?: Partial<RootOptions>,
-) => RuntimeLocator<RootLocator[LocatorKey]>;
+) => CreateLocator<RootLocator>;
 
 /**
  * createLocator overload for root locator with attributes mapping.
  */
 type CreateRootLocatorWithMapping = <RootLocator extends WithLocator, MapResult>(
   this: void,
-  rootPrefix: string,
+  pathPrefix: string,
   rootOptions: Partial<RootOptions> & MapAttributes<MapResult>,
-) => NormalizeTree<RootLocator[LocatorKey], MapResult>;
+) => CreateLocator<RootLocator, MapResult>;
 
 /**
  * Extracts parameters from some base or normalized node.
@@ -101,6 +97,15 @@ type CreateRootLocatorWithMapping = <RootLocator extends WithLocator, MapResult>
 type ExtractNodeParameters<SomeNode> = SomeNode extends WithParameters
   ? SomeNode[ParametersKey]
   : {};
+
+/**
+ * Returns true if types are exactly equal and false otherwise.
+ * IsEqual<{foo: string}, {foo: string}> = true.
+ * IsEqual<{readonly foo: string}, {foo: string}> = false.
+ */
+type IsEqual<X, Y> = (<T>() => T extends X ? 1 : 2) extends <T>() => T extends Y ? 1 : 2
+  ? true
+  : false;
 
 /**
  * Return true if parameters is empty, false otherwise.
@@ -175,7 +180,7 @@ type NormalizeBaseNode<BaseNode, MapResult> = BaseNode extends WithParameters
 type NormalizeSubnodes<Subnodes, MapResult> = {
   readonly [Key in string &
     Exclude<keyof Subnodes, keyof ElementAttributeError>]: Subnodes[Key] extends WithHidden
-    ? MapResult extends void
+    ? IsEqual<MapResult, void> extends true
       ? Subnodes[Key][HiddenKey]
       : NormalizeTree<Subnodes[Key][HiddenKey], MapResult>
     : NormalizeTree<Subnodes[Key], MapResult>;
@@ -236,9 +241,10 @@ export type Attributes = Readonly<Record<string, string>>;
  * Presentation of createLocator function in types.
  * Creates type of locator variable by properties and optional MapResult type.
  */
-export type CreateLocator<Properties extends Partial<WithLocator>, MapResult = never> = [
+export type CreateLocator<Properties extends Partial<WithLocator>, MapResult = HiddenKey> = IsEqual<
   MapResult,
-] extends [never]
+  HiddenKey
+> extends true
   ? RuntimeLocator<
       unknown extends Exclude<Properties[LocatorKey], undefined>
         ? object
@@ -270,7 +276,7 @@ export type GetLocatorParametersFunction = <
 >(
   this: void,
   properties: Properties extends Partial<WithLocator<never>> ? never : Properties,
-) => ExtractNodeParameters<Exclude<Properties[LocatorKey], undefined>>;
+) => GetLocatorParameters<Properties>;
 
 /**
  * Creates component locator type by locator description and locator parameters.
@@ -326,7 +332,7 @@ export type RemoveLocatorFromProperties<Properties extends Partial<WithLocator>>
 export type RemoveLocatorFromPropertiesFunction = <Properties extends Partial<WithLocator>>(
   this: void,
   properties: Properties extends Partial<WithLocator<never>> ? never : Properties,
-) => Omit<Properties, LocatorKey | keyof ElementAttributeError>;
+) => RemoveLocatorFromProperties<Properties>;
 
 /**
  * Options of root locator (as createLocator second argument).

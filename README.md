@@ -68,13 +68,13 @@ import {createLocator, type Locator} from 'create-locator';
 import {Foo, type FooLocator} from 'src/components/Foo';
 import {Main, type MainLocator} from 'src/components/Main';
 
-export type AppLocator = Locator<{
+export type RootLocator = Locator<{
   foo: FooLocator;
   main: MainLocator;
 }>;
 
 // create root locator by root component locator type and path prefix
-const rootLocator = createLocator<AppLocator>('app');
+const rootLocator = createLocator<RootLocator>('app');
 
 const App = () => {
   return (
@@ -96,7 +96,7 @@ Here is a complete list of these options with their default values (each can be 
 
 ```tsx
 // create root locator by root component locator type, path prefix and options
-const rootLocator = createLocator<AppLocator>('app', {
+const rootLocator = createLocator<RootLocator>('app', {
   // if true, then locator attributes will not be rendered at all
   isProduction: false,
 
