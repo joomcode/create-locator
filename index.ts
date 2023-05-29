@@ -3,31 +3,11 @@ import type {
   CreateLocatorFunction,
   GetLocatorParametersFunction,
   MapAttributes,
-  RemoveLocatorFromPropertiesFunction,
+  RemoveMarkFromPropertiesFunction,
   RootOptions,
 } from './types';
 
 import {createLocator as productionCreateLocator} from './production';
-
-/**
- * Symbol key for cache of locator attributes.
- */
-const CACHE = Symbol.for('create-locator:cache');
-
-/**
- * Symbol key for locator in path attribute value.
- */
-const LOCATOR = Symbol.for('create-locator:locator');
-
-/**
- * Symbol key for options of root locator.
- */
-const OPTIONS = Symbol.for('create-locator:options');
-
-/**
- * Symbol key for path of locator.
- */
-const PATH = Symbol.for('create-locator:path');
 
 /**
  * Options of root locator, maybe with mapping attributes function.
@@ -72,6 +52,11 @@ const addLength = (value: unknown): string => {
 
   return `${str.length}:${str}`;
 };
+
+/**
+ * Symbol key for cache of locator attributes.
+ */
+const CACHE = Symbol.for('create-locator:cache');
 
 /**
  * Creates a proxy object that represents the locator at runtime, by root options and path.
@@ -197,6 +182,21 @@ const handler: ProxyHandler<LocatorProxy> = {
 };
 
 /**
+ * Symbol key for locator in path attribute value.
+ */
+const LOCATOR = Symbol.for('create-locator:locator');
+
+/**
+ * Symbol key for options of root locator.
+ */
+const OPTIONS = Symbol.for('create-locator:options');
+
+/**
+ * Symbol key for path of locator.
+ */
+const PATH = Symbol.for('create-locator:path');
+
+/**
  * Proxy object that represents the locator at production runtime.
  */
 const productionLocator = productionCreateLocator('app');
@@ -267,9 +267,9 @@ export const getLocatorParameters = ((properties: Properties) => {
 
 /**
  * Removes locator mark from properties (or rest properties) object.
- * Returns properties without attributes produced by the locator.
+ * Returns properties without locator mark.
  */
-export const removeLocatorFromProperties = ((properties: Properties) => {
+export const removeMarkFromProperties = ((properties: Properties) => {
   const pathAttributeValue = getPathAttributeValueFromProperties(properties);
 
   if (!pathAttributeValue) {
@@ -294,14 +294,15 @@ export const removeLocatorFromProperties = ((properties: Properties) => {
   }
 
   return propertiesWithoutLocator;
-}) as RemoveLocatorFromPropertiesFunction;
+}) as RemoveMarkFromPropertiesFunction;
 
 export type {
   CreateLocator,
   GetLocatorParameters,
   Locator,
+  Mark,
   Node,
-  PropertiesWithLocator,
-  PropertiesWithLocatorWithParameters,
-  RemoveLocatorFromProperties,
+  PropertiesWithMark,
+  PropertiesWithMarkWithParameters,
+  RemoveMarkFromProperties,
 } from './types';

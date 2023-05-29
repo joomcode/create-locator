@@ -34,7 +34,7 @@ its two inner elements (`bar` and `qux`), and its child component `Baz`,
 which itself is already marked up:
 
 ```tsx
-import {createLocator, type Locator} from 'create-locator';
+import {createLocator, type Locator, type Mark} from 'create-locator';
 import {Baz, type BazLocator} from 'src/components/Baz';
 
 export type FooLocator = Locator<{ // declare locator type
@@ -43,7 +43,7 @@ export type FooLocator = Locator<{ // declare locator type
   qux: {quux: string}; // element locator with parameters
 }>;
 
-type Properties = {···} & FooLocator; // mark component properties with locator type
+type Properties = {···} & Mark<FooLocator>; // mark component properties with locator type
 
 const Foo = ({···, ...rest}: Properties) => {
   const locator = createLocator(rest); // create locator by properties or rest of properties
@@ -151,11 +151,11 @@ you can mark the component properties with an optional (partial) locator type
 (for example, if this is a public component of your library, whose users may not use locators for testing).
 
 In this case, when marking the component properties with a locator type,
-it is enough to wrap the locator type in a standard `Partial` generic:
+it is enough to wrap the `Mark` with locator type in a standard `Partial` generic:
 
 ```tsx
 // mark component properties with optional locator type
-type Properties = {···} & Partial<FooLocator>;
+type Properties = {···} & Partial<Mark<FooLocator>>;
 ```
 
 The markup code inside the component does not need to be changed, it does not depend on whether

@@ -1,9 +1,9 @@
-import type {Locator, Node} from '../index';
+import type {Locator, Mark, Node} from '../index';
 
 import {assert, React, type Test} from './utils';
 
 export const testRender: Test = (
-  [originalCreateLocator, getLocatorParameters, removeLocatorFromProperties],
+  [originalCreateLocator, getLocatorParameters, removeMarkFromProperties],
   environment,
 ) => {
   const locatorsSet = new Set();
@@ -33,7 +33,7 @@ export const testRender: Test = (
     pathSeparator: '.',
   });
 
-  const Foo = (properties: FooLocator) => {
+  const Foo = (properties: Mark<FooLocator>) => {
     const locator = createLocator(properties);
     const locatorParameters = getLocatorParameters(properties);
 
@@ -97,7 +97,7 @@ export const testRender: Test = (
   type ElementType = 'image' | 'text';
 
   type LabelLocator = Locator<{}, {level?: string; type?: ElementType}>;
-  type LabelProperties = {children?: object[]; level?: string; text: string} & LabelLocator;
+  type LabelProperties = {children?: object[]; level?: string; text: string} & Mark<LabelLocator>;
 
   const Label = ({level = '3', text, ...rest}: LabelProperties) => {
     const locator = createLocator(rest);
@@ -107,7 +107,7 @@ export const testRender: Test = (
       type: (text.length > 5 ? 'text' : 'image') as ElementType,
       ...locatorParameters,
     };
-    const {children, ...restPropertiesWithoutLocator} = removeLocatorFromProperties(rest);
+    const {children, ...restPropertiesWithoutLocator} = removeMarkFromProperties(rest);
 
     return (
       <span {...locator(locatorParametersWithDefaults)} {...restPropertiesWithoutLocator}>
@@ -120,7 +120,7 @@ export const testRender: Test = (
     foo: LabelLocator;
     bar: LabelLocator;
   }>;
-  type HeaderProperties = {text?: string} & HeaderLocator;
+  type HeaderProperties = {text?: string} & Mark<HeaderLocator>;
 
   const Header = (properties: HeaderProperties) => {
     const {text = 'foo'} = properties;
@@ -144,7 +144,7 @@ export const testRender: Test = (
     rendered: RenderedLocator;
     text: {};
   }>;
-  type MainProperties = {render: Function} & MainLocator;
+  type MainProperties = {render: Function} & Mark<MainLocator>;
 
   const Main = ({render, ...rest}: MainProperties) => {
     const locator = createLocator(rest);
@@ -161,11 +161,11 @@ export const testRender: Test = (
   };
 
   type FooterLocator = Locator<{faq: {}}, {link: string}>;
-  type FooterProperties = Partial<FooterLocator>;
+  type FooterProperties = Partial<Mark<FooterLocator>>;
 
   const Footer = (properties: FooterProperties) => {
     const locator = createLocator(properties);
-    const propertiesWithoutLocator = removeLocatorFromProperties(properties);
+    const propertiesWithoutLocator = removeMarkFromProperties(properties);
     // @ts-expect-error
     const locatorWithoutType = createLocator(propertiesWithoutLocator);
 
@@ -186,6 +186,7 @@ export const testRender: Test = (
     return (
       <div {...locator(parameters)}>
         <a {...locator.faq()}>FAQ</a>
+        {/* @ts-expect-error */}
         <span {...locatorWithoutType()}></span>
       </div>
     );

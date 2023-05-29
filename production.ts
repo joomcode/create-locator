@@ -1,7 +1,7 @@
 import type {
   CreateLocatorFunction,
   GetLocatorParametersFunction,
-  RemoveLocatorFromPropertiesFunction,
+  RemoveMarkFromPropertiesFunction,
 } from './types';
 
 const attributes = {};
@@ -27,15 +27,16 @@ export const createLocator = (() => proxy) as unknown as CreateLocatorFunction;
 
 export const getLocatorParameters = (() => proxy) as GetLocatorParametersFunction;
 
-export const removeLocatorFromProperties = ((properties) =>
-  properties) as RemoveLocatorFromPropertiesFunction;
+export const removeMarkFromProperties = ((properties) =>
+  properties) as RemoveMarkFromPropertiesFunction;
 
 export type {
   CreateLocator,
   GetLocatorParameters,
   Locator,
+  Mark,
   Node,
-  PropertiesWithLocator,
-  PropertiesWithLocatorWithParameters,
-  RemoveLocatorFromProperties,
+  PropertiesWithMark,
+  PropertiesWithMarkWithParameters,
+  RemoveMarkFromProperties,
 } from './types';

@@ -1,57 +1,4 @@
 /**
- * Value of DOM `aria-invalid` attribute from specification.
- * {@link https://w3c.github.io/aria/#aria-invalid}.
- */
-export type AriaInvalidValue = boolean | 'false' | 'true' | 'grammar' | 'spelling' | undefined;
-
-/**
- * Generates a type error with some message on HTML element.
- */
-type ElementAttributeError<Message extends boolean | string | undefined = undefined> = {
-  readonly 'aria-invalid': Message;
-};
-
-/**
- * Symbol key for saving hidden normalized tree.
- */
-export declare const HIDDEN: unique symbol;
-
-/**
- * Type of symbol key for saving hidden normalized tree.
- */
-type HiddenKey = typeof HIDDEN;
-
-/**
- * Symbol key for saving locator tree of component locator.
- */
-export declare const LOCATOR: unique symbol;
-
-/**
- * Type of symbol key for saving locator tree of component locator.
- */
-type LocatorKey = typeof LOCATOR;
-
-/**
- * Symbol key for saving locator tree of node locator.
- */
-export declare const NODE: unique symbol;
-
-/**
- * Type of symbol key for saving locator tree of node locator.
- */
-type NodeKey = typeof NODE;
-
-/**
- * Symbol key for saving locator parameters.
- */
-export declare const PARAMETERS: unique symbol;
-
-/**
- * Type of symbol key for saving locator parameters.
- */
-type ParametersKey = typeof PARAMETERS;
-
-/**
  * Any locator parameters (general type for constraints).
  */
 type AnyParameters = Attributes;
@@ -59,7 +6,7 @@ type AnyParameters = Attributes;
 /**
  * Base node of locator tree (by parameters and optional subtree).
  */
-type BaseNode<Parameters, Subtree> = IsParametersEmpty<Parameters> extends true
+type BaseNode<Parameters, Subtree = undefined> = IsParametersEmpty<Parameters> extends true
   ? ((this: void) => LocatorCallResult<Subtree>) &
       ElementAttributeError<'The locator should be called'>
   : NodeWithParameters<Parameters, LocatorCallResult<Subtree>> &
@@ -68,9 +15,9 @@ type BaseNode<Parameters, Subtree> = IsParametersEmpty<Parameters> extends true
 /**
  * createLocator overload for component locator.
  */
-type CreateComponentLocator = <Properties extends Partial<WithLocator>>(
+type CreateComponentLocator = <Properties extends Partial<WithMark>>(
   this: void,
-  properties: Properties extends Partial<WithLocator<never>> ? never : Properties,
+  properties: Properties extends Partial<WithMark<never>> ? never : Properties,
 ) => CreateLocator<Properties>;
 
 /**
@@ -92,11 +39,23 @@ type CreateRootLocatorWithMapping = <RootLocator extends WithLocator, MapResult>
 ) => CreateLocator<RootLocator, MapResult>;
 
 /**
+ * Generates a type error with some message on HTML element.
+ */
+type ElementAttributeError<Message extends boolean | string | undefined = undefined> = {
+  readonly 'aria-invalid': Message | true;
+};
+
+/**
  * Extracts parameters from some base or normalized node.
  */
 type ExtractNodeParameters<SomeNode> = SomeNode extends WithParameters
   ? SomeNode[ParametersKey]
   : {};
+
+/**
+ * Type of symbol key for saving hidden normalized tree.
+ */
+type HiddenKey = typeof HIDDEN;
 
 /**
  * Returns true if types are exactly equal and false otherwise.
@@ -121,21 +80,33 @@ type Keys<T> = T extends unknown ? keyof T : never;
  *  Locator call result by locator tree.
  */
 type LocatorCallResult<Tree> = Tree extends object
-  ? WithLocator<Tree> & Partial<ElementAttributeError>
+  ? WithMark<Tree> & Partial<ElementAttributeError>
   : object;
 
 /**
  * Description of locator tree (argument of Locator<...> and Node<...>).
  */
 type LocatorDescription = Readonly<
-  Record<string, WithLocator | WithNode | AnyParameters> &
+  Record<string, AnyParameters | WithLocator | WithNode> &
     Partial<
       WithHidden<NotLocatorDescription> &
         WithLocator<NotLocatorDescription> &
+        WithMark<NotLocatorDescription> &
         WithNode<NotLocatorDescription> &
         WithParameters<NotLocatorDescription>
     >
 >;
+
+/**
+ * Type of runtime locator object by locator tree.
+ */
+type LocatorFromLocatorTree<Tree> = BaseNode<ExtractNodeParameters<Tree>, Tree> &
+  WithLocator & {readonly [Key in string & keyof Tree]: TreeNode<Key, UnwrapTree<Tree[Key]>>};
+
+/**
+ * Type of symbol key to define locator.
+ */
+type LocatorKey = typeof LOCATOR;
 
 /**
  * Creates locator tree by locator description and locator parameters.
@@ -143,22 +114,53 @@ type LocatorDescription = Readonly<
 type LocatorTree<
   Description,
   Parameters,
-  Intersection = UnionToIntersection<Description>,
-> = BaseNode<Parameters, void> & {
-  readonly [Key in string & keyof Intersection]-?: LocatorTreeNode<
-    Exclude<Intersection[Key], undefined>
+  MergedDescriptions = UnionToIntersection<Description>,
+> = BaseNode<Parameters> & {
+  readonly [Key in string & keyof MergedDescriptions]-?: TreeNode<
+    Key,
+    LocatorTreeNode<Key, Exclude<MergedDescriptions[Key], undefined>>
   >;
 };
 
 /**
+ * Get locator tree from locator object.
+ */
+type LocatorTreeFromLocator<SomeLocator> = SomeLocator extends WithLocator
+  ? BaseNode<ExtractNodeParameters<SomeLocator>> & {
+      readonly [Key in string & Exclude<keyof SomeLocator, keyof ElementAttributeError>]: TreeNode<
+        Key,
+        UnwrapTree<SomeLocator[Key]>
+      >;
+    }
+  : unknown;
+
+/**
+ * Get locator tree from properties with mark.
+ */
+type LocatorTreeFromMark<Properties extends Partial<WithMark>> = Exclude<
+  Properties[MarkKey],
+  undefined
+>;
+
+/**
  * Creates locator tree node by locator description node.
  */
-type LocatorTreeNode<DescriptionNode> = [DescriptionNode] extends [WithLocator]
-  ? BaseNode<ExtractNodeParameters<DescriptionNode[LocatorKey]>, DescriptionNode[LocatorKey]> &
-      WithHidden<NormalizeTree<DescriptionNode[LocatorKey]>>
+type LocatorTreeNode<Key, DescriptionNode> = [DescriptionNode] extends [WithLocator]
+  ? BaseNode<ExtractNodeParameters<DescriptionNode>, LocatorTreeFromLocator<DescriptionNode>> &
+      WithHidden<TreeNode<Key, NormalizeTree<DescriptionNode>>>
   : [DescriptionNode] extends [WithNode]
   ? DescriptionNode[NodeKey]
-  : BaseNode<DescriptionNode, void>;
+  : BaseNode<DescriptionNode>;
+
+/**
+ * Type of symbol key for saving locator tree in mark (in properties object).
+ */
+type MarkKey = typeof MARK;
+
+/**
+ * Type of symbol key for saving locator tree of node locator.
+ */
+type NodeKey = typeof NODE;
 
 /**
  * The parameter-dependent part of the base node.
@@ -175,22 +177,29 @@ type NormalizeBaseNode<BaseNode, MapResult> = BaseNode extends WithParameters
   : (this: void) => MapResult;
 
 /**
+ * Normalize subnode of locator tree.
+ */
+type NormalizeSubnode<Subnode, MapResult> = Subnode extends WithHidden
+  ? IsEqual<MapResult, void> extends true
+    ? Subnode[HiddenKey]
+    : NormalizeTree<Subnode[HiddenKey], MapResult>
+  : NormalizeTree<Subnode, MapResult>;
+
+/**
  * Normalize subnodes of locator tree.
  */
 type NormalizeSubnodes<Subnodes, MapResult> = {
-  readonly [Key in string &
-    Exclude<keyof Subnodes, keyof ElementAttributeError>]: Subnodes[Key] extends WithHidden
-    ? IsEqual<MapResult, void> extends true
-      ? Subnodes[Key][HiddenKey]
-      : NormalizeTree<Subnodes[Key][HiddenKey], MapResult>
-    : NormalizeTree<Subnodes[Key], MapResult>;
+  readonly [Key in string & Exclude<keyof Subnodes, keyof ElementAttributeError>]: TreeNode<
+    Key,
+    NormalizeSubnode<UnwrapTree<Subnodes[Key]>, MapResult>
+  >;
 };
 
 /**
  * Normalize locator tree to hidden internal brief presentation (so-called normalized tree).
  */
 type NormalizeTree<Tree, MapResult = void> = NormalizeBaseNode<Tree, MapResult> &
-  NormalizeSubnodes<Tree, MapResult>;
+  NormalizeSubnodes<UnwrapTree<Tree>, MapResult>;
 
 /**
  * Message for type error in Locator<...> and Node<...> argument.
@@ -198,12 +207,24 @@ type NormalizeTree<Tree, MapResult = void> = NormalizeBaseNode<Tree, MapResult> 
 type NotLocatorDescription = 'Not a locator tree description';
 
 /**
- * Type of runtime locator object by locator tree.
+ * Type of symbol key for saving locator parameters.
  */
-type RuntimeLocator<Tree> = {readonly [Key in string & keyof Tree]: Tree[Key]} & BaseNode<
-  Tree extends WithParameters ? Tree[ParametersKey] : {},
-  Tree
->;
+type ParametersKey = typeof PARAMETERS;
+
+/**
+ * Keys of prototypes of Object and Function.
+ */
+type PrototypeKeys = string & (keyof typeof Object.prototype | keyof typeof Function.prototype);
+
+/**
+ * Type of symbol key for saving locator tree for prototype keys.
+ */
+type TreeKey = typeof TREE;
+
+/**
+ * Wrap tree node with tree key for prototype keys.
+ */
+type TreeNode<Key, Tree> = Key extends PrototypeKeys ? Tree & WithTree<Tree> : Tree;
 
 /**
  * Converts union of types to intersection of this types.
@@ -213,14 +234,24 @@ type UnionToIntersection<U> = (U extends any ? (k: U) => void : never) extends (
   : never;
 
 /**
+ * Unwrap tree node from tree key, if any.
+ */
+type UnwrapTree<Tree> = Tree extends WithTree ? Tree[TreeKey] : Tree;
+
+/**
  * Object with hidden normalized tree of locators.
  */
 type WithHidden<NormalizedTree = object> = Readonly<Record<HiddenKey, NormalizedTree>>;
 
 /**
- * Object with locator tree (unnormalized tree of locators, produced by Locator<...>).
+ * Object with locator key (it's locator itself).
  */
-type WithLocator<Tree = object> = Readonly<Record<LocatorKey, Tree>>;
+type WithLocator<Message = ''> = Readonly<Record<LocatorKey, Message>>;
+
+/**
+ * Object with mark with locator tree (unnormalized tree of locators, produced by Locator<...>).
+ */
+type WithMark<Tree = object> = Readonly<Record<MarkKey, Tree>>;
 
 /**
  * Object with node locator (produced by Node<...>).
@@ -233,26 +264,41 @@ type WithNode<Tree = object> = Readonly<Record<NodeKey, Tree>>;
 type WithParameters<Parameters = object> = Readonly<Record<ParametersKey, Parameters>>;
 
 /**
+ * Object with tree of locators under some prototype key.
+ */
+type WithTree<Tree = object> = Readonly<Record<TreeKey, Tree>>;
+
+/**
+ * Value of DOM `aria-invalid` attribute from specification.
+ * {@link https://w3c.github.io/aria/#aria-invalid}.
+ */
+export type AriaInvalidValue = boolean | 'false' | 'true' | 'grammar' | 'spelling' | undefined;
+
+/**
  * Attributes object.
  */
 export type Attributes = Readonly<Record<string, string>>;
 
 /**
  * Presentation of createLocator function in types.
- * Creates type of locator variable by properties and optional MapResult type.
+ * Creates locator type by properties and optional MapResult type.
  */
-export type CreateLocator<Properties extends Partial<WithLocator>, MapResult = HiddenKey> = IsEqual<
-  MapResult,
-  HiddenKey
-> extends true
-  ? RuntimeLocator<
-      unknown extends Exclude<Properties[LocatorKey], undefined>
-        ? object
-        : Exclude<Properties[LocatorKey], undefined>
-    >
-  : Properties extends WithLocator
-  ? NormalizeTree<Properties[LocatorKey], MapResult>
-  : never;
+export type CreateLocator<
+  PropertiesOrRootLocator extends Partial<WithMark> | WithLocator,
+  MapResult = HiddenKey,
+> = IsEqual<MapResult, HiddenKey> extends true
+  ? PropertiesOrRootLocator extends WithLocator
+    ? PropertiesOrRootLocator
+    : PropertiesOrRootLocator extends Partial<WithMark>
+    ? IsEqual<LocatorTreeFromMark<PropertiesOrRootLocator>, unknown> extends true
+      ? unknown
+      : IsEqual<LocatorTreeFromMark<PropertiesOrRootLocator>, object> extends true
+      ? unknown
+      : LocatorFromLocatorTree<LocatorTreeFromMark<PropertiesOrRootLocator>>
+    : unknown
+  : PropertiesOrRootLocator extends WithLocator
+  ? NormalizeTree<LocatorTreeFromLocator<PropertiesOrRootLocator>, MapResult>
+  : unknown;
 
 /**
  * Type of createLocator function (with overloads).
@@ -265,18 +311,27 @@ export type CreateLocatorFunction = CreateComponentLocator &
  * Presentation of getLocatorParameters function in types.
  * Get type of parameters of component locator by component properties.
  */
-export type GetLocatorParameters<Properties extends Partial<WithLocator<WithParameters>>> =
-  ExtractNodeParameters<Exclude<Properties[LocatorKey], undefined>>;
+export type GetLocatorParameters<Properties extends Partial<WithMark<WithParameters>>> = IsEqual<
+  ExtractNodeParameters<LocatorTreeFromMark<Properties>>,
+  object
+> extends true
+  ? unknown
+  : IsEqual<ExtractNodeParameters<LocatorTreeFromMark<Properties>>, {}> extends true
+  ? unknown
+  : ExtractNodeParameters<LocatorTreeFromMark<Properties>>;
 
 /**
  * Type of getLocatorParameters function.
  */
-export type GetLocatorParametersFunction = <
-  Properties extends Partial<WithLocator<WithParameters>>,
->(
+export type GetLocatorParametersFunction = <Properties extends Partial<WithMark<WithParameters>>>(
   this: void,
-  properties: Properties extends Partial<WithLocator<never>> ? never : Properties,
+  properties: Properties extends Partial<WithMark<never>> ? never : Properties,
 ) => GetLocatorParameters<Properties>;
+
+/**
+ * Symbol key for saving hidden normalized tree.
+ */
+export declare const HIDDEN: unique symbol;
 
 /**
  * Creates component locator type by locator description and locator parameters.
@@ -284,13 +339,12 @@ export type GetLocatorParametersFunction = <
 export type Locator<
   Description extends LocatorDescription,
   Parameters extends AnyParameters = {},
-> = WithLocator<LocatorTree<Description, Parameters>> &
-  Partial<
-    ElementAttributeError<
-      | 'The locator should be removed from spreaded properties using the removeLocatorFromProperties'
-      | AriaInvalidValue
-    >
-  >;
+> = LocatorFromLocatorTree<LocatorTree<Description, Parameters>>;
+
+/**
+ * Symbol key to define locator.
+ */
+export declare const LOCATOR: unique symbol;
 
 /**
  * Additional option of root locator for mapping attributes.
@@ -298,6 +352,27 @@ export type Locator<
 export type MapAttributes<MapResult> = {
   readonly mapAttributes: (this: void, attributes: Attributes) => MapResult;
 };
+
+/**
+ * Creates mark with component locator type for component properties.
+ */
+export type Mark<SomeLocator extends WithLocator> = IsEqual<
+  LocatorTreeFromLocator<SomeLocator>,
+  unknown
+> extends true
+  ? unknown
+  : WithMark<LocatorTreeFromLocator<SomeLocator>> &
+      Partial<
+        ElementAttributeError<
+          | 'The mark of locator should be removed from spreaded properties using the removeMarkFromProperties'
+          | AriaInvalidValue
+        >
+      >;
+
+/**
+ * Symbol key for saving locator tree in mark (in properties object).
+ */
+export declare const MARK: unique symbol;
 
 /**
  * Creates node locator type by locator description and locator parameters.
@@ -308,31 +383,41 @@ export type Node<
 > = WithNode<LocatorTree<Description, Parameters>>;
 
 /**
- * Properties object with any locator (general type for constraints).
+ * Symbol key for saving locator tree of node locator.
  */
-export type PropertiesWithLocator = WithLocator;
+export declare const NODE: unique symbol;
 
 /**
- * Any locator type with parameters (general type for constraints).
+ * Symbol key for saving locator parameters.
  */
-export type PropertiesWithLocatorWithParameters = WithLocator<WithParameters>;
+export declare const PARAMETERS: unique symbol;
 
 /**
- * Presentation of removeLocatorFromProperties function in types.
- * Returns type of properties without attributes produced by the locator.
+ * Properties object with mark with any locator (general type for constraints).
  */
-export type RemoveLocatorFromProperties<Properties extends Partial<WithLocator>> = Omit<
+export type PropertiesWithMark = WithMark;
+
+/**
+ * Properties object with mark with any locator with parameters (general type for constraints).
+ */
+export type PropertiesWithMarkWithParameters = WithMark<WithParameters>;
+
+/**
+ * Presentation of removeMarkFromProperties function in types.
+ * Returns type of properties without locator mark.
+ */
+export type RemoveMarkFromProperties<Properties extends Partial<WithMark>> = Omit<
   Properties,
-  LocatorKey | keyof ElementAttributeError
+  MarkKey | keyof ElementAttributeError
 >;
 
 /**
- * Type of removeLocatorFromProperties function.
+ * Type of removeMarkFromProperties function.
  */
-export type RemoveLocatorFromPropertiesFunction = <Properties extends Partial<WithLocator>>(
+export type RemoveMarkFromPropertiesFunction = <Properties extends Partial<WithMark>>(
   this: void,
-  properties: Properties extends Partial<WithLocator<never>> ? never : Properties,
-) => RemoveLocatorFromProperties<Properties>;
+  properties: Properties extends Partial<WithMark<never>> ? never : Properties,
+) => RemoveMarkFromProperties<Properties>;
 
 /**
  * Options of root locator (as createLocator second argument).
@@ -343,3 +428,8 @@ export type RootOptions = Readonly<{
   pathAttribute: string;
   pathSeparator: string;
 }>;
+
+/**
+ * Symbol key for saving locator tree for prototype keys.
+ */
+export declare const TREE: unique symbol;

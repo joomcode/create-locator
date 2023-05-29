@@ -1,8 +1,8 @@
-import {createLocator, getLocatorParameters, removeLocatorFromProperties} from '../index';
+import {createLocator, getLocatorParameters, removeMarkFromProperties} from '../index';
 import {
   createLocator as productionCreateLocator,
   getLocatorParameters as productionGetLocatorParameters,
-  removeLocatorFromProperties as productionRemoveLocatorFromProperties,
+  removeMarkFromProperties as productionRemoveMarkFromProperties,
 } from '../production';
 
 import {testBasicInteractions} from './basicInteractions.spec';
@@ -23,26 +23,26 @@ const createLocatorWithIsProduction = ((...args: Parameters<typeof createLocator
 }) as unknown as typeof createLocator;
 
 const environments: Readonly<Record<string, Api>> = {
-  development: [createLocator, getLocatorParameters, removeLocatorFromProperties],
+  development: [createLocator, getLocatorParameters, removeMarkFromProperties],
   production: [
     productionCreateLocator,
     productionGetLocatorParameters,
-    productionRemoveLocatorFromProperties,
+    productionRemoveMarkFromProperties,
   ],
   productionWithDevParameters: [
     productionCreateLocator,
     getLocatorParameters,
-    productionRemoveLocatorFromProperties,
+    productionRemoveMarkFromProperties,
   ],
   productionFromOptionsWithDevParameters: [
     createLocatorWithIsProduction,
     getLocatorParameters,
-    productionRemoveLocatorFromProperties,
+    productionRemoveMarkFromProperties,
   ],
   productionFromOptionsWithProdParameters: [
     createLocatorWithIsProduction,
     productionGetLocatorParameters,
-    productionRemoveLocatorFromProperties,
+    productionRemoveMarkFromProperties,
   ],
 };
 

@@ -1,7 +1,7 @@
 import type {
   CreateLocatorFunction,
   GetLocatorParametersFunction,
-  RemoveLocatorFromPropertiesFunction,
+  RemoveMarkFromPropertiesFunction,
 } from '../types';
 
 import type {Tree} from './memory.spec';
@@ -37,7 +37,7 @@ const getRandomString = (): string => Math.random().toString(27).slice(2);
 export type Api = readonly [
   createLocator: CreateLocatorFunction,
   getLocatorParameters: GetLocatorParametersFunction,
-  removeLocatorFromProperties: RemoveLocatorFromPropertiesFunction,
+  removeMarkFromProperties: RemoveMarkFromPropertiesFunction,
 ];
 
 export function assert(value: unknown, message?: string): asserts value is true {

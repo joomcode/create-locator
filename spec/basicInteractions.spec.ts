@@ -1,11 +1,11 @@
-import type {Locator, Node} from '../index';
+import type {Locator, Mark, Node} from '../index';
 
 import {assert, assertPropertiesAreEqual, getShallowCopy, type Test} from './utils';
 
 type RootLocator = Locator<{toString: {foo: string}; bar: Node<{baz: {}}>}, {qux: string}>;
 
 export const testBasicInteractions: Test = (
-  [createLocator, getLocatorParameters, removeLocatorFromProperties],
+  [createLocator, getLocatorParameters, removeMarkFromProperties],
   environment,
 ) => {
   const locator = createLocator<RootLocator>('root');
@@ -41,7 +41,7 @@ export const testBasicInteractions: Test = (
     bar: null,
     baz: '',
     qux: 0,
-  } as unknown as RootLocator;
+  } as unknown as Mark<RootLocator>;
 
   if (isDevelopment) {
     const locatorKey = keysWithLocator[0];
@@ -200,15 +200,19 @@ export const testBasicInteractions: Test = (
   assert(
     // @ts-expect-error
     [createLocator(undefined), createLocator(null), createLocator()].every(
-      (item: object) => item === locatorByProperties,
+      (item: unknown) => item === locatorByProperties,
     ),
     'createLocator do not throws an exception on falsy properties',
   );
 
-  let deepLocator = locator;
   let deepAttributeName = 'root';
+  let deepLocator = locator;
 
-  for (const key of [...Object.getOwnPropertyNames(Object.prototype), 'length', 'name', '']) {
+  for (const key of [
+    ...Object.getOwnPropertyNames(Object.prototype),
+    ...Object.getOwnPropertyNames(Function.prototype),
+    '',
+  ]) {
     // @ts-expect-error
     deepLocator = deepLocator[key];
 
@@ -296,60 +300,60 @@ export const testBasicInteractions: Test = (
   );
 
   assert(
-    removeLocatorFromProperties(propertiesWithoutLocator) === propertiesWithoutLocator,
-    'removeLocatorFromProperties returns original properties if they do not marked with locator',
+    removeMarkFromProperties(propertiesWithoutLocator) === propertiesWithoutLocator,
+    'removeMarkFromProperties returns original properties if they do not marked with locator',
   );
 
   assert(
     // @ts-expect-error
-    removeLocatorFromProperties(undefined) === undefined,
-    'removeLocatorFromProperties returns undefined for undefined properties',
+    removeMarkFromProperties(undefined) === undefined,
+    'removeMarkFromProperties returns undefined for undefined properties',
   );
 
   assert(
     // @ts-expect-error
-    removeLocatorFromProperties(null) === null,
-    'removeLocatorFromProperties returns null for null',
+    removeMarkFromProperties(null) === null,
+    'removeMarkFromProperties returns null for null',
   );
 
   assert(
     // @ts-expect-error
-    removeLocatorFromProperties('foo') === 'foo',
-    'removeLocatorFromProperties returns the same string for string',
+    removeMarkFromProperties('foo') === 'foo',
+    'removeMarkFromProperties returns the same string for string',
   );
 
   assert(
     // @ts-expect-error
-    removeLocatorFromProperties(13) === 13,
-    'removeLocatorFromProperties returns the same number for number',
+    removeMarkFromProperties(13) === 13,
+    'removeMarkFromProperties returns the same number for number',
   );
 
-  const propertiesAfterRemovingLocator = removeLocatorFromProperties(propertiesWithParameters);
+  const propertiesAfterRemovingLocator = removeMarkFromProperties(propertiesWithParameters);
 
   assert(
     Object.getPrototypeOf(propertiesAfterRemovingLocator) ===
       Object.getPrototypeOf(propertiesWithParameters),
-    'removeLocatorFromProperties copies properties prototype',
+    'removeMarkFromProperties copies properties prototype',
   );
 
   assertPropertiesAreEqual(
     propertiesWithParametersKeys,
     propertiesWithParameters,
-    propertiesAfterRemovingLocator,
-    'removeLocatorFromProperties copies properties with correct descriptors',
+    propertiesAfterRemovingLocator as object,
+    'removeMarkFromProperties copies properties with correct descriptors',
   );
 
   assert(
     // @ts-expect-error
     createLocator(propertiesAfterRemovingLocator) === createLocator({}),
-    'removeLocatorFromProperties really remove locator ',
+    'removeMarkFromProperties really remove locator ',
   );
 
   const propertiesFromObjectPrototype = getShallowCopy(Object.prototype);
 
   Object.assign(propertiesFromObjectPrototype, {...locator({qux: 'foo'})});
 
-  const objectPrototypePropertiesAfterRemoving = removeLocatorFromProperties(
+  const objectPrototypePropertiesAfterRemoving = removeMarkFromProperties(
     // @ts-expect-error
     propertiesFromObjectPrototype,
   );
@@ -368,7 +372,7 @@ export const testBasicInteractions: Test = (
 
   assert(
     isDevelopment === (propertiesFromObjectPrototype !== objectPrototypePropertiesAfterRemoving),
-    'removeLocatorFromProperties copies properties object only in production',
+    'removeMarkFromProperties copies properties object only in production',
   );
 
   try {
