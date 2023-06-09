@@ -1,4 +1,4 @@
-import type {Locator, Mark, Node} from '../index';
+import type {Locator, Mark, Node} from 'create-locator';
 
 import {assert, assertPropertiesAreEqual, getShallowCopy, type Test} from './utils';
 
@@ -136,7 +136,8 @@ export const testBasicInteractions: Test = (
   );
 
   if (isDevelopment) {
-    const pathAttributeValue = attributes[Object.keys(attributes)[0] as keyof typeof attributes];
+    const pathAttributeValue =
+      attributes[Object.keys(attributes)[0] as unknown as keyof typeof attributes];
 
     assert(
       String(pathAttributeValue) === 'root',
@@ -227,15 +228,9 @@ export const testBasicInteractions: Test = (
       `${key}: one parameter creates one additional attribute`,
     );
 
-    assert(
-      '' + attributesPair['data-testid'] === (isDevelopment ? `root-${key}` : 'undefined'),
-      `${key}: creates correct path attribute value`,
-    );
+    assert('' + attributesPair['data-testid'] === (isDevelopment ? `root-${key}` : 'undefined'));
 
-    assert(
-      attributesPair['data-test-foo'] === (isDevelopment ? 'bar' : undefined),
-      `${key}: creates correct attribute for parameter`,
-    );
+    assert(attributesPair['data-test-foo'] === (isDevelopment ? 'bar' : undefined));
   }
 
   const deepAttributes: Record<string, unknown> = deepLocator({qux: 'bar'});

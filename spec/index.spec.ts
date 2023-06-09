@@ -1,9 +1,9 @@
-import {createLocator, getLocatorParameters, removeMarkFromProperties} from '../index';
+import {createLocator, getLocatorParameters, removeMarkFromProperties} from 'create-locator';
 import {
   createLocator as productionCreateLocator,
   getLocatorParameters as productionGetLocatorParameters,
   removeMarkFromProperties as productionRemoveMarkFromProperties,
-} from '../production';
+} from 'create-locator/production';
 
 import {testBasicInteractions} from './basicInteractions.spec';
 import {testCache} from './cache.spec';

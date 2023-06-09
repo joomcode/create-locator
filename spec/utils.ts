@@ -1,8 +1,10 @@
+import type React from 'react';
+
 import type {
   CreateLocatorFunction,
   GetLocatorParametersFunction,
   RemoveMarkFromPropertiesFunction,
-} from '../types';
+} from 'create-locator/types';
 
 import type {Tree} from './memory.spec';
 
@@ -12,25 +14,7 @@ declare global {
     memoryUsage(): Readonly<Record<string, number>>;
     nextTick(fn: () => void): void;
   };
-
-  type WithAriaInvalid = {
-    'aria-invalid'?: boolean | 'false' | 'true' | 'grammar' | 'spelling' | undefined;
-  };
-
-  namespace JSX {
-    interface IntrinsicElements {
-      a: WithAriaInvalid;
-      button: WithAriaInvalid;
-      div: WithAriaInvalid;
-      h1: WithAriaInvalid;
-      label: WithAriaInvalid;
-      main: WithAriaInvalid;
-      span: WithAriaInvalid;
-    }
-  }
 }
-
-type Component = (properties?: object) => object;
 
 const getRandomString = (): string => Math.random().toString(27).slice(2);
 
@@ -107,15 +91,6 @@ export const createRandomTree = (): Tree => {
   return tree;
 };
 
-/**
- * Returns true if types are exactly equal and false otherwise.
- * IsEqual<{foo: string}, {foo: string}> = true.
- * IsEqual<{readonly foo: string}, {foo: string}> = false.
- */
-export type IsEqual<X, Y> = (<T>() => T extends X ? 1 : 2) extends <T>() => T extends Y ? 1 : 2
-  ? true
-  : false;
-
 export const getShallowCopy = <T>(value: T): T => {
   if (!value || (typeof value !== 'object' && typeof value !== 'function')) {
     return value;
@@ -134,17 +109,17 @@ export const {log} = console;
 
 export const ok = (message: string) => log(`\x1B[32m[OK]\x1B[39m ${message}`);
 
-export const React = {
-  createElement(ComponentOrTag: Component | string, properties: object, ...children: object[]) {
-    properties = {children, ...properties};
+const createElement: typeof React.createElement = (ComponentOrTag, properties, ...children) => {
+  properties = {children, ...properties};
 
-    if (typeof ComponentOrTag === 'function') {
-      return ComponentOrTag(properties);
-    }
+  if (typeof ComponentOrTag === 'function') {
+    return ComponentOrTag(properties);
+  }
 
-    return {tag: ComponentOrTag, properties};
-  },
+  return {tag: ComponentOrTag, properties};
 };
+
+export const RuntimeReact = {createElement};
 
 export type Test = (api: Api, environment: string) => void;
 

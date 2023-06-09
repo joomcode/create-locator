@@ -1,3 +1,5 @@
+/// <reference path="./react.d.ts" />
+
 /**
  * Any locator parameters (general type for constraints).
  */
@@ -41,9 +43,14 @@ type CreateRootLocatorWithMapping = <RootLocator extends WithLocator, MapResult>
 /**
  * Generates a type error with some message on HTML element.
  */
-type ElementAttributeError<Message extends boolean | string | undefined = undefined> = {
-  readonly 'aria-invalid': Message | true;
+type ElementAttributeError<Message extends string | undefined = undefined> = {
+  readonly [ERROR_ATTRIBUTE]: Message | undefined;
 };
+
+/**
+ * Type of symbol attribute key for generating type error on DOM elements.
+ */
+type ErrorAttribute = GetErrorAttribute<keyof React.AriaAttributes & symbol>;
 
 /**
  * Extracts parameters from some base or normalized node.
@@ -51,6 +58,16 @@ type ElementAttributeError<Message extends boolean | string | undefined = undefi
 type ExtractNodeParameters<SomeNode> = SomeNode extends WithParameters
   ? SomeNode[ParametersKey]
   : {};
+
+/**
+ * Get error attribute key from React.AriaAttributes interface.
+ */
+type GetErrorAttribute<Attribute extends keyof React.AriaAttributes & symbol> =
+  Attribute extends unknown
+    ? IsEqual<React.AriaAttributes[Attribute], undefined> extends true
+      ? Attribute
+      : never
+    : never;
 
 /**
  * Type of symbol key for saving hidden normalized tree.
@@ -87,7 +104,7 @@ type LocatorCallResult<Tree> = Tree extends object
  * Description of locator tree (argument of Locator<...> and Node<...>).
  */
 type LocatorDescription = Readonly<
-  Record<string, AnyParameters | WithLocator | WithNode> &
+  Record<string, (AnyParameters & Partial<ElementAttributeError>) | WithLocator | WithNode> &
     Partial<
       WithHidden<NotLocatorDescription> &
         WithLocator<NotLocatorDescription> &
@@ -269,12 +286,6 @@ type WithParameters<Parameters = object> = Readonly<Record<ParametersKey, Parame
 type WithTree<Tree = object> = Readonly<Record<TreeKey, Tree>>;
 
 /**
- * Value of DOM `aria-invalid` attribute from specification.
- * {@link https://w3c.github.io/aria/#aria-invalid}.
- */
-export type AriaInvalidValue = boolean | 'false' | 'true' | 'grammar' | 'spelling' | undefined;
-
-/**
  * Attributes object.
  */
 export type Attributes = Readonly<Record<string, string>>;
@@ -306,6 +317,11 @@ export type CreateLocator<
 export type CreateLocatorFunction = CreateComponentLocator &
   CreateRootLocator &
   CreateRootLocatorWithMapping;
+
+/**
+ * Symbol attribute key for generating type error on DOM elements.
+ */
+export declare const ERROR_ATTRIBUTE: ErrorAttribute;
 
 /**
  * Presentation of getLocatorParameters function in types.
@@ -363,10 +379,7 @@ export type Mark<SomeLocator extends WithLocator> = IsEqual<
   ? unknown
   : WithMark<LocatorTreeFromLocator<SomeLocator>> &
       Partial<
-        ElementAttributeError<
-          | 'The mark of locator should be removed from spreaded properties using the removeMarkFromProperties'
-          | AriaInvalidValue
-        >
+        ElementAttributeError<'The mark of locator should be removed from spreaded properties using the removeMarkFromProperties'>
       >;
 
 /**
@@ -380,7 +393,8 @@ export declare const MARK: unique symbol;
 export type Node<
   Description extends LocatorDescription,
   Parameters extends AnyParameters = {},
-> = WithNode<LocatorTree<Description, Parameters>>;
+> = WithNode<LocatorTree<Description, Parameters>> &
+  Partial<ElementAttributeError<'Node cannot be used here'>>;
 
 /**
  * Symbol key for saving locator tree of node locator.

@@ -1,4 +1,4 @@
-import type {Locator} from '../index';
+import type {Locator} from 'create-locator';
 
 import {assert, assertShallowEqual, getShallowCopy, type Test} from './utils';
 
@@ -36,7 +36,6 @@ const attributesAreCached = (
       attributes === secondAttributes &&
         attributes === thirdAttributes &&
         attributes === fourthAttributes,
-      `${locatorName}: attributes cached for parameters ${JSON.stringify(parameters)}`,
     );
 
     assertShallowEqual(attributes, attributesCopy);
@@ -49,7 +48,7 @@ const attributesAreCached = (
 
   assert(
     attributesSet.size === (isDevelopment ? parametersArray.length : 1),
-    `${locatorName}: has correct number of attributes`,
+    `${locatorName}: has correct number of cached attributes`,
   );
 };
 

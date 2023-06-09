@@ -1,4 +1,4 @@
-import {createLocator} from '../index';
+import {createLocator} from 'create-locator';
 
 import {createRandomTree, ok} from './utils';
 

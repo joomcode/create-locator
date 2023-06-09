@@ -1,5 +1,4 @@
-*.d.ts
-!react.d.ts
-*.js
-node_modules
+/node_modules
+/spec/build
+/spec/node_modules/[ct]*
 package-lock.json

@@ -6,7 +6,6 @@
     "exactOptionalPropertyTypes": true,
     "forceConsistentCasingInFileNames": true,
     "jsx": "react",
-    "outDir": ".",
     "module": "nodenext",
     "moduleResolution": "node",
     "noEmitOnError": true,
@@ -17,11 +16,12 @@
     "noUncheckedIndexedAccess": true,
     "noUnusedLocals": true,
     "noUnusedParameters": true,
-    "skipLibCheck": true,
+    "outDir": "./spec/node_modules/create-locator",
+    "skipLibCheck": false,
     "strict": true,
     "target": "ES2015",
     "types": [],
     "verbatimModuleSyntax": true
   },
-  "files": ["index.ts", "spec/index.spec.ts"]
+  "files": ["./index.ts"]
 }

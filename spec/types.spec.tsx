@@ -1,3 +1,5 @@
+import React from 'react';
+
 import {
   createLocator,
   type CreateLocator,
@@ -10,14 +12,19 @@ import {
   type PropertiesWithMarkWithParameters,
   removeMarkFromProperties,
   type RemoveMarkFromProperties,
-} from '../index';
-
-import type {AriaInvalidValue} from '../types';
-
-import {type IsEqual, React} from './utils';
+} from 'create-locator';
 
 type L1 = Locator<{}>;
+type M1 = Mark<L1>;
 type N1 = Node<{}>;
+
+type ErrorAttribute = keyof L1 & keyof M1;
+
+declare const ERROR_ATTRIBUTE: ErrorAttribute;
+
+type IsEqual<X, Y> = (<T>() => T extends X ? 1 : 2) extends <T>() => T extends Y ? 1 : 2
+  ? true
+  : false;
 
 declare const SYMBOL: unique symbol;
 
@@ -56,7 +63,31 @@ export type Checks = [
   // @ts-expect-error
   Locator<{}, {foo: L1}>,
   // @ts-expect-error
-  Locator<Mark<Locator<{}>>>,
+  Locator<{button: Partial<L1>}>,
+  // @ts-expect-error
+  Locator<{button: Partial<N1>}>,
+  // @ts-expect-error
+  Locator<{button: M1}>,
+  // @ts-expect-error
+  Locator<{button: Partial<M1>}>,
+  // @ts-expect-error
+  Locator<L1>,
+  // @ts-expect-error
+  Locator<M1>,
+  // @ts-expect-error
+  Locator<N1>,
+
+  // @ts-expect-error
+  Mark<{}>,
+  Mark<L1>,
+  // @ts-expect-error
+  Mark<L1, {}>,
+  // @ts-expect-error
+  Mark<L1, L1>,
+  // @ts-expect-error
+  Mark<M1>,
+  // @ts-expect-error
+  Mark<N1>,
 
   Node<{}, {}>,
   Node<{foo: L1}, {}>,
@@ -89,7 +120,19 @@ export type Checks = [
   // @ts-expect-error
   Node<{}, {foo: L1}>,
   // @ts-expect-error
-  Node<Mark<Locator<{}>>>,
+  Node<{button: Partial<L1>}>,
+  // @ts-expect-error
+  Node<{button: Partial<N1>}>,
+  // @ts-expect-error
+  Node<{button: M1}>,
+  // @ts-expect-error
+  Node<{button: Partial<M1>}>,
+  // @ts-expect-error
+  Node<L1>,
+  // @ts-expect-error
+  Node<M1>,
+  // @ts-expect-error
+  Node<N1>,
 ];
 
 // @ts-expect-error
@@ -97,7 +140,7 @@ const locatorForEmptyProperties = createLocator({});
 
 true satisfies IsEqual<typeof locatorForEmptyProperties, unknown>;
 
-const propertiesWithAriaInvalid = {} as {'aria-invalid': AriaInvalidValue};
+const propertiesWithAriaInvalid = {} as {'aria-invalid': React.AriaAttributes['aria-invalid']};
 
 /**
  * Base tests of component, element and node locator.
@@ -302,6 +345,8 @@ const Header = ({foo, ...rest}: HeaderProperties) => {
       <div {...locator.foo({level: 'baz'})}></div>
       {/* @ts-expect-error */}
       <div {...locator.foo}></div>
+      {/* @ts-expect-error */}
+      <span {...{[ERROR_ATTRIBUTE]: 'error' as const}} aria-invalid={true}></span>
     </h1>
   );
 };
@@ -746,6 +791,27 @@ true satisfies IsEqual<
     Mark<Node<{}>>,
   ]
 >;
+
+export const WrongTypesComponent = (properties: Locator<{foo: {}}, {bar: string}>) => {
+  // @ts-expect-error
+  const locator = createLocator(properties);
+  // @ts-expect-error
+  const locatorParameters = getLocatorParameters(properties);
+  // @ts-expect-error
+  const propertiesWithoutMark = removeMarkFromProperties(properties);
+
+  true satisfies IsEqual<typeof locator, unknown>;
+  true satisfies IsEqual<typeof locatorParameters, unknown>;
+  true satisfies IsEqual<keyof typeof propertiesWithoutMark, never>;
+
+  return (
+    // @ts-expect-error
+    <div {...locator(locatorParameters)}>
+      {/* @ts-expect-error */}
+      <span {...locator.foo()}></span>
+    </div>
+  );
+};
 
 /**
  * Base tests of PropertiesWithMark.
@@ -1517,6 +1583,3 @@ export const panels = (
     <PanelWithoutLocator {...locatorForEmptyProperties()} />
   </>
 );
-
-// @ts-expect-error
-export type TextAreaLocator = Locator<{button: Partial<Locator<{}>>; input: {}}>;
