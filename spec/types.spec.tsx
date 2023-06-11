@@ -8,8 +8,10 @@ import {
   type Locator,
   type Mark,
   type Node,
-  type PropertiesWithMark,
-  type PropertiesWithMarkWithParameters,
+  type AnyLocatorDescription,
+  type AnyParameters,
+  type AnyPropertiesWithMark,
+  type AnyPropertiesWithMarkWithParameters,
   removeMarkFromProperties,
   type RemoveMarkFromProperties,
 } from 'create-locator';
@@ -894,85 +896,116 @@ export const WrongTypesComponent = (properties: Locator<{foo: {}}, {bar: string}
 };
 
 /**
- * Base tests of PropertiesWithMark.
+ * Base tests of AnyLocatorDescription and AnyParameters.
  */
+export type ModifiedLocator<
+  Description extends AnyLocatorDescription,
+  Parameters extends AnyParameters,
+> = Locator<Description, Parameters>;
+
+true satisfies void extends AnyLocatorDescription ? true : false;
+true satisfies {} extends AnyLocatorDescription ? true : false;
+true satisfies {foo: void} extends AnyLocatorDescription ? true : false;
+false satisfies {foo: ''} extends AnyLocatorDescription ? true : false;
+
+true satisfies void extends AnyParameters ? true : false;
+true satisfies {} extends AnyParameters ? true : false;
+true satisfies {foo: ''} extends AnyParameters ? true : false;
+false satisfies {foo: 3} extends AnyParameters ? true : false;
+
+/**
+ * Base tests of AnyPropertiesWithMark.
+ */
+export type ModifiedCreateLocator<Properties extends Partial<AnyPropertiesWithMark>> =
+  CreateLocator<Properties>;
+
+// @ts-expect-error
+({}) satisfies GetLocatorParameters<AnyPropertiesWithMark>;
+
+export type ModifiedRemoveMarkFromProperties<Properties extends Partial<AnyPropertiesWithMark>> =
+  RemoveMarkFromProperties<Properties>;
+
 const labelProperties = {} as LabelProperties;
 
 // @ts-expect-error
-({}) satisfies PropertiesWithMark;
+({}) satisfies AnyPropertiesWithMark;
 
-labelProperties satisfies PropertiesWithMark;
-labelProperties satisfies Partial<PropertiesWithMark>;
+labelProperties satisfies AnyPropertiesWithMark;
+labelProperties satisfies Partial<AnyPropertiesWithMark>;
 
-true satisfies ButtonProperties extends PropertiesWithMark ? true : false;
-true satisfies ButtonProperties extends Partial<PropertiesWithMark> ? true : false;
+true satisfies ButtonProperties extends AnyPropertiesWithMark ? true : false;
+true satisfies ButtonProperties extends Partial<AnyPropertiesWithMark> ? true : false;
 
 const optionalPanelLocatorProperties = {} as OptionalPanelProperties;
 
-optionalPanelLocatorProperties satisfies Partial<PropertiesWithMark>;
+optionalPanelLocatorProperties satisfies Partial<AnyPropertiesWithMark>;
 
-false satisfies OptionalPanelProperties extends PropertiesWithMark ? true : false;
-true satisfies OptionalPanelProperties extends Partial<PropertiesWithMark> ? true : false;
+false satisfies OptionalPanelProperties extends AnyPropertiesWithMark ? true : false;
+true satisfies OptionalPanelProperties extends Partial<AnyPropertiesWithMark> ? true : false;
 
 const multiLocatorProperties = {} as Mark<MultiLocator>;
 
-multiLocatorProperties satisfies PropertiesWithMark;
-multiLocatorProperties satisfies Partial<PropertiesWithMark>;
+multiLocatorProperties satisfies AnyPropertiesWithMark;
+multiLocatorProperties satisfies Partial<AnyPropertiesWithMark>;
 
-true satisfies Mark<MultiLocator> extends PropertiesWithMark ? true : false;
-true satisfies Mark<MultiLocator> extends Partial<PropertiesWithMark> ? true : false;
+true satisfies Mark<MultiLocator> extends AnyPropertiesWithMark ? true : false;
+true satisfies Mark<MultiLocator> extends Partial<AnyPropertiesWithMark> ? true : false;
 
-false satisfies Partial<Mark<MultiLocator>> extends PropertiesWithMark ? true : false;
-true satisfies Partial<Mark<MultiLocator>> extends Partial<PropertiesWithMark> ? true : false;
+false satisfies Partial<Mark<MultiLocator>> extends AnyPropertiesWithMark ? true : false;
+true satisfies Partial<Mark<MultiLocator>> extends Partial<AnyPropertiesWithMark> ? true : false;
 
-export type WrapCreateLocator<Properties extends PropertiesWithMark> = CreateLocator<Properties>;
-export type WrapGetLocatorParameters<Properties extends PropertiesWithMark> =
+export type WrapCreateLocator<Properties extends AnyPropertiesWithMark> = CreateLocator<Properties>;
+export type WrapGetLocatorParameters<Properties extends AnyPropertiesWithMark> =
   // @ts-expect-error
   GetLocatorParameters<Properties>;
-export type WrapRemoveMarkFromProperties<Properties extends PropertiesWithMark> =
+export type WrapRemoveMarkFromProperties<Properties extends AnyPropertiesWithMark> =
   RemoveMarkFromProperties<Properties>;
 
 /**
- * Base tests of PropertiesWithMarkWithParameters.
+ * Base tests of AnyPropertiesWithMarkWithParameters.
  */
+export type ModifiedGetLocatorParameters<Properties extends AnyPropertiesWithMarkWithParameters> =
+  GetLocatorParameters<Properties>;
+
 // @ts-expect-error
-({}) satisfies PropertiesWithMarkWithParameters;
+({}) satisfies AnyPropertiesWithMarkWithParameters;
 
-labelProperties satisfies PropertiesWithMarkWithParameters;
-labelProperties satisfies Partial<PropertiesWithMarkWithParameters>;
+labelProperties satisfies AnyPropertiesWithMarkWithParameters;
+labelProperties satisfies Partial<AnyPropertiesWithMarkWithParameters>;
 
-true satisfies ButtonProperties extends PropertiesWithMarkWithParameters ? true : false;
-true satisfies ButtonProperties extends Partial<PropertiesWithMarkWithParameters> ? true : false;
+true satisfies ButtonProperties extends AnyPropertiesWithMarkWithParameters ? true : false;
+true satisfies ButtonProperties extends Partial<AnyPropertiesWithMarkWithParameters> ? true : false;
 
-optionalPanelLocatorProperties satisfies Partial<PropertiesWithMarkWithParameters>;
+optionalPanelLocatorProperties satisfies Partial<AnyPropertiesWithMarkWithParameters>;
 
-false satisfies OptionalPanelProperties extends PropertiesWithMarkWithParameters ? true : false;
-true satisfies OptionalPanelProperties extends Partial<PropertiesWithMarkWithParameters>
+false satisfies OptionalPanelProperties extends AnyPropertiesWithMarkWithParameters ? true : false;
+true satisfies OptionalPanelProperties extends Partial<AnyPropertiesWithMarkWithParameters>
   ? true
   : false;
 
 // @ts-expect-error
-multiLocatorProperties satisfies PropertiesWithMarkWithParameters;
+multiLocatorProperties satisfies AnyPropertiesWithMarkWithParameters;
 // @ts-expect-error
-multiLocatorProperties satisfies Partial<PropertiesWithMarkWithParameters>;
+multiLocatorProperties satisfies Partial<AnyPropertiesWithMarkWithParameters>;
 
-false satisfies MultiLocator extends PropertiesWithMarkWithParameters ? true : false;
-false satisfies MultiLocator extends Partial<PropertiesWithMarkWithParameters> ? true : false;
+false satisfies MultiLocator extends AnyPropertiesWithMarkWithParameters ? true : false;
+false satisfies MultiLocator extends Partial<AnyPropertiesWithMarkWithParameters> ? true : false;
 
-false satisfies Partial<MultiLocator> extends PropertiesWithMarkWithParameters ? true : false;
-false satisfies Partial<MultiLocator> extends Partial<PropertiesWithMarkWithParameters>
+false satisfies Partial<MultiLocator> extends AnyPropertiesWithMarkWithParameters ? true : false;
+false satisfies Partial<MultiLocator> extends Partial<AnyPropertiesWithMarkWithParameters>
   ? true
   : false;
 
-export type WrapCreateLocatorWithParameters<Properties extends PropertiesWithMarkWithParameters> =
-  CreateLocator<Properties>;
+export type WrapCreateLocatorWithParameters<
+  Properties extends AnyPropertiesWithMarkWithParameters,
+> = CreateLocator<Properties>;
 
 export type WrapGetLocatorParametersWithParameters<
-  Properties extends PropertiesWithMarkWithParameters,
+  Properties extends AnyPropertiesWithMarkWithParameters,
 > = GetLocatorParameters<Properties>;
 
 export type WrapRemoveMarkFromPropertiesWithParameters<
-  Properties extends PropertiesWithMarkWithParameters,
+  Properties extends AnyPropertiesWithMarkWithParameters,
 > = RemoveMarkFromProperties<Properties>;
 
 /**

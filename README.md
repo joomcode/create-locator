@@ -61,7 +61,7 @@ const Foo = ({···, ...rest}: Properties) => {
 };
 ```
 
-If, imagine, an `Baz` component has no inner element and no child component,
+If, imagine, an `Baz` component has no inner elements and no child components,
 then its locator can be declared using `void`:
 
 ```tsx

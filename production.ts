@@ -31,12 +31,14 @@ export const removeMarkFromProperties = ((properties) =>
   properties) as RemoveMarkFromPropertiesFunction;
 
 export type {
+  AnyLocatorDescription,
+  AnyParameters,
+  AnyPropertiesWithMark,
+  AnyPropertiesWithMarkWithParameters,
   CreateLocator,
   GetLocatorParameters,
   Locator,
   Mark,
   Node,
-  PropertiesWithMark,
-  PropertiesWithMarkWithParameters,
   RemoveMarkFromProperties,
 } from './types';

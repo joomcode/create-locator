@@ -1,11 +1,6 @@
 /// <reference path="./react.d.ts" />
 
 /**
- * Any locator parameters (general type for constraints).
- */
-type AnyParameters = (Attributes & ElementAttributeError) | void;
-
-/**
  * Base node of locator tree (by parameters, optional subtree and "is child locator" flag).
  */
 type BaseNode<
@@ -109,20 +104,6 @@ type LocatorCallResult<Tree, IsChildLocator extends boolean = false> = Tree exte
   ? WithMark<Tree> &
       ElementAttributeError<IsChildLocator extends true ? CannotMarkElementMessage : undefined>
   : object;
-
-/**
- * Description of locator tree (argument of Locator<...> and Node<...>).
- */
-type LocatorDescription = Readonly<
-  Record<string, AnyParameters | WithLocator | WithNode> &
-    Partial<
-      WithHidden<NotLocatorDescription> &
-        WithLocator<NotLocatorDescription> &
-        WithMark<NotLocatorDescription> &
-        WithNode<NotLocatorDescription> &
-        WithParameters<NotLocatorDescription>
-    >
-> | void;
 
 /**
  * Type of runtime locator object by locator tree.
@@ -300,6 +281,36 @@ type WithParameters<Parameters = object> = Readonly<Record<ParametersKey, Parame
 type WithTree<Tree = object> = Readonly<Record<TreeKey, Tree>>;
 
 /**
+ * Any description of locator tree, that is argument of Locator<...> and Node<...>
+ * (general type for constraints).
+ */
+export type AnyLocatorDescription = Readonly<
+  Record<string, AnyParameters | WithLocator | WithNode> &
+    Partial<
+      WithHidden<NotLocatorDescription> &
+        WithLocator<NotLocatorDescription> &
+        WithMark<NotLocatorDescription> &
+        WithNode<NotLocatorDescription> &
+        WithParameters<NotLocatorDescription>
+    >
+> | void;
+
+/**
+ * Any locator parameters (general type for constraints).
+ */
+export type AnyParameters = (Attributes & ElementAttributeError) | void;
+
+/**
+ * Properties object with mark with any locator (general type for constraints).
+ */
+export type AnyPropertiesWithMark = WithMark;
+
+/**
+ * Properties object with mark with any locator with parameters (general type for constraints).
+ */
+export type AnyPropertiesWithMarkWithParameters = WithMark<WithParameters>;
+
+/**
  * Attributes object.
  */
 export type Attributes = Readonly<Record<string, string>>;
@@ -367,8 +378,8 @@ export declare const HIDDEN: unique symbol;
  * Creates component locator type by locator description and locator parameters.
  */
 export type Locator<
-  Description extends LocatorDescription,
-  Parameters extends AnyParameters = {},
+  Description extends AnyLocatorDescription,
+  Parameters extends AnyParameters = void,
 > = LocatorFromLocatorTree<LocatorTree<Description, Parameters>>;
 
 /**
@@ -406,8 +417,8 @@ export declare const MARK: unique symbol;
  * Creates node locator type by locator description and locator parameters.
  */
 export type Node<
-  Description extends LocatorDescription,
-  Parameters extends AnyParameters = {},
+  Description extends AnyLocatorDescription,
+  Parameters extends AnyParameters = void,
 > = WithNode<LocatorTree<Description, Parameters>> &
   ElementAttributeError<'Node cannot be used here'>;
 
@@ -420,16 +431,6 @@ export declare const NODE: unique symbol;
  * Symbol key for saving locator parameters.
  */
 export declare const PARAMETERS: unique symbol;
-
-/**
- * Properties object with mark with any locator (general type for constraints).
- */
-export type PropertiesWithMark = WithMark;
-
-/**
- * Properties object with mark with any locator with parameters (general type for constraints).
- */
-export type PropertiesWithMarkWithParameters = WithMark<WithParameters>;
 
 /**
  * Presentation of removeMarkFromProperties function in types.
