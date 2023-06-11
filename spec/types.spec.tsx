@@ -15,8 +15,13 @@ import {
 } from 'create-locator';
 
 type L1 = Locator<{}>;
+type LVoid = Locator<void>;
 type M1 = Mark<L1>;
 type N1 = Node<{}>;
+type NVoid = Node<void>;
+
+true satisfies IsEqual<L1, LVoid>;
+true satisfies IsEqual<N1, NVoid>;
 
 type ErrorAttribute = keyof L1 & keyof M1;
 

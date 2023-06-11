@@ -122,7 +122,7 @@ type LocatorDescription = Readonly<
         WithNode<NotLocatorDescription> &
         WithParameters<NotLocatorDescription>
     >
->;
+> | void;
 
 /**
  * Type of runtime locator object by locator tree.

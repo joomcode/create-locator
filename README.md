@@ -61,6 +61,13 @@ const Foo = ({···, ...rest}: Properties) => {
 };
 ```
 
+If, imagine, an `Baz` component has no inner element and no child component,
+then its locator can be declared using `void`:
+
+```tsx
+export type BazLocator = Locator<void>; // full equivalent of Locator<{}>
+```
+
 When marking up a root application component, you need to specify a **root** component locator type,
 and a **prefix** that starts the paths of all locators in this component tree:
 
@@ -158,8 +165,8 @@ these can be components of individual pages that are rendered not through an ins
 but using some kind of router. The root application component can also
 be considered an example of a static component.
 
-Static components are located in the locator tree in one place, in a fixed path,
-and they don't have parameters (for the same reason they don't have properties). Therefore,
+Static component is located in the locator tree in one place, in a fixed path,
+and it don't have parameters (for the same reason it don't have properties). Therefore,
 the locator of a static component can also be obtained statically, as a singleton,
 outside the component's render function (and then it will not be necessary to add properties
 to the component just for the sake of marking it with locators):
@@ -169,7 +176,7 @@ export type MainPageLocator = Locator<{
   ···
 }>;
 
-// MainPage is located in the locator tree along a fixed path "rootLocator.mainPage"
+// MainPage is located in the locator tree along a fixed path `rootLocator.mainPage`
 const locator = createLocator(rootLocator.mainPage());
 
 // MainPage is a static component without properties
