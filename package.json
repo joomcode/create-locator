@@ -1,6 +1,6 @@
 {
   "name": "create-locator",
-  "version": "0.0.8",
+  "version": "0.0.9",
   "description": "Creates typed component locators for tests 📌",
   "author": "uid11",
   "bugs": "https://github.com/joomcode/create-locator/issues",
@@ -21,7 +21,7 @@
     "selector"
   ],
   "license": "MIT",
-  "packageManager": "npm@8",
+  "packageManager": "npm@9",
   "repository": {
     "type": "git",
     "url": "https://github.com/joomcode/create-locator"
@@ -30,7 +30,7 @@
     "build": "cp LICENSE package.json README.md *.d.ts ./spec/node_modules/create-locator",
     "postbuild": "tsc --project ./spec",
     "prebuild": "tsc",
-    "prepublishOnly": "npm test",
+    "prerelease": "npm test",
     "pretest": "(cd ./spec && rm -fr ./build ./node_modules/create-locator)",
     "prettier": "prettier --cache --cache-strategy=content --write . !package-lock.json",
     "release": "npm publish ./spec/node_modules/create-locator",

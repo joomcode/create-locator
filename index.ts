@@ -254,7 +254,7 @@ export const createLocator = ((
   }
 
   return pathAttributeValue[LOCATOR];
-}) as unknown as CreateLocatorFunction;
+}) as CreateLocatorFunction;
 
 /**
  * Get parameters of component locator by component properties.

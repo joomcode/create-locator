@@ -3,16 +3,25 @@
 /**
  * Any locator parameters (general type for constraints).
  */
-type AnyParameters = Attributes;
+type AnyParameters = (Attributes & ElementAttributeError) | void;
 
 /**
- * Base node of locator tree (by parameters and optional subtree).
+ * Base node of locator tree (by parameters, optional subtree and "is child locator" flag).
  */
-type BaseNode<Parameters, Subtree = undefined> = IsParametersEmpty<Parameters> extends true
-  ? ((this: void) => LocatorCallResult<Subtree>) &
+type BaseNode<
+  Parameters,
+  Subtree = undefined,
+  IsChildLocator extends boolean = false,
+> = IsParametersEmpty<Parameters> extends true
+  ? ((this: void) => LocatorCallResult<Subtree, IsChildLocator>) &
       ElementAttributeError<'The locator should be called'>
-  : NodeWithParameters<Parameters, LocatorCallResult<Subtree>> &
+  : NodeWithParameters<Parameters, LocatorCallResult<Subtree, IsChildLocator>> &
       ElementAttributeError<'The locator should be called (with parameters)'>;
+
+/**
+ * Error message for situations where a HTML element is marked with a component locator.
+ */
+type CannotMarkElementMessage = 'Cannot mark HTML element with component locator';
 
 /**
  * createLocator overload for component locator.
@@ -44,11 +53,11 @@ type CreateRootLocatorWithMapping = <RootLocator extends WithLocator, MapResult>
  * Generates a type error with some message on HTML element.
  */
 type ElementAttributeError<Message extends string | undefined = undefined> = {
-  readonly [ERROR_ATTRIBUTE]: Message | undefined;
+  readonly [ERROR_ATTRIBUTE]?: Message | undefined;
 };
 
 /**
- * Type of symbol attribute key for generating type error on DOM elements.
+ * Type of symbol attribute key for generating type error on HTML elements.
  */
 type ErrorAttribute = GetErrorAttribute<keyof React.AriaAttributes & symbol>;
 
@@ -84,7 +93,7 @@ type IsEqual<X, Y> = (<T>() => T extends X ? 1 : 2) extends <T>() => T extends Y
   : false;
 
 /**
- * Return true if parameters is empty, false otherwise.
+ * Returns true if parameters is empty, false otherwise.
  */
 type IsParametersEmpty<Parameters> = Keys<Parameters> extends never ? true : false;
 
@@ -94,17 +103,18 @@ type IsParametersEmpty<Parameters> = Keys<Parameters> extends never ? true : fal
 type Keys<T> = T extends unknown ? keyof T : never;
 
 /**
- *  Locator call result by locator tree.
+ *  Locator call result by locator tree and "is child locator" flag.
  */
-type LocatorCallResult<Tree> = Tree extends object
-  ? WithMark<Tree> & Partial<ElementAttributeError>
+type LocatorCallResult<Tree, IsChildLocator extends boolean = false> = Tree extends object
+  ? WithMark<Tree> &
+      ElementAttributeError<IsChildLocator extends true ? CannotMarkElementMessage : undefined>
   : object;
 
 /**
  * Description of locator tree (argument of Locator<...> and Node<...>).
  */
 type LocatorDescription = Readonly<
-  Record<string, (AnyParameters & Partial<ElementAttributeError>) | WithLocator | WithNode> &
+  Record<string, AnyParameters | WithLocator | WithNode> &
     Partial<
       WithHidden<NotLocatorDescription> &
         WithLocator<NotLocatorDescription> &
@@ -163,8 +173,12 @@ type LocatorTreeFromMark<Properties extends Partial<WithMark>> = Exclude<
  * Creates locator tree node by locator description node.
  */
 type LocatorTreeNode<Key, DescriptionNode> = [DescriptionNode] extends [WithLocator]
-  ? BaseNode<ExtractNodeParameters<DescriptionNode>, LocatorTreeFromLocator<DescriptionNode>> &
-      WithHidden<TreeNode<Key, NormalizeTree<DescriptionNode>>>
+  ? BaseNode<
+      ExtractNodeParameters<DescriptionNode>,
+      LocatorTreeFromLocator<DescriptionNode>,
+      true
+    > &
+      WithHidden<TreeNode<Key, NormalizeTree<LocatorTreeFromLocator<DescriptionNode>>>>
   : [DescriptionNode] extends [WithNode]
   ? DescriptionNode[NodeKey]
   : BaseNode<DescriptionNode>;
@@ -319,7 +333,7 @@ export type CreateLocatorFunction = CreateComponentLocator &
   CreateRootLocatorWithMapping;
 
 /**
- * Symbol attribute key for generating type error on DOM elements.
+ * Symbol attribute key for generating type error on HTML elements.
  */
 export declare const ERROR_ATTRIBUTE: ErrorAttribute;
 
@@ -378,8 +392,9 @@ export type Mark<SomeLocator extends WithLocator> = IsEqual<
 > extends true
   ? unknown
   : WithMark<LocatorTreeFromLocator<SomeLocator>> &
-      Partial<
-        ElementAttributeError<'The mark of locator should be removed from spreaded properties using the removeMarkFromProperties'>
+      ElementAttributeError<
+        | 'The mark of locator should be removed from spreaded properties using the removeMarkFromProperties'
+        | CannotMarkElementMessage
       >;
 
 /**
@@ -394,7 +409,7 @@ export type Node<
   Description extends LocatorDescription,
   Parameters extends AnyParameters = {},
 > = WithNode<LocatorTree<Description, Parameters>> &
-  Partial<ElementAttributeError<'Node cannot be used here'>>;
+  ElementAttributeError<'Node cannot be used here'>;
 
 /**
  * Symbol key for saving locator tree of node locator.

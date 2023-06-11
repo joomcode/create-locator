@@ -35,6 +35,8 @@ export type Checks = [
   Locator<{}, {}>,
   Locator<{foo: L1}, {}>,
   Locator<{foo: {}}, {bar: 'baz'}>,
+  Locator<{foo: void}, {bar: 'baz'}>,
+  Locator<{foo: void}, void>,
   Locator<{foo: {qux: 'quux'}}, {bar: 'baz'}>,
   Locator<{foo: {qux: 'quux'}; bar: L1}>,
   Locator<{foo: {qux: 'quux'}; bar: L1; baz: N1}>,
@@ -46,7 +48,7 @@ export type Checks = [
   Locator<N1>,
   // @ts-expect-error
   Locator<{foo: 2}>,
-  // @ts-expect-error
+  Locator<{foo: void}>,
   Locator<{foo: undefined}>,
   // @ts-expect-error
   Locator<{foo: unknown}>,
@@ -91,7 +93,8 @@ export type Checks = [
 
   Node<{}, {}>,
   Node<{foo: L1}, {}>,
-  Node<{foo: {}}, {bar: 'baz'}>,
+  Node<{foo: void}, {bar: 'baz'}>,
+  Node<{foo: void}, void>,
   Node<{foo: {qux: 'quux'}}, {bar: 'baz'}>,
   Node<{foo: {qux: 'quux'}; bar: L1}>,
   Node<{foo: {qux: 'quux'}; bar: L1; baz: N1}>,
@@ -105,7 +108,7 @@ export type Checks = [
   Node<{foo: 2}>,
   // @ts-expect-error
   Node<{}, {foo: 2}>,
-  // @ts-expect-error
+  Node<{foo: void}>,
   Node<{foo: undefined}>,
   // @ts-expect-error
   Node<{foo: unknown}>,
@@ -146,9 +149,9 @@ const propertiesWithAriaInvalid = {} as {'aria-invalid': React.AriaAttributes['a
  * Base tests of component, element and node locator.
  */
 export type LabelLocator = Locator<{}, {level: string}>;
-export type LabelProperties = {level?: string; text: string} & Mark<LabelLocator>;
+type LabelProperties = {level?: string; text: string} & Mark<LabelLocator>;
 
-const Label = ({level, text, ...rest}: LabelProperties) => {
+export const Label = ({level, text, ...rest}: LabelProperties) => {
   const locator = createLocator(rest);
 
   true satisfies IsEqual<typeof locator, LabelLocator>;
@@ -184,9 +187,16 @@ const Label = ({level, text, ...rest}: LabelProperties) => {
   return <span {...locator({level: levelString})}></span>;
 };
 
-type MultiLocator = Locator<{label: LabelLocator} | {footer: {}}>;
+export type MultiLocator = Locator<{label: LabelLocator} | {footer: {}}>;
 
-const Multi = (properties: Mark<MultiLocator>) => {
+type MultiVoidLocator = Locator<{label: LabelLocator} | {footer: void}>;
+
+type MultiLocatorWithVoidParameters = Locator<{label: LabelLocator} | {footer: void}, void>;
+
+true satisfies IsEqual<MultiLocator, MultiVoidLocator>;
+true satisfies IsEqual<MultiLocator, MultiLocatorWithVoidParameters>;
+
+export const Multi = (properties: Mark<MultiLocator>) => {
   const locator = createLocator(properties);
 
   true satisfies IsEqual<typeof locator, MultiLocator>;
@@ -202,6 +212,7 @@ const Multi = (properties: Mark<MultiLocator>) => {
       <span {...locator.footer()}></span>
       {/* @ts-expect-error */}
       <span {...locator.label()}></span>
+      {/* @ts-expect-error */}
       <span {...locator.label({level: 'foo'})}></span>
       <Label text="baz" {...locator.label({level: 'foo'})} />
       <Label text="bar" {...locator.label({level: 'foo'})} {...propertiesWithAriaInvalid} />
@@ -209,7 +220,7 @@ const Multi = (properties: Mark<MultiLocator>) => {
   );
 };
 
-type HeaderLocator = Locator<{
+export type HeaderLocator = Locator<{
   foo?: LabelLocator;
   bar: LabelLocator;
   apply: {};
@@ -257,7 +268,7 @@ type HeaderLocator = Locator<{
 
 type HeaderProperties = {foo?: number} & Mark<HeaderLocator>;
 
-const Header = ({foo, ...rest}: HeaderProperties) => {
+export const Header = ({foo, ...rest}: HeaderProperties) => {
   const locator = createLocator(rest);
 
   true satisfies IsEqual<typeof locator, HeaderLocator>;
@@ -342,16 +353,21 @@ const Header = ({foo, ...rest}: HeaderProperties) => {
       <Multi {...locator.multi()} />
       {/* @ts-expect-error */}
       <span {...locator}></span>
+      {/* @ts-expect-error */}
       <div {...locator.foo({level: 'baz'})}></div>
+      <Label text="bar" {...locator.foo({level: 'baz'})} />
       {/* @ts-expect-error */}
       <div {...locator.foo}></div>
       {/* @ts-expect-error */}
       <span {...{[ERROR_ATTRIBUTE]: 'error' as const}} aria-invalid={true}></span>
+      {/* @ts-expect-error */}
+      <span {...locator.subtree.name({level: '1'})}></span>
+      <Label text="bar" {...locator.subtree.name({level: '1'})} />
     </h1>
   );
 };
 
-const Wrapper = (properties: Mark<HeaderLocator>) => {
+export const Wrapper = (properties: Mark<HeaderLocator>) => {
   const locator = createLocator(properties);
 
   true satisfies IsEqual<typeof locator, HeaderLocator>;
@@ -376,10 +392,18 @@ type RenderedLocator = Locator<{
   header: HeaderLocator;
 }>;
 
-type MainLocator = Locator<
-  {header: HeaderLocator; rendered: RenderedLocator; text: {value?: string}},
+export type MainLocator = Locator<
+  {header: HeaderLocator; rendered: RenderedLocator; text: {value?: string}; void: {}},
   {text: 'foo' | 'bar'}
 >;
+
+type MainVoidLocator = Locator<
+  {header: HeaderLocator; rendered: RenderedLocator; text: {value?: string}; void: void},
+  {text: 'foo' | 'bar'}
+>;
+
+true satisfies IsEqual<MainLocator, MainVoidLocator>;
+
 type MainProperties = {render: Function} & Mark<MainLocator>;
 
 declare const mainProperties: MainProperties;
@@ -389,7 +413,7 @@ export const mainLocator = createLocator(mainProperties);
 true satisfies IsEqual<typeof mainLocator, MainLocator>;
 true satisfies IsEqual<CreateLocator<MainProperties>, MainLocator>;
 
-const Main = ({render, ...rest}: MainProperties) => {
+export const Main = ({render, ...rest}: MainProperties) => {
   const locator = createLocator(rest);
 
   true satisfies IsEqual<typeof locator, MainLocator>;
@@ -458,11 +482,35 @@ const MainWrapper = (properties: Mark<MainLocator>) => {
 /**
  * Base tests of root locator.
  */
-type AppLocator = Locator<{
+export type AppLocator = Locator<{
   header: HeaderLocator;
   readonly label: LabelLocator;
   main: MainLocator;
+  staticComponent: StaticComponentLocator;
+  void: {};
 }>;
+
+type AppVoidLocator = Locator<{
+  header: HeaderLocator;
+  readonly label: LabelLocator;
+  main: MainLocator;
+  staticComponent: StaticComponentLocator;
+  void: void;
+}>;
+
+type AppLocatorWithVoidParameters = Locator<
+  {
+    header: HeaderLocator;
+    readonly label: LabelLocator;
+    main: MainLocator;
+    staticComponent: StaticComponentLocator;
+    void: void;
+  },
+  void
+>;
+
+true satisfies IsEqual<AppLocator, AppVoidLocator>;
+true satisfies IsEqual<AppLocator, AppLocatorWithVoidParameters>;
 
 export const appLocator = createLocator<AppLocator>('app');
 
@@ -512,6 +560,8 @@ export const App = () => {
       <Header {...appLocator.header} />
       <Header {...appLocator.header()} />
       {/* @ts-expect-error */}
+      <div {...appLocator.header()}></div>
+      {/* @ts-expect-error */}
       <Main render={render} {...appLocator.main()} />
       {/* @ts-expect-error */}
       <Main render={render} {...appLocator.main({textFoo: 'foo'})} />
@@ -529,9 +579,34 @@ export const App = () => {
       {/* @ts-expect-error */}
       <Wrapper {...appLocator} />
       <Wrapper {...appLocator.header()} />
+      <StaticComponent />
     </div>
   );
 };
+
+/**
+ * Base tests of static components.
+ */
+export type StaticComponentLocator = Locator<{
+  foo: void;
+  multi: MultiLocator;
+}>;
+
+const staticComponentLocator = createLocator(appLocator.staticComponent());
+
+// @ts-expect-error
+appLocator.staticComponent.foo;
+
+const StaticComponent = () => (
+  <div {...staticComponentLocator()}>
+    {/* @ts-expect-error */}
+    <span {...appLocator.staticComponent()}></span>
+    <span {...staticComponentLocator.foo()}></span>
+    {/* @ts-expect-error */}
+    <Multi />
+    <Multi {...staticComponentLocator.multi()} />
+  </div>
+);
 
 /**
  * Base tests of root locator with attributes mapping.
@@ -1265,6 +1340,12 @@ false satisfies IsEqual<RenderedLocator, RenderedLocatorWithSymbolInParameters>;
 
 type RenderedLocatorWithOptionalParameters = Locator<{header: HeaderLocator}, {foo?: string}>;
 
+const Sublink = (properties: Mark<RenderedLocatorWithOptionalParameters>) => {
+  const locator = createLocator(properties);
+
+  return <div {...locator({foo: 'bar'})}></div>;
+};
+
 type LinkProperties = {link: string} & Mark<Locator<{link: RenderedLocatorWithOptionalParameters}>>;
 
 export const Link = (properties: LinkProperties) => {
@@ -1277,7 +1358,9 @@ export const Link = (properties: LinkProperties) => {
     <span {...locator()}>
       {/* @ts-expect-error */}
       <a {...locator.link()}>Link</a>
+      {/* @ts-expect-error */}
       <a {...locator.link({})}>Link</a>
+      <Sublink {...locator.link({})} />
     </span>
   );
 };
@@ -1538,7 +1621,8 @@ const PanelWithOptionalLocator = (properties: OptionalPanelProperties) => {
       {/* @ts-expect-error */}
       <Link link="foo" {...locator()} />
       {/* @ts-expect-error */}
-      <div {...properties}></div>
+      <div {...properties} aria-invalid={false}></div>
+      <div {...propertiesWithoutLocator} aria-invalid={false}></div>
     </>
   );
 };

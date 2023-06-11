@@ -23,7 +23,7 @@ const proxy: () => unknown = new Proxy(
 
 const toString = () => '';
 
-export const createLocator = (() => proxy) as unknown as CreateLocatorFunction;
+export const createLocator = (() => proxy) as CreateLocatorFunction;
 
 export const getLocatorParameters = (() => proxy) as GetLocatorParametersFunction;
 

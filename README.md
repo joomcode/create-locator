@@ -9,7 +9,7 @@
 
 Creates typed (via TypeScript) component locators for unit-tests and e2e-tests.
 
-Locators are marks on components and HTML elements that allow you to find elements in tests.
+**Locators** are marks on components and HTML elements that allow you to find elements in tests.
 In the HTML output, locators are usually represented as `data-test*` attributes.
 
 Locators do not change the behavior or appearance of a component.
@@ -18,7 +18,8 @@ In production, locators disappear completely, leaving no attributes.
 Passing from a component to its child components, locators form a static typed project locator tree
 that is convenient to use in tests. This tree represents a visual blocks of the project
 (pages, large blocks on pages, individual elements and controls inside blocks),
-which is a simplified version of the project component tree.
+which is a simplified version of the project component tree. The locator tree is also conveniently
+thought of as a tree of interfaces of your product, useful for designers and product managers.
 
 Each locator has a unique path in this locator tree, and a string with this **path**
 in the some `data-test*` path attribute allows you to unambiguously find all elements
@@ -38,7 +39,7 @@ import {createLocator, type Locator, type Mark} from 'create-locator';
 import {Baz, type BazLocator} from 'src/components/Baz';
 
 export type FooLocator = Locator<{ // declare locator type
-  bar: {}; // element locator without parameters
+  bar: void; // element locator without parameters
   baz: BazLocator; // component locator
   qux: {quux: string}; // element locator with parameters
 }>;
@@ -60,8 +61,8 @@ const Foo = ({···, ...rest}: Properties) => {
 };
 ```
 
-When marking up a root application component, you need to specify a root component locator type,
-and a prefix that starts the paths of all locators in this component tree:
+When marking up a root application component, you need to specify a **root** component locator type,
+and a **prefix** that starts the paths of all locators in this component tree:
 
 ```tsx
 import {createLocator, type Locator} from 'create-locator';
@@ -86,8 +87,9 @@ const App = () => {
 };
 ```
 
-The root locator is always created outside the component, as a singleton
-(so as not to be re-created on re-renders).
+The root locator is always created outside the component's render function, as a singleton
+(so as not to be re-created on re-renders), because all its features and parameters are static
+(known even before the code is run).
 
 In addition to the prefix, as the second argument in the root locator
 you can specify options for generating attributes from locators.
@@ -143,6 +145,42 @@ npm install create-locator
 ```
 
 `create-locator` 📌 works in any environment that supports ES2015 (uses `Proxy` internally).
+
+## Static components
+
+Sometimes in an application, some components are always rendered in the same place,
+under the same conditions, and therefore do not have properties
+(they simply do not make sense to set properties, because all their properties are known in advance,
+they are static).
+
+Such components can therefore be called **static**. For example,
+these can be components of individual pages that are rendered not through an insert into the JSX,
+but using some kind of router. The root application component can also
+be considered an example of a static component.
+
+Static components are located in the locator tree in one place, in a fixed path,
+and they don't have parameters (for the same reason they don't have properties). Therefore,
+the locator of a static component can also be obtained statically, as a singleton,
+outside the component's render function (and then it will not be necessary to add properties
+to the component just for the sake of marking it with locators):
+
+```tsx
+export type MainPageLocator = Locator<{
+  ···
+}>;
+
+// MainPage is located in the locator tree along a fixed path "rootLocator.mainPage"
+const locator = createLocator(rootLocator.mainPage());
+
+// MainPage is a static component without properties
+export const MainPage = () => {
+  return (
+    <div {...locator()}>
+      ···
+    </div>
+  );
+};
+```
 
 ## Optional locators
 
