@@ -140,10 +140,7 @@ type LocatorTree<
  */
 type LocatorTreeFromLocator<SomeLocator> = SomeLocator extends WithLocator
   ? BaseNode<ExtractNodeParameters<SomeLocator>> & {
-      readonly [Key in string & Exclude<keyof SomeLocator, keyof ElementAttributeError>]: TreeNode<
-        Key,
-        UnwrapTree<SomeLocator[Key]>
-      >;
+      readonly [Key in string & keyof SomeLocator]: TreeNode<Key, UnwrapTree<SomeLocator[Key]>>;
     }
   : unknown;
 
@@ -206,7 +203,7 @@ type NormalizeSubnode<Subnode, MapResult> = Subnode extends WithHidden
  * Normalize subnodes of locator tree.
  */
 type NormalizeSubnodes<Subnodes, MapResult> = {
-  readonly [Key in string & Exclude<keyof Subnodes, keyof ElementAttributeError>]: TreeNode<
+  readonly [Key in string & keyof Subnodes]: TreeNode<
     Key,
     NormalizeSubnode<UnwrapTree<Subnodes[Key]>, MapResult>
   >;
@@ -407,16 +404,19 @@ export type MapAttributes<MapResult> = {
 /**
  * Creates mark with component locator type for component properties.
  */
-export type Mark<SomeLocator extends WithLocator> = IsEqual<
-  LocatorTreeFromLocator<SomeLocator>,
-  unknown
-> extends true
+export type Mark<
+  SomeLocator extends WithLocator,
+  Properties extends ElementAttributeError | HiddenKey | WithMark = HiddenKey,
+> = IsEqual<LocatorTreeFromLocator<SomeLocator>, unknown> extends true
   ? unknown
   : WithMark<LocatorTreeFromLocator<SomeLocator>> &
       ElementAttributeError<
         | 'The mark of locator should be removed from spreaded properties using the removeMarkFromProperties'
         | CannotMarkElementMessage
-      >;
+      > &
+      (IsEqual<Properties, HiddenKey> extends true
+        ? {}
+        : Omit<Properties, ErrorAttribute | MarkKey>);
 
 /**
  * Symbol key for saving locator tree in mark (in properties object).
@@ -448,7 +448,7 @@ export declare const PARAMETERS: unique symbol;
  */
 export type RemoveMarkFromProperties<Properties extends Partial<WithMark>> = Omit<
   Properties,
-  MarkKey | keyof ElementAttributeError
+  ErrorAttribute | MarkKey
 >;
 
 /**

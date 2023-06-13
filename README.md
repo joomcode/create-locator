@@ -268,6 +268,62 @@ and from `create-locator` in one build).
 The `create-locator/production` entry point is about five times smaller than the `create-locator`
 (less than 500 bytes after minification), and the functions from it do not consume CPU and memory resources.
 
+## Safer form of marking component properties
+
+There are two rare cases where marking up a component properties with locator type
+in the standard way can lead to type errors on marking up component itself with locator.
+
+The first case is if you want to allow the component to accept any valid properties
+of some HTML element, for example via `JSX.IntrinsicElements`:
+
+```tsx
+// component Button accepts any properties of the button element
+type ButtonProperties = BaseOwnButtonProperties &
+  JSX.IntrinsicElements['button'] &
+  Mark<ButtonLocator>;
+```
+
+The second case is if you use _component inheritance_ via properties extension,
+and get the type of properties of the child component by adding new fields to the type of properties
+of the base component that is already marked with his own locator type:
+
+```tsx
+// component SubmitButton is inherited from component Button
+type SubmitButtonProperties = ButtonProperties &
+  SubmitButtonOwnProperties &
+  Mark<SubmitButtonLocator>;
+```
+
+In both cases, a safer form of marking component properties will help to get rid of errors,
+which in general looks like this (for component `Foo`):
+
+```tsx
+// instead of Mark<FooLocator> & FooOwnProperties
+type FooProperties = Mark<FooLocator, FooOwnProperties>;
+```
+
+In particular, the declaration of `ButtonProperties` and `SubmitButtonOwnProperties` types
+in this safer form would look like this:
+
+```tsx
+type ButtonProperties = Mark<
+  ButtonLocator,
+  BaseOwnButtonProperties & JSX.IntrinsicElements['button']
+>;
+
+type SubmitButtonProperties = Mark<
+  SubmitButtonLocator,
+  ButtonProperties & SubmitButtonOwnProperties
+>;
+```
+
+A safer form of markup is applicable only when it is needed.
+If a safer form of markup is not necessary for the component properties,
+you will get a type error when you try to use it.
+In this case, use the standard way to mark up component properties.
+Such a compromise is chosen in order not to complicate the types
+of the component properties in most cases.
+
 ## Thanks
 
 Inspired by ideas from the package [chain-id](https://www.npmjs.com/package/chain-id)

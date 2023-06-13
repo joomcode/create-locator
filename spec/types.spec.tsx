@@ -91,9 +91,13 @@ export type Checks = [
   Mark<{}>,
   Mark<L1>,
   // @ts-expect-error
-  Mark<L1, {}>,
+  Mark<L1, {}, {}>,
   // @ts-expect-error
-  Mark<L1, L1>,
+  Mark<L1, {}, L1>,
+  // @ts-expect-error
+  Mark<L1, L1, {}>,
+  // @ts-expect-error
+  Mark<L1, L1, L1>,
   // @ts-expect-error
   Mark<M1>,
   // @ts-expect-error
@@ -157,7 +161,14 @@ const propertiesWithAriaInvalid = {} as {'aria-invalid': React.AriaAttributes['a
  * Base tests of component, element and node locator.
  */
 export type LabelLocator = Locator<{}, {level: string}>;
-type LabelProperties = {level?: string; text: string} & Mark<LabelLocator>;
+type LabelOwnProperties = {level?: string; text: string};
+type LabelProperties = LabelOwnProperties & Mark<LabelLocator>;
+// @ts-expect-error
+type LabelPropertiesByMark = Mark<LabelLocator, LabelOwnProperties>;
+// @ts-expect-error
+({}) as Mark<LabelLocator, LabelLocator>;
+
+true satisfies IsEqual<LabelProperties, Mark<LabelLocator, LabelPropertiesByMark>>;
 
 export const Label = ({level, text, ...rest}: LabelProperties) => {
   const locator = createLocator(rest);
@@ -278,6 +289,10 @@ export type HeaderLocator = Locator<{
 }>;
 
 type HeaderProperties = {foo?: number} & Mark<HeaderLocator>;
+// @ts-expect-error
+type HeaderPropertiesByMark = Mark<HeaderLocator, {foo?: number}>;
+
+true satisfies IsEqual<HeaderProperties, HeaderPropertiesByMark>;
 
 export const Header = ({foo, ...rest}: HeaderProperties) => {
   const locator = createLocator(rest);
@@ -411,19 +426,93 @@ type RenderedLocator = Locator<{
   header: HeaderLocator;
 }>;
 
+export type ComponentWithElementPropertiesLocator = Locator<{foo: void}>;
+
+export const ComponentWithElementProperties = (
+  properties: Mark<ComponentWithElementPropertiesLocator, JSX.IntrinsicElements['div']>,
+) => {
+  const locator = createLocator(properties);
+  const propertiesWithoutMark = removeMarkFromProperties(properties);
+
+  true satisfies IsEqual<typeof locator, CreateLocator<typeof properties>>;
+
+  return (
+    <div aria-invalid={properties['aria-invalid']} {...locator()}>
+      {/* @ts-expect-error */}
+      <span {...properties}></span>
+      <span {...propertiesWithoutMark}></span>
+    </div>
+  );
+};
+
+({}) as Mark<ComponentWithElementPropertiesLocator, React.AriaAttributes>;
+// @ts-expect-error
+({}) as Mark<ComponentWithElementPropertiesLocator, L1>;
+({}) as Mark<ComponentWithElementPropertiesLocator, M1>;
+// @ts-expect-error
+({}) as Mark<ComponentWithElementPropertiesLocator, N1>;
+
+export type ComponentWithElementPropertiesWithParametersLocator = Locator<
+  {foo: {}},
+  {bar: 'baz' | 'qux'}
+>;
+
+export const ComponentWithElementPropertiesWithParameters = (
+  properties: Mark<ComponentWithElementPropertiesWithParametersLocator, JSX.IntrinsicElements['a']>,
+) => {
+  const locator = createLocator(properties);
+  const propertiesWithoutMark = removeMarkFromProperties(properties);
+
+  true satisfies IsEqual<typeof locator, CreateLocator<typeof properties>>;
+
+  return (
+    <div aria-invalid={properties['aria-invalid']} {...locator({bar: 'baz'})}>
+      {/* @ts-expect-error */}
+      <span {...properties}></span>
+      <span {...propertiesWithoutMark}></span>
+      {/* @ts-expect-error */}
+      <span {...locator()}></span>
+      <span {...locator({bar: 'qux'})}></span>
+      {/* @ts-expect-error */}
+      <span {...locator({bar: 'quxx'})}></span>
+    </div>
+  );
+};
+
 export type MainLocator = Locator<
-  {header: HeaderLocator; rendered: RenderedLocator; text: {value?: string}; void: {}},
+  {
+    header: HeaderLocator;
+    rendered: RenderedLocator;
+    text: {value?: string};
+    void: {};
+    withElementProperties: ComponentWithElementPropertiesLocator;
+    withElementPropertiesWithParameters: ComponentWithElementPropertiesWithParametersLocator;
+  },
   {text: 'foo' | 'bar'}
 >;
 
 type MainVoidLocator = Locator<
-  {header: HeaderLocator; rendered: RenderedLocator; text: {value?: string}; void: void},
+  {
+    header: HeaderLocator;
+    rendered: RenderedLocator;
+    text: {value?: string};
+    void: void;
+    withElementProperties: ComponentWithElementPropertiesLocator;
+    withElementPropertiesWithParameters: ComponentWithElementPropertiesWithParametersLocator;
+  },
   {text: 'foo' | 'bar'}
 >;
 
 true satisfies IsEqual<MainLocator, MainVoidLocator>;
 
 type MainProperties = {render: Function} & Mark<MainLocator>;
+// @ts-expect-error
+type MainPropertiesByMark = Mark<MainLocator, {render: Function}>;
+// @ts-expect-error
+type MainPropertiesByMarkWithDifference = Mark<MainLocator, {render?: Function}>;
+
+true satisfies IsEqual<MainProperties, MainPropertiesByMark>;
+false satisfies IsEqual<MainProperties, MainPropertiesByMarkWithDifference>;
 
 declare const mainProperties: MainProperties;
 
@@ -469,6 +558,16 @@ export const Main = ({render, ...rest}: MainProperties) => {
       <span {...locator.text({value: 'bar'})}></span>
       {/* @ts-expect-error */}
       <span {...rest}></span>
+      <ComponentWithElementProperties {...locator.withElementProperties()} />
+      {/* @ts-expect-error */}
+      <ComponentWithElementPropertiesWithParameters {...locator.withElementProperties()} />
+      <ComponentWithElementPropertiesWithParameters
+        {...locator.withElementPropertiesWithParameters({bar: 'baz'})}
+      />
+      {/* @ts-expect-error */}
+      <ComponentWithElementProperties
+        {...locator.withElementPropertiesWithParameters({bar: 'baz'})}
+      />
     </main>
   );
 };
@@ -869,7 +968,7 @@ export const RenderedBanner = (properties: Mark<RenderedLocator>) => {
   const locatorParameters = getLocatorParameters(properties);
 
   // @ts-expect-error
-  Object satisfies GetLocatorParameters<typeof properties>;
+  ({}) as GetLocatorParameters<typeof properties>;
 
   const optionalProperties = {} as Partial<Mark<RenderedLocator>>;
 
@@ -899,7 +998,7 @@ true satisfies IsEqual<
 >;
 
 // @ts-expect-error
-Object satisfies GetLocatorParameters<{foo: ''}>;
+({}) as GetLocatorParameters<{foo: ''}>;
 
 /**
  * Base tests of Mark.
@@ -964,6 +1063,58 @@ export const WrongTypesComponent = (properties: Locator<{foo: {}}, {bar: string}
       {/* @ts-expect-error */}
       <span {...locator.foo()}></span>
     </div>
+  );
+};
+
+type ClearedByMarkLogButtonProperties = Mark<
+  LogButtonLocator,
+  ButtonProperties & {namespace: string}
+>;
+
+export const ClearedByMarkLogButton = ({namespace, ...rest}: ClearedByMarkLogButtonProperties) => {
+  const locator = createLocator(rest);
+
+  true satisfies IsEqual<typeof locator, LogButtonLocator>;
+  true satisfies IsEqual<typeof locator, CreateLocator<ClearedByMarkLogButtonProperties>>;
+
+  // @ts-expect-error
+  const locatorParameters = getLocatorParameters(rest);
+
+  true satisfies IsEqual<typeof locatorParameters, unknown>;
+
+  const restWithoutMark = removeMarkFromProperties(rest);
+
+  // @ts-expect-error
+  const locatorParametersWithoutMark = getLocatorParameters(restWithoutMark);
+
+  true satisfies IsEqual<typeof locatorParametersWithoutMark, unknown>;
+
+  console.log(namespace);
+
+  return (
+    <>
+      <Button {...rest} {...locator.button({type: 'foo'})} />
+      {/* @ts-expect-error */}
+      <Button {...rest} {...locator.button(locatorParameters)} />
+      {/* @ts-expect-error */}
+      <Button {...locator.button({type: 'foo'})} {...rest} />
+      {/* @ts-expect-error */}
+      <Button {...rest} />
+      {/* @ts-expect-error */}
+      <Button {...rest} {...locator()} />
+      {/* @ts-expect-error */}
+      <Button {...rest} {...locator(locatorParameters)} />
+      {/* @ts-expect-error */}
+      <Button {...rest} {...locator} />
+      {/* @ts-expect-error */}
+      <Button {...restWithoutMark} />
+      <Button {...restWithoutMark} {...locator.button({type: ''})} />
+      <Button {...locator.button({type: ''})} {...restWithoutMark} />
+      {/* @ts-expect-error */}
+      <ButtonWithoutLocator />
+      <ButtonWithoutLocator {...rest} />
+      <ButtonWithoutLocator {...restWithoutMark} />
+    </>
   );
 };
 
@@ -1108,7 +1259,7 @@ export type WrapRemoveMarkFromPropertiesWithParameters<
  */
 type ButtonLocator = Locator<{bar: {}}, {type: string}>;
 type ButtonOwnProperties = {[SYMBOL]: bigint; foo?: number; bar: boolean};
-type ButtonProperties = {children: unknown} & ButtonOwnProperties & Mark<ButtonLocator>;
+type ButtonProperties = Mark<ButtonLocator> & {children: unknown} & ButtonOwnProperties;
 type ButtonOwnPropertiesWithReadonly = {foo?: 'baz'; readonly bar: boolean};
 
 export const Button = ({children, ...restProps}: ButtonProperties) => {
