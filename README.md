@@ -65,7 +65,7 @@ If, imagine, an `Baz` component has no inner elements and no child components,
 then its locator can be declared using `void`:
 
 ```tsx
-export type BazLocator = Locator<void>; // full equivalent of Locator<{}>
+export type BazLocator = Locator<void>; // equivalent of Locator<{}>
 ```
 
 When marking up a root application component, you need to specify a **root** component locator type,
@@ -94,7 +94,7 @@ const App = () => {
 };
 ```
 
-The root locator is always created outside the component's render function, as a singleton
+The root locator is always created outside the component render function, as a singleton
 (so as not to be re-created on re-renders), because all its features and parameters are static
 (known even before the code is run).
 
@@ -121,7 +121,7 @@ const rootLocator = createLocator<RootLocator>('app', {
 ```
 
 You should not use the `pathAttribute` and attributes starting with `parameterAttributePrefix`
-on component properties and on HTML elements because they will now place by `create-locator` 📌
+on component properties and on HTML elements because they will now place by the `create-locator` 📌
 (usually it's just all `data-test*` attributes).
 
 The `Foo` component defined above and inserted into the `App` has the path `app-foo`
@@ -141,7 +141,7 @@ it will be rendered into HTML with such `data-test*` attributes:
 Remember, that all attribute names in HTML documents get ASCII-lowercased automatically,
 so it makes sense to use only lower case for `parameterAttributePrefix`, `pathAttribute`
 and `pathSeparator`, and for locator parameter names
-(`create-locator` 📌 does not correct attribute names in any way by itself).
+(the `create-locator` 📌 does not correct attribute names in any way by itself).
 
 ## Install
 
@@ -151,7 +151,7 @@ Requires [node](https://nodejs.org/en/) version 8 or higher:
 npm install create-locator
 ```
 
-`create-locator` 📌 works in any environment that supports ES2015 (uses `Proxy` internally).
+The `create-locator` 📌 works in any environment that supports ES2015 (uses `Proxy` internally).
 
 ## Static components
 
@@ -168,7 +168,7 @@ be considered an example of a static component.
 Static component is located in the locator tree in one place, in a fixed path,
 and it don't have parameters (for the same reason it don't have properties). Therefore,
 the locator of a static component can also be obtained statically, as a singleton,
-outside the component's render function (and then it will not be necessary to add properties
+outside the component render function (and then it will not be necessary to add properties
 to the component just for the sake of marking it with locators):
 
 ```tsx
@@ -213,9 +213,45 @@ If there is no locator in the component properties at runtime
 inside the `Foo` component (and its children) go into production mode, that is,
 they do not add any attributes to properties of components and to HTML elements.
 
+## Locators in unit tests and other test environments
+
+Sometimes we need to render components marked with locators in some test environments —
+in unit tests, in Storybook's stories, and so on. There are two ways to do this,
+depending on whether or not you need locator attributes on HTML elements
+in this environment to find those elements.
+
+If you don't need locator attributes (as in production mode, for example, in Storybook's stories),
+you can use the so-called "any locator", which allows you to correctly
+(from the point of view of types) mark any component:
+
+```tsx
+import {anyLocator} from 'create-locator';
+import {Foo} from './Foo';
+
+test('Foo renders correctly', () => {
+  render(<Foo {...anyLocator()} />); // renders just like <Foo />
+  ···
+});
+```
+
+If you need locator attributes to find elements (for example, in unit tests),
+you can statically create a locator for a component as a standard root locator:
+
+```tsx
+import {createLocator, type Locator} from 'create-locator';
+import {Foo, type FooLocator} from './Foo';
+
+const locator = createLocator<FooLocator>('root');
+
+test('Foo renders correctly', () => {
+  render(<Foo {...locator()} />); // renders with locator attributes
+  ···
+});
+```
+
 ## Production entry point
 
-The production mode is enabled using the `isProduction` field in the options on the root locator
+The **production mode** is enabled using the `isProduction` field in the options on the root locator
 (this is a mode in which the `create-locator` 📌 does not add any attributes to
 properties of components and to HTML elements).
 

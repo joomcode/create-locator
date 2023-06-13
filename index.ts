@@ -7,7 +7,7 @@ import type {
   RootOptions,
 } from './types';
 
-import {createLocator as productionCreateLocator} from './production';
+import {anyLocator} from './production';
 
 /**
  * Options of root locator, maybe with mapping attributes function.
@@ -197,11 +197,6 @@ const OPTIONS = Symbol.for('create-locator:options');
 const PATH = Symbol.for('create-locator:path');
 
 /**
- * Proxy object that represents the locator at production runtime.
- */
-const productionLocator = productionCreateLocator('app');
-
-/**
  * Set attributes from parameters to attributes object.
  */
 const setAttributesFromParameters = (
@@ -231,6 +226,11 @@ function toString(this: PathAttributeValue): string {
 }
 
 /**
+ * Proxy object that represents the locator in production mode (and, for example, in unit tests).
+ */
+export {anyLocator};
+
+/**
  * Creates root locator (by prefix and options) or component locator (by component properties).
  */
 export const createLocator = ((
@@ -241,7 +241,7 @@ export const createLocator = ((
     const options: Options = Object.assign({}, DEFAULT_OPTIONS, maybeOptions);
 
     if (options.isProduction) {
-      return productionLocator as unknown as LocatorProxy;
+      return anyLocator as unknown as LocatorProxy;
     }
 
     return createLocatorProxy(options, prefixOrProperties);
@@ -250,7 +250,7 @@ export const createLocator = ((
   const pathAttributeValue = getPathAttributeValueFromProperties(prefixOrProperties);
 
   if (!pathAttributeValue) {
-    return productionLocator as unknown as LocatorProxy;
+    return anyLocator as unknown as LocatorProxy;
   }
 
   return pathAttributeValue[LOCATOR];
@@ -262,7 +262,7 @@ export const createLocator = ((
 export const getLocatorParameters = ((properties: Properties) => {
   const pathAttributeValue = getPathAttributeValueFromProperties(properties);
 
-  return pathAttributeValue?.parameters || productionLocator;
+  return pathAttributeValue?.parameters || anyLocator;
 }) as GetLocatorParametersFunction;
 
 /**

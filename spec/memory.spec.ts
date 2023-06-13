@@ -1,4 +1,4 @@
-import {createLocator} from 'create-locator';
+import {type anyLocator, createLocator, type Locator} from 'create-locator';
 
 import {createRandomTree, ok} from './utils';
 
@@ -9,10 +9,10 @@ const startTime = Date.now();
 const ticksPerMessage = 50_000;
 const totalTicks = 1_000_000;
 
-const createLocatorByTree = (locator: object, tree: Tree): void => {
+const createLocatorByTree = (locator: typeof anyLocator, tree: Tree): void => {
   for (const key of Object.keys(tree)) {
     //@ts-expect-error
-    const childLocator = locator[key];
+    const childLocator: typeof anyLocator = locator[key];
     const value = tree[key];
 
     childLocator({foo: typeof value === 'string' ? value : 'bar'});
@@ -103,7 +103,7 @@ const tick = (): void => {
     return;
   }
 
-  const rootLocator = createLocator('app');
+  const rootLocator = createLocator<Locator<void>>('app');
 
   createLocatorByTree(rootLocator, createRandomTree());
 

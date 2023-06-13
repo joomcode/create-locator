@@ -1,6 +1,11 @@
 /// <reference path="./react.d.ts" />
 
 /**
+ * A mark that matches any locator (for use in unit tests).
+ */
+type AnyMark = WithMark<any> & ElementAttributeError<CannotMarkElementMessage>;
+
+/**
  * Base node of locator tree (by parameters, optional subtree and "is child locator" flag).
  */
 type BaseNode<
@@ -31,7 +36,7 @@ type CreateComponentLocator = <Properties extends Partial<WithMark>>(
  */
 type CreateRootLocator = <RootLocator extends WithLocator>(
   this: void,
-  pathPrefix: string,
+  pathPrefix: IsEqual<RootLocator, WithLocator> extends true ? never : string,
   rootOptions?: Partial<RootOptions>,
 ) => CreateLocator<RootLocator>;
 
@@ -40,7 +45,7 @@ type CreateRootLocator = <RootLocator extends WithLocator>(
  */
 type CreateRootLocatorWithMapping = <RootLocator extends WithLocator, MapResult>(
   this: void,
-  pathPrefix: string,
+  pathPrefix: IsEqual<RootLocator, WithLocator> extends true ? never : string,
   rootOptions: Partial<RootOptions> & MapAttributes<MapResult>,
 ) => CreateLocator<RootLocator, MapResult>;
 
@@ -279,6 +284,11 @@ type WithParameters<Parameters = object> = Readonly<Record<ParametersKey, Parame
  * Object with tree of locators under some prototype key.
  */
 type WithTree<Tree = object> = Readonly<Record<TreeKey, Tree>>;
+
+/**
+ * Any locator, that is locator that matches any other locators (for use in unit tests).
+ */
+export type AnyLocator = ((parameters?: any) => AnyMark) & WithLocator;
 
 /**
  * Any description of locator tree, that is argument of Locator<...> and Node<...>

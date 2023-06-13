@@ -1,4 +1,5 @@
 import type {
+  AnyLocator,
   CreateLocatorFunction,
   GetLocatorParametersFunction,
   RemoveMarkFromPropertiesFunction,
@@ -6,7 +7,9 @@ import type {
 
 const attributes = {};
 
-const proxy: () => unknown = new Proxy(
+const toString = () => '';
+
+export const anyLocator: AnyLocator = new Proxy(
   Object.setPrototypeOf(() => {}, null),
   {
     apply: () => attributes,
@@ -15,17 +18,15 @@ const proxy: () => unknown = new Proxy(
     get(target, property) {
       if (property === Symbol.toPrimitive || property === 'toJSON') return toString;
 
-      return proxy satisfies typeof target;
+      return anyLocator satisfies typeof target;
     },
     preventExtensions: () => false,
   },
 );
 
-const toString = () => '';
+export const createLocator = (() => anyLocator) as CreateLocatorFunction;
 
-export const createLocator = (() => proxy) as CreateLocatorFunction;
-
-export const getLocatorParameters = (() => proxy) as GetLocatorParametersFunction;
+export const getLocatorParameters = (() => anyLocator) as GetLocatorParametersFunction;
 
 export const removeMarkFromProperties = ((properties) =>
   properties) as RemoveMarkFromPropertiesFunction;

@@ -1,6 +1,7 @@
 import React from 'react';
 
 import {
+  anyLocator,
   createLocator,
   type CreateLocator,
   getLocatorParameters,
@@ -223,6 +224,9 @@ export const Multi = (properties: Mark<MultiLocator>) => {
       <span {...locator.label({level: 'foo'})}></span>
       <Label text="baz" {...locator.label({level: 'foo'})} />
       <Label text="bar" {...locator.label({level: 'foo'})} {...propertiesWithAriaInvalid} />
+      <Label text="bar" {...anyLocator()} />
+      {/* @ts-expect-error */}
+      <Label text="bar" {...anyLocator} />
     </div>
   );
 };
@@ -358,6 +362,11 @@ export const Header = ({foo, ...rest}: HeaderProperties) => {
       <span {...locator.alsoSubtree.corge.grault({foo: 'baz'})}></span>
       <span {...locator.alsoSubtree.corge.grault({bar: 'qux'})}></span>
       <Multi {...locator.multi()} />
+      <Multi {...anyLocator()} />
+      {/* @ts-expect-error */}
+      <Multi {...anyLocator} />
+      <Multi {...anyLocator({})} />
+      <Multi {...anyLocator({bar: 2})} />
       {/* @ts-expect-error */}
       <span {...locator}></span>
       {/* @ts-expect-error */}
@@ -389,6 +398,9 @@ export const Wrapper = (properties: Mark<HeaderLocator>) => {
       {/* @ts-expect-error */}
       <Header {...locator.foo()} />
       <Header {...locator()} />
+      <Header {...anyLocator()} />
+      {/* @ts-expect-error */}
+      <Header {...anyLocator} />
       {/* @ts-expect-error */}
       <div {...properties}></div>
     </div>
@@ -481,6 +493,14 @@ const MainWrapper = (properties: Mark<MainLocator>) => {
       {/* @ts-expect-error */}
       <Main render={() => {}} {...locator()} />
       <Main render={() => {}} {...locator({text: 'bar'})} />
+      {/* @ts-expect-error */}
+      <Main render={() => {}} {...anyLocator} />
+      <Main render={() => {}} {...anyLocator()} />
+      <Main render={() => {}} {...anyLocator({})} />
+      <Main render={() => {}} {...anyLocator({foo: ''})} />
+      <Main render={() => {}} {...anyLocator({foo: 2})} />
+      {/* @ts-expect-error */}
+      <Main render={() => {}} {...anyLocator({}, {})} />
       <span {...locator({text: 'bar'})}></span>
     </div>
   );
@@ -520,6 +540,25 @@ true satisfies IsEqual<AppLocator, AppVoidLocator>;
 true satisfies IsEqual<AppLocator, AppLocatorWithVoidParameters>;
 
 export const appLocator = createLocator<AppLocator>('app');
+
+// @ts-expect-error
+createLocator('app');
+// @ts-expect-error
+createLocator({});
+// @ts-expect-error
+createLocator('app', {});
+// @ts-expect-error
+createLocator('app', {foo: ''});
+// @ts-expect-error
+createLocator('app', {isProduction: true});
+// @ts-expect-error
+createLocator('app', {mapAttributes: () => {}});
+// @ts-expect-error
+createLocator<AppLocator>('app', {mapAttributes: () => {}});
+// @ts-expect-error
+createLocator<AppLocator>('app', {mapAttributes: () => 3});
+createLocator<AppLocator, number>('app', {mapAttributes: () => 3});
+createLocator<AppLocator, void>('app', {mapAttributes: () => {}});
 
 true satisfies IsEqual<typeof appLocator, AppLocator>;
 true satisfies IsEqual<CreateLocator<Mark<AppLocator>>, AppLocator>;
@@ -586,10 +625,30 @@ export const App = () => {
       {/* @ts-expect-error */}
       <Wrapper {...appLocator} />
       <Wrapper {...appLocator.header()} />
+      <Wrapper {...anyLocator()} />
+      {/* @ts-expect-error */}
+      <Wrapper {...anyLocator} />
       <StaticComponent />
+      <StaticComponent {...anyLocator()} />
     </div>
   );
 };
+
+const rootLocatorWithParameters = createLocator<Locator<void, {foo: string}>>('root');
+
+// @ts-expect-error
+rootLocatorWithParameters();
+
+// @ts-expect-error
+rootLocatorWithParameters({foo: 2});
+
+rootLocatorWithParameters({foo: ''});
+
+// @ts-expect-error
+createLocator<Locator<{foo: {}}, {bar: string}>, symbol>('root');
+
+// @ts-expect-error
+createLocator<Locator<{foo: {}}, {bar: string}>, symbol>('root', {mapAttributes: () => {}});
 
 /**
  * Base tests of static components.
@@ -679,6 +738,19 @@ locator.main.header.header;
 
 // @ts-expect-error
 locator.main.header.alsoSubtree.corge({bar: 'baz'});
+
+const rootLocatorWithParametersWithMapping = createLocator<
+  Locator<{foo: {}}, {bar: string}>,
+  symbol
+>('root', {mapAttributes: () => Symbol()});
+
+// @ts-expect-error
+rootLocatorWithParametersWithMapping();
+
+// @ts-expect-error
+rootLocatorWithParametersWithMapping({bar: 2});
+
+rootLocatorWithParametersWithMapping({bar: ''});
 
 /**
  * Base tests of CreateLocator.
@@ -894,6 +966,29 @@ export const WrongTypesComponent = (properties: Locator<{foo: {}}, {bar: string}
     </div>
   );
 };
+
+/**
+ * Base tests of anyLocator.
+ */
+export type AnyLocator = typeof anyLocator;
+
+const anyMark = anyLocator();
+
+export type AnyMark = typeof anyMark;
+
+true satisfies AnyPropertiesWithMark extends AnyMark ? true : false;
+true satisfies AnyPropertiesWithMarkWithParameters extends AnyMark ? true : false;
+
+true satisfies LabelLocator extends AnyLocator ? true : false;
+true satisfies MultiLocator extends AnyLocator ? true : false;
+true satisfies HeaderLocator extends AnyLocator ? true : false;
+true satisfies MainLocator extends AnyLocator ? true : false;
+true satisfies MainLocator extends AnyLocator ? true : false;
+true satisfies AppLocator extends AnyLocator ? true : false;
+
+false satisfies {} extends AnyLocator ? true : false;
+false satisfies {foo: any} extends AnyLocator ? true : false;
+false satisfies object extends AnyLocator ? true : false;
 
 /**
  * Base tests of AnyLocatorDescription and AnyParameters.
@@ -1651,6 +1746,9 @@ const PanelWithOptionalLocator = (properties: OptionalPanelProperties) => {
   return (
     <>
       <PanelWithOptionalLocator />
+      <PanelWithOptionalLocator {...anyLocator()} />
+      {/* @ts-expect-error */}
+      <PanelWithOptionalLocator {...anyLocator} />
       <PanelWithOptionalLocator {...locator({quux: 'foo'})} />
       <PanelWithOptionalLocator {...locator({quux: 'foo'})} {...propertiesWithAriaInvalid} />
       <Panel {...locator({quux: 'foo'})} />
