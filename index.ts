@@ -301,6 +301,7 @@ export type {
   AnyParameters,
   AnyPropertiesWithMark,
   AnyPropertiesWithMarkWithParameters,
+  ClearHtmlAttributes,
   CreateLocator,
   GetLocatorParameters,
   Locator,

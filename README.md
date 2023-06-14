@@ -9,7 +9,7 @@
 
 Creates typed (via TypeScript) component locators for unit-tests and e2e-tests.
 
-**Locators** are marks on components and HTML elements that allow you to find elements in tests.
+_Locators_ are marks on components and HTML elements that allow you to find elements in tests.
 In the HTML output, locators are usually represented as `data-test*` attributes.
 
 Locators do not change the behavior or appearance of a component.
@@ -21,7 +21,7 @@ that is convenient to use in tests. This tree represents a visual blocks of the 
 which is a simplified version of the project component tree. The locator tree is also conveniently
 thought of as a tree of interfaces of your product, useful for designers and product managers.
 
-Each locator has a unique path in this locator tree, and a string with this **path**
+Each locator has a unique path in this locator tree, and a string with this _path_
 in the some `data-test*` path attribute allows you to unambiguously find all elements
 marked with a specific locator on the rendered HTML page.
 
@@ -68,8 +68,8 @@ then its locator can be declared using `void`:
 export type BazLocator = Locator<void>; // equivalent of Locator<{}>
 ```
 
-When marking up a root application component, you need to specify a **root** component locator type,
-and a **prefix** that starts the paths of all locators in this component tree:
+When marking up a root application component, you need to specify a _root_ component locator type,
+and a _prefix_ that starts the paths of all locators in this component tree:
 
 ```tsx
 import {createLocator, type Locator} from 'create-locator';
@@ -160,7 +160,7 @@ under the same conditions, and therefore do not have properties
 (they simply do not make sense to set properties, because all their properties are known in advance,
 they are static).
 
-Such components can therefore be called **static**. For example,
+Such components can therefore be called _static_. For example,
 these can be components of individual pages that are rendered not through an insert into the JSX,
 but using some kind of router. The root application component can also
 be considered an example of a static component.
@@ -251,7 +251,7 @@ test('Foo renders correctly', () => {
 
 ## Production entry point
 
-The **production mode** is enabled using the `isProduction` field in the options on the root locator
+The _production mode_ is enabled using the `isProduction` field in the options on the root locator
 (this is a mode in which the `create-locator` 📌 does not add any attributes to
 properties of components and to HTML elements).
 
@@ -268,61 +268,37 @@ and from `create-locator` in one build).
 The `create-locator/production` entry point is about five times smaller than the `create-locator`
 (less than 500 bytes after minification), and the functions from it do not consume CPU and memory resources.
 
-## Safer form of marking component properties
+## Using HTML attributes as component properties
 
-There are two rare cases where marking up a component properties with locator type
-in the standard way can lead to type errors on marking up component itself with locator.
-
-The first case is if you want to allow the component to accept any valid properties
-of some HTML element, for example via `JSX.IntrinsicElements`:
+In some rare cases, we want to allow a component to accept any the properties (attributes)
+of some HTML element — for example, to have component `Button` accept any attributes
+of the `button` element (usually via `JSX.IntrinsicElements`):
 
 ```tsx
 // component Button accepts any properties of the button element
-type ButtonProperties = BaseOwnButtonProperties &
+type ButtonProperties = BaseButtonProperties &
   JSX.IntrinsicElements['button'] &
   Mark<ButtonLocator>;
 ```
 
-The second case is if you use _component inheritance_ via properties extension,
-and get the type of properties of the child component by adding new fields to the type of properties
-of the base component that is already marked with his own locator type:
+With these types of component properties, the `create-locator` 📌 will treat the `Button` component
+as an HTML element, and this will lead to type errors when marking the `Button` with locator
+(because you cannot mark HTML element with component locator).
+
+To avoid type errors, clear the HTML element attributes from internal `create-locator` 📌 marks
+when added to the component properties (this will not change the types
+of the attributes themselves in any way) using the generic `ClearHtmlAttributes`:
 
 ```tsx
-// component SubmitButton is inherited from component Button
-type SubmitButtonProperties = ButtonProperties &
-  SubmitButtonOwnProperties &
-  Mark<SubmitButtonLocator>;
+import {type ClearHtmlAttributes, ···} from 'create-locator';
+
+···
+
+type ButtonProperties = BaseButtonProperties &
+  // the attributes themselves will not change in any way
+  ClearHtmlAttributes<JSX.IntrinsicElements['button']> &
+  Mark<ButtonLocator>;
 ```
-
-In both cases, a safer form of marking component properties will help to get rid of errors,
-which in general looks like this (for component `Foo`):
-
-```tsx
-// instead of Mark<FooLocator> & FooOwnProperties
-type FooProperties = Mark<FooLocator, FooOwnProperties>;
-```
-
-In particular, the declaration of `ButtonProperties` and `SubmitButtonOwnProperties` types
-in this safer form would look like this:
-
-```tsx
-type ButtonProperties = Mark<
-  ButtonLocator,
-  BaseOwnButtonProperties & JSX.IntrinsicElements['button']
->;
-
-type SubmitButtonProperties = Mark<
-  SubmitButtonLocator,
-  ButtonProperties & SubmitButtonOwnProperties
->;
-```
-
-A safer form of markup is applicable only when it is needed.
-If a safer form of markup is not necessary for the component properties,
-you will get a type error when you try to use it.
-In this case, use the standard way to mark up component properties.
-Such a compromise is chosen in order not to complicate the types
-of the component properties in most cases.
 
 ## Thanks
 

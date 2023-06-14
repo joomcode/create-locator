@@ -53,13 +53,18 @@ type CreateRootLocatorWithMapping = <RootLocator extends WithLocator, MapResult>
  * Generates a type error with some message on HTML element.
  */
 type ElementAttributeError<Message extends string | undefined = undefined> = {
-  readonly [ERROR_ATTRIBUTE]?: Message | undefined;
+  readonly [ERROR_ATTRIBUTE]?: ErrorAttributeBaseType | Message;
 };
 
 /**
  * Type of symbol attribute key for generating type error on HTML elements.
  */
 type ErrorAttribute = GetErrorAttribute<keyof React.AriaAttributes & symbol>;
+
+/**
+ * Base type of error attribute value for all HTML elements.
+ */
+type ErrorAttributeBaseType = 'create-locator:error-attribute' | undefined;
 
 /**
  * Extracts parameters from some base or normalized node.
@@ -73,7 +78,7 @@ type ExtractNodeParameters<SomeNode> = SomeNode extends WithParameters
  */
 type GetErrorAttribute<Attribute extends keyof React.AriaAttributes & symbol> =
   Attribute extends unknown
-    ? IsEqual<React.AriaAttributes[Attribute], undefined> extends true
+    ? IsEqual<React.AriaAttributes[Attribute], ErrorAttributeBaseType> extends true
       ? Attribute
       : never
     : never;
@@ -323,6 +328,14 @@ export type AnyPropertiesWithMarkWithParameters = WithMark<WithParameters>;
 export type Attributes = Readonly<Record<string, string>>;
 
 /**
+ * Clear HTML element attributes, that is removes error attribute from them.
+ */
+export type ClearHtmlAttributes<SomeAttributes extends ElementAttributeError> =
+  SomeAttributes extends ElementAttributeError
+    ? Omit<SomeAttributes, ErrorAttribute>
+    : SomeAttributes;
+
+/**
  * Presentation of createLocator function in types.
  * Creates locator type by properties and optional MapResult type.
  */
@@ -404,19 +417,16 @@ export type MapAttributes<MapResult> = {
 /**
  * Creates mark with component locator type for component properties.
  */
-export type Mark<
-  SomeLocator extends WithLocator,
-  Properties extends ElementAttributeError | HiddenKey | WithMark = HiddenKey,
-> = IsEqual<LocatorTreeFromLocator<SomeLocator>, unknown> extends true
+export type Mark<SomeLocator extends WithLocator> = IsEqual<
+  LocatorTreeFromLocator<SomeLocator>,
+  unknown
+> extends true
   ? unknown
   : WithMark<LocatorTreeFromLocator<SomeLocator>> &
       ElementAttributeError<
         | 'The mark of locator should be removed from spreaded properties using the removeMarkFromProperties'
         | CannotMarkElementMessage
-      > &
-      (IsEqual<Properties, HiddenKey> extends true
-        ? {}
-        : Omit<Properties, ErrorAttribute | MarkKey>);
+      >;
 
 /**
  * Symbol key for saving locator tree in mark (in properties object).

@@ -2,6 +2,11 @@ import React from 'react';
 
 import {
   anyLocator,
+  type AnyLocatorDescription,
+  type AnyParameters,
+  type AnyPropertiesWithMark,
+  type AnyPropertiesWithMarkWithParameters,
+  type ClearHtmlAttributes,
   createLocator,
   type CreateLocator,
   getLocatorParameters,
@@ -9,10 +14,6 @@ import {
   type Locator,
   type Mark,
   type Node,
-  type AnyLocatorDescription,
-  type AnyParameters,
-  type AnyPropertiesWithMark,
-  type AnyPropertiesWithMarkWithParameters,
   removeMarkFromProperties,
   type RemoveMarkFromProperties,
 } from 'create-locator';
@@ -91,13 +92,9 @@ export type Checks = [
   Mark<{}>,
   Mark<L1>,
   // @ts-expect-error
-  Mark<L1, {}, {}>,
+  Mark<L1, {}>,
   // @ts-expect-error
-  Mark<L1, {}, L1>,
-  // @ts-expect-error
-  Mark<L1, L1, {}>,
-  // @ts-expect-error
-  Mark<L1, L1, L1>,
+  Mark<L1, L1>,
   // @ts-expect-error
   Mark<M1>,
   // @ts-expect-error
@@ -161,14 +158,7 @@ const propertiesWithAriaInvalid = {} as {'aria-invalid': React.AriaAttributes['a
  * Base tests of component, element and node locator.
  */
 export type LabelLocator = Locator<{}, {level: string}>;
-type LabelOwnProperties = {level?: string; text: string};
-type LabelProperties = LabelOwnProperties & Mark<LabelLocator>;
-// @ts-expect-error
-type LabelPropertiesByMark = Mark<LabelLocator, LabelOwnProperties>;
-// @ts-expect-error
-({}) as Mark<LabelLocator, LabelLocator>;
-
-true satisfies IsEqual<LabelProperties, Mark<LabelLocator, LabelPropertiesByMark>>;
+type LabelProperties = {level?: string; text: string} & Mark<LabelLocator>;
 
 export const Label = ({level, text, ...rest}: LabelProperties) => {
   const locator = createLocator(rest);
@@ -289,10 +279,6 @@ export type HeaderLocator = Locator<{
 }>;
 
 type HeaderProperties = {foo?: number} & Mark<HeaderLocator>;
-// @ts-expect-error
-type HeaderPropertiesByMark = Mark<HeaderLocator, {foo?: number}>;
-
-true satisfies IsEqual<HeaderProperties, HeaderPropertiesByMark>;
 
 export const Header = ({foo, ...rest}: HeaderProperties) => {
   const locator = createLocator(rest);
@@ -303,7 +289,7 @@ export const Header = ({foo, ...rest}: HeaderProperties) => {
   // @ts-expect-error
   locator.foo = {} as unknown as any;
 
-  // TODO: also support keys `arguments`, `caller` and `prototype`
+  // TODO: also support keys `arguments` and `prototype`
   locator.apply() satisfies object;
   locator.subtree.apply({level: ''}) satisfies object;
   locator.bind() satisfies object;
@@ -429,7 +415,8 @@ type RenderedLocator = Locator<{
 export type ComponentWithElementPropertiesLocator = Locator<{foo: void}>;
 
 export const ComponentWithElementProperties = (
-  properties: Mark<ComponentWithElementPropertiesLocator, JSX.IntrinsicElements['div']>,
+  properties: ClearHtmlAttributes<JSX.IntrinsicElements['div']> &
+    Mark<ComponentWithElementPropertiesLocator>,
 ) => {
   const locator = createLocator(properties);
   const propertiesWithoutMark = removeMarkFromProperties(properties);
@@ -445,20 +432,14 @@ export const ComponentWithElementProperties = (
   );
 };
 
-({}) as Mark<ComponentWithElementPropertiesLocator, React.AriaAttributes>;
-// @ts-expect-error
-({}) as Mark<ComponentWithElementPropertiesLocator, L1>;
-({}) as Mark<ComponentWithElementPropertiesLocator, M1>;
-// @ts-expect-error
-({}) as Mark<ComponentWithElementPropertiesLocator, N1>;
-
 export type ComponentWithElementPropertiesWithParametersLocator = Locator<
   {foo: {}},
   {bar: 'baz' | 'qux'}
 >;
 
 export const ComponentWithElementPropertiesWithParameters = (
-  properties: Mark<ComponentWithElementPropertiesWithParametersLocator, JSX.IntrinsicElements['a']>,
+  properties: ClearHtmlAttributes<JSX.IntrinsicElements['a']> &
+    Mark<ComponentWithElementPropertiesWithParametersLocator>,
 ) => {
   const locator = createLocator(properties);
   const propertiesWithoutMark = removeMarkFromProperties(properties);
@@ -506,13 +487,6 @@ type MainVoidLocator = Locator<
 true satisfies IsEqual<MainLocator, MainVoidLocator>;
 
 type MainProperties = {render: Function} & Mark<MainLocator>;
-// @ts-expect-error
-type MainPropertiesByMark = Mark<MainLocator, {render: Function}>;
-// @ts-expect-error
-type MainPropertiesByMarkWithDifference = Mark<MainLocator, {render?: Function}>;
-
-true satisfies IsEqual<MainProperties, MainPropertiesByMark>;
-false satisfies IsEqual<MainProperties, MainPropertiesByMarkWithDifference>;
 
 declare const mainProperties: MainProperties;
 
@@ -1066,58 +1040,6 @@ export const WrongTypesComponent = (properties: Locator<{foo: {}}, {bar: string}
   );
 };
 
-type ClearedByMarkLogButtonProperties = Mark<
-  LogButtonLocator,
-  ButtonProperties & {namespace: string}
->;
-
-export const ClearedByMarkLogButton = ({namespace, ...rest}: ClearedByMarkLogButtonProperties) => {
-  const locator = createLocator(rest);
-
-  true satisfies IsEqual<typeof locator, LogButtonLocator>;
-  true satisfies IsEqual<typeof locator, CreateLocator<ClearedByMarkLogButtonProperties>>;
-
-  // @ts-expect-error
-  const locatorParameters = getLocatorParameters(rest);
-
-  true satisfies IsEqual<typeof locatorParameters, unknown>;
-
-  const restWithoutMark = removeMarkFromProperties(rest);
-
-  // @ts-expect-error
-  const locatorParametersWithoutMark = getLocatorParameters(restWithoutMark);
-
-  true satisfies IsEqual<typeof locatorParametersWithoutMark, unknown>;
-
-  console.log(namespace);
-
-  return (
-    <>
-      <Button {...rest} {...locator.button({type: 'foo'})} />
-      {/* @ts-expect-error */}
-      <Button {...rest} {...locator.button(locatorParameters)} />
-      {/* @ts-expect-error */}
-      <Button {...locator.button({type: 'foo'})} {...rest} />
-      {/* @ts-expect-error */}
-      <Button {...rest} />
-      {/* @ts-expect-error */}
-      <Button {...rest} {...locator()} />
-      {/* @ts-expect-error */}
-      <Button {...rest} {...locator(locatorParameters)} />
-      {/* @ts-expect-error */}
-      <Button {...rest} {...locator} />
-      {/* @ts-expect-error */}
-      <Button {...restWithoutMark} />
-      <Button {...restWithoutMark} {...locator.button({type: ''})} />
-      <Button {...locator.button({type: ''})} {...restWithoutMark} />
-      {/* @ts-expect-error */}
-      <ButtonWithoutLocator />
-      <ButtonWithoutLocator {...rest} />
-      <ButtonWithoutLocator {...restWithoutMark} />
-    </>
-  );
-};
-
 /**
  * Base tests of anyLocator.
  */
@@ -1255,11 +1177,48 @@ export type WrapRemoveMarkFromPropertiesWithParameters<
 > = RemoveMarkFromProperties<Properties>;
 
 /**
+ * Base tests of ClearHtmlAttributes.
+ */
+({}) as ClearHtmlAttributes<{}>;
+({}) as ClearHtmlAttributes<object>;
+// @ts-expect-error
+({}) as ClearHtmlAttributes<{foo: string}>;
+// @ts-expect-error
+({}) as ClearHtmlAttributes<LabelLocator>;
+// @ts-expect-error
+({}) as ClearHtmlAttributes<MultiLocator>;
+// @ts-expect-error
+({}) as ClearHtmlAttributes<HeaderLocator>;
+// @ts-expect-error
+({}) as ClearHtmlAttributes<AppLocator>;
+
+// @ts-expect-error
+type ClearedLabelProperties = ClearHtmlAttributes<LabelProperties>;
+// @ts-expect-error
+type ClearedHeaderProperties = ClearHtmlAttributes<HeaderProperties>;
+
+true satisfies IsEqual<LabelProperties, ClearedLabelProperties>;
+true satisfies IsEqual<HeaderProperties, ClearedHeaderProperties>;
+
+true satisfies IsEqual<
+  ClearHtmlAttributes<JSX.IntrinsicElements['a']>,
+  Omit<JSX.IntrinsicElements['a'], ErrorAttribute>
+>;
+true satisfies IsEqual<
+  ClearHtmlAttributes<JSX.IntrinsicElements['div']>,
+  Omit<JSX.IntrinsicElements['div'], ErrorAttribute>
+>;
+true satisfies IsEqual<
+  ClearHtmlAttributes<React.AriaAttributes>,
+  Omit<React.AriaAttributes, ErrorAttribute>
+>;
+
+/**
  * Base tests of removeMarkFromProperties.
  */
 type ButtonLocator = Locator<{bar: {}}, {type: string}>;
 type ButtonOwnProperties = {[SYMBOL]: bigint; foo?: number; bar: boolean};
-type ButtonProperties = Mark<ButtonLocator> & {children: unknown} & ButtonOwnProperties;
+type ButtonProperties = {children: unknown} & ButtonOwnProperties & Mark<ButtonLocator>;
 type ButtonOwnPropertiesWithReadonly = {foo?: 'baz'; readonly bar: boolean};
 
 export const Button = ({children, ...restProps}: ButtonProperties) => {
