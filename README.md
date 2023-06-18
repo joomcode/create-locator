@@ -320,4 +320,4 @@ and from its author [leutsky](https://github.com/leutsky) ✨.
 [prettier-image]: https://img.shields.io/badge/code_style-prettier-ff69b4.svg 'Prettier code formatter'
 [prettier-url]: https://prettier.io/
 [size-image]: https://img.shields.io/bundlephobia/minzip/create-locator 'create-locator'
-[size-url]: https://bundlephobia.com/
+[size-url]: https://bundlephobia.com/package/create-locator

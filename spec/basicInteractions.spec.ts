@@ -2,7 +2,12 @@ import type {Locator, Mark, Node} from 'create-locator';
 
 import {assert, assertPropertiesAreEqual, getShallowCopy, type Test} from './utils';
 
-type RootLocator = Locator<{toString: {foo: string}; bar: Node<{baz: {}}>}, {qux: string}>;
+type ChildLocator = Locator<void, {foo: string}>;
+
+type RootLocator = Locator<
+  {toString: {foo: string}; bar: Node<{baz: {}}, {quux: string}>; child: ChildLocator},
+  {qux: string}
+>;
 
 export const testBasicInteractions: Test = (
   [createLocator, getLocatorParameters, removeMarkFromProperties],
@@ -256,8 +261,38 @@ export const testBasicInteractions: Test = (
   );
 
   assert(
-    getLocatorParameters(propertiesWithoutLocator) === parametersFromPropertiesWithoutParameters,
-    'getLocatorParameters returns production singleton if there is no parameters',
+    (getLocatorParameters(propertiesWithoutLocator) ===
+      parametersFromPropertiesWithoutParameters) ===
+      !isDevelopment,
+    'getLocatorParameters returns production singleton if there is no parameters, and only in production',
+  );
+
+  if (isDevelopment) {
+    assert(
+      parametersFromPropertiesWithoutParameters === undefined,
+      'getLocatorParameters returns undefined if parameters is undefined',
+    );
+  }
+
+  const childParameters = {foo: 'bar'};
+
+  assert(
+    getLocatorParameters(locator.child(childParameters)) ===
+      (isDevelopment ? childParameters : getLocatorParameters(propertiesWithoutLocator)),
+    'getLocatorParameters returns correct parameters for child locators',
+  );
+
+  assert(
+    // @ts-expect-error
+    getLocatorParameters(locator.child(undefined)) === getLocatorParameters(locator.child()),
+    'getLocatorParameters returns the same value for undefined and for missing argument',
+  );
+
+  assert(
+    // @ts-expect-error
+    getLocatorParameters(locator.child(undefined)) ===
+      (isDevelopment ? undefined : getLocatorParameters(propertiesWithoutLocator)),
+    'getLocatorParameters returns undefined if parameters is undefined for child locators',
   );
 
   assert(

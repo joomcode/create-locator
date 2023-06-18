@@ -2,18 +2,19 @@ import React from 'react';
 
 import {
   anyLocator,
-  type AnyLocatorDescription,
-  type AnyParameters,
-  type AnyPropertiesWithMark,
-  type AnyPropertiesWithMarkWithParameters,
   type ClearHtmlAttributes,
   createLocator,
   type CreateLocator,
   getLocatorParameters,
   type GetLocatorParameters,
   type Locator,
+  type LocatorConstraint,
+  type LocatorDescriptionConstraint,
   type Mark,
   type Node,
+  type ParametersConstraint,
+  type PropertiesWithMarkConstraint,
+  type PropertiesWithMarkWithParametersConstraint,
   removeMarkFromProperties,
   type RemoveMarkFromProperties,
 } from 'create-locator';
@@ -23,6 +24,8 @@ type LVoid = Locator<void>;
 type M1 = Mark<L1>;
 type N1 = Node<{}>;
 type NVoid = Node<void>;
+
+declare const neverValue: never;
 
 true satisfies IsEqual<L1, LVoid>;
 true satisfies IsEqual<N1, NVoid>;
@@ -38,7 +41,7 @@ type IsEqual<X, Y> = (<T>() => T extends X ? 1 : 2) extends <T>() => T extends Y
 declare const SYMBOL: unique symbol;
 
 /**
- * Base checks of Locator and Node type arguments.
+ * Base checks of Locator and Node type parameters.
  */
 export type Checks = [
   Locator<{}, {}>,
@@ -49,6 +52,15 @@ export type Checks = [
   Locator<{foo: {qux: 'quux'}}, {bar: 'baz'}>,
   Locator<{foo: {qux: 'quux'}; bar: L1}>,
   Locator<{foo: {qux: 'quux'}; bar: L1; baz: N1}>,
+  Locator<{foo: undefined}>,
+  Locator<{foo: never}>,
+  Locator<undefined>,
+  Locator<never>,
+  Locator<never, void>,
+  Locator<never, undefined>,
+  Locator<never, never>,
+  // @ts-expect-error
+  Locator<{foo: symbol}>,
   // @ts-expect-error
   Locator<{}, {}, {}>,
   // @ts-expect-error
@@ -99,6 +111,15 @@ export type Checks = [
   Mark<M1>,
   // @ts-expect-error
   Mark<N1>,
+  // @ts-expect-error
+  Mark<{foo: undefined}>,
+  // @ts-expect-error
+  Mark<{foo: never}>,
+  // @ts-expect-error
+  Mark<undefined>,
+  Mark<never>,
+  // @ts-expect-error
+  Mark<never, never>,
 
   Node<{}, {}>,
   Node<{foo: L1}, {}>,
@@ -107,6 +128,13 @@ export type Checks = [
   Node<{foo: {qux: 'quux'}}, {bar: 'baz'}>,
   Node<{foo: {qux: 'quux'}; bar: L1}>,
   Node<{foo: {qux: 'quux'}; bar: L1; baz: N1}>,
+  Node<{foo: undefined}>,
+  Node<{foo: never}>,
+  Node<undefined>,
+  Node<never>,
+  Node<never, void>,
+  Node<never, undefined>,
+  Node<never, never>,
   // @ts-expect-error
   Node<{}, {}, {}>,
   // @ts-expect-error
@@ -521,7 +549,6 @@ export const Main = ({render, ...rest}: MainProperties) => {
       <Header {...locator.header()} />
       Some main text
       {rendered}
-      {/* @ts-expect-error */}
       <span {...locator.text()}></span>
       {/* @ts-expect-error */}
       <span {...locator.text({value: undefined})}></span>
@@ -724,30 +751,6 @@ createLocator<Locator<{foo: {}}, {bar: string}>, symbol>('root');
 createLocator<Locator<{foo: {}}, {bar: string}>, symbol>('root', {mapAttributes: () => {}});
 
 /**
- * Base tests of static components.
- */
-export type StaticComponentLocator = Locator<{
-  foo: void;
-  multi: MultiLocator;
-}>;
-
-const staticComponentLocator = createLocator(appLocator.staticComponent());
-
-// @ts-expect-error
-appLocator.staticComponent.foo;
-
-const StaticComponent = () => (
-  <div {...staticComponentLocator()}>
-    {/* @ts-expect-error */}
-    <span {...appLocator.staticComponent()}></span>
-    <span {...staticComponentLocator.foo()}></span>
-    {/* @ts-expect-error */}
-    <Multi />
-    <Multi {...staticComponentLocator.multi()} />
-  </div>
-);
-
-/**
  * Base tests of root locator with attributes mapping.
  */
 type Selector = {readonly textContent: Promise<string>};
@@ -826,8 +829,70 @@ rootLocatorWithParametersWithMapping({bar: 2});
 rootLocatorWithParametersWithMapping({bar: ''});
 
 /**
+ * Base tests of static components.
+ */
+export type StaticComponentLocator = Locator<{
+  foo: void;
+  multi: MultiLocator;
+}>;
+
+const staticComponentLocator = createLocator(appLocator.staticComponent());
+
+// @ts-expect-error
+appLocator.staticComponent.foo;
+
+const StaticComponent = () => (
+  <div {...staticComponentLocator()}>
+    {/* @ts-expect-error */}
+    <span {...appLocator.staticComponent()}></span>
+    <span {...staticComponentLocator.foo()}></span>
+    {/* @ts-expect-error */}
+    <Multi />
+    <Multi {...staticComponentLocator.multi()} />
+  </div>
+);
+
+/**
+ * Base tests of anyLocator.
+ */
+export type AnyLocator = typeof anyLocator;
+
+const anyMark = anyLocator();
+
+export type AnyMark = typeof anyMark;
+
+true satisfies PropertiesWithMarkConstraint extends AnyMark ? true : false;
+true satisfies PropertiesWithMarkWithParametersConstraint extends AnyMark ? true : false;
+
+true satisfies LabelLocator extends AnyLocator ? true : false;
+true satisfies MultiLocator extends AnyLocator ? true : false;
+true satisfies HeaderLocator extends AnyLocator ? true : false;
+true satisfies MainLocator extends AnyLocator ? true : false;
+true satisfies MainLocator extends AnyLocator ? true : false;
+true satisfies BannerLocator extends AnyLocator ? true : false;
+true satisfies PanelLocator extends AnyLocator ? true : false;
+true satisfies AppLocator extends AnyLocator ? true : false;
+
+false satisfies {} extends AnyLocator ? true : false;
+false satisfies {foo: any} extends AnyLocator ? true : false;
+false satisfies object extends AnyLocator ? true : false;
+
+/**
  * Base tests of CreateLocator.
  */
+true satisfies IsEqual<CreateLocator<never>, unknown>;
+true satisfies IsEqual<CreateLocator<never, Selector>, unknown>;
+
+const neverLocator = createLocator(neverValue);
+const neverLocatorWithMapping = createLocator(neverValue, {});
+const neverLocatorWithoutMapping = createLocator<never>(neverValue);
+const someLocatorWithNever = createLocator<never>('app');
+
+true satisfies IsEqual<typeof neverLocator, unknown>;
+true satisfies IsEqual<typeof neverLocatorWithMapping, unknown>;
+true satisfies IsEqual<typeof neverLocatorWithoutMapping, unknown>;
+true satisfies IsEqual<typeof someLocatorWithNever, unknown>;
+
 true satisfies IsEqual<AppLocator, CreateLocator<AppLocator>>;
 
 export type RootLocatorVariable = CreateLocator<AppLocator, Selector>;
@@ -870,8 +935,12 @@ true satisfies IsEqual<typeof appLocator, CreateLocator<AppLocator>>;
 /**
  * Base tests of getLocatorParameters.
  */
+const neverLocatorParameters = getLocatorParameters(neverValue);
+
+true satisfies IsEqual<typeof neverLocatorParameters, unknown>;
+
 type BannerParameters = {id: `id${string}`; [SYMBOL]?: number};
-type BannerLocator = Locator<{text: {}}, BannerParameters>;
+export type BannerLocator = Locator<{text: {}}, BannerParameters>;
 
 export const Banner = (properties: Mark<BannerLocator>) => {
   const locator = createLocator(properties);
@@ -958,9 +1027,13 @@ export const RenderedBanner = (properties: Mark<RenderedLocator>) => {
   );
 };
 
+export type LayoutLocator = Locator<{foo: {bar: string} | {baz: string} | undefined}>;
+
 /**
  * Base tests of GetLocatorParameters.
  */
+true satisfies IsEqual<GetLocatorParameters<never>, unknown>;
+
 true satisfies IsEqual<BannerParameters, GetLocatorParameters<Mark<BannerLocator>>>;
 true satisfies IsEqual<BannerParameters, GetLocatorParameters<Partial<Mark<BannerLocator>>>>;
 
@@ -975,8 +1048,65 @@ true satisfies IsEqual<
 ({}) as GetLocatorParameters<{foo: ''}>;
 
 /**
+ * Base tests of Locator.
+ */
+true satisfies IsEqual<Locator<void>, Locator<undefined>>;
+true satisfies IsEqual<Locator<void, {foo: string}>, Locator<undefined, {foo: string}>>;
+false satisfies IsEqual<Locator<void, {foo: string}>, Locator<undefined, {foo?: string}>>;
+
+true satisfies IsEqual<
+  [unknown, unknown, unknown, unknown],
+  [Locator<never>, Locator<{foo: void}, never>, Locator<void, never>, Locator<never, void>]
+>;
+
+/**
+ * Base tests of LocatorConstraint.
+ */
+export type ModifiedMark<SomeLocator extends LocatorConstraint> = Mark<SomeLocator>;
+
+true satisfies AnyLocator extends LocatorConstraint ? true : false;
+true satisfies LabelLocator extends LocatorConstraint ? true : false;
+true satisfies MultiLocator extends LocatorConstraint ? true : false;
+true satisfies HeaderLocator extends LocatorConstraint ? true : false;
+true satisfies MainLocator extends LocatorConstraint ? true : false;
+true satisfies MainLocator extends LocatorConstraint ? true : false;
+true satisfies BannerLocator extends LocatorConstraint ? true : false;
+true satisfies PanelLocator extends LocatorConstraint ? true : false;
+true satisfies AppLocator extends LocatorConstraint ? true : false;
+
+false satisfies LocatorConstraint extends AnyLocator ? true : false;
+false satisfies {} extends LocatorConstraint ? true : false;
+false satisfies {foo: any} extends LocatorConstraint ? true : false;
+false satisfies object extends LocatorConstraint ? true : false;
+
+/**
+ * Base tests of LocatorDescriptionConstraint and ParametersConstraint.
+ */
+export type ModifiedLocator<
+  Description extends LocatorDescriptionConstraint,
+  Parameters extends ParametersConstraint,
+> = Locator<Description, Parameters>;
+
+export type ModifiedNode<
+  Description extends LocatorDescriptionConstraint,
+  Parameters extends ParametersConstraint,
+> = Node<Description, Parameters>;
+
+true satisfies void extends LocatorDescriptionConstraint ? true : false;
+true satisfies {} extends LocatorDescriptionConstraint ? true : false;
+true satisfies {foo: void} extends LocatorDescriptionConstraint ? true : false;
+false satisfies {foo: ''} extends LocatorDescriptionConstraint ? true : false;
+
+true satisfies void extends ParametersConstraint ? true : false;
+true satisfies {} extends ParametersConstraint ? true : false;
+true satisfies {foo: ''} extends ParametersConstraint ? true : false;
+false satisfies {foo: 3} extends ParametersConstraint ? true : false;
+
+/**
  * Base tests of Mark.
  */
+true satisfies IsEqual<Mark<never>, unknown>;
+
 type Properties = Mark<Locator<{foo: {}}>>;
 
 true satisfies IsEqual<CreateLocator<Properties>, Locator<{foo: {}}>>;
@@ -1041,139 +1171,123 @@ export const WrongTypesComponent = (properties: Locator<{foo: {}}, {bar: string}
 };
 
 /**
- * Base tests of anyLocator.
+ * Base tests of Node.
  */
-export type AnyLocator = typeof anyLocator;
+true satisfies IsEqual<Node<void>, Node<undefined>>;
+true satisfies IsEqual<Node<void, {foo: string}>, Node<undefined, {foo: string}>>;
+false satisfies IsEqual<Node<void, {foo: string}>, Node<undefined, {foo?: string}>>;
 
-const anyMark = anyLocator();
-
-export type AnyMark = typeof anyMark;
-
-true satisfies AnyPropertiesWithMark extends AnyMark ? true : false;
-true satisfies AnyPropertiesWithMarkWithParameters extends AnyMark ? true : false;
-
-true satisfies LabelLocator extends AnyLocator ? true : false;
-true satisfies MultiLocator extends AnyLocator ? true : false;
-true satisfies HeaderLocator extends AnyLocator ? true : false;
-true satisfies MainLocator extends AnyLocator ? true : false;
-true satisfies MainLocator extends AnyLocator ? true : false;
-true satisfies AppLocator extends AnyLocator ? true : false;
-
-false satisfies {} extends AnyLocator ? true : false;
-false satisfies {foo: any} extends AnyLocator ? true : false;
-false satisfies object extends AnyLocator ? true : false;
+true satisfies IsEqual<
+  [unknown, unknown, unknown, unknown],
+  [Node<never>, Node<{foo: void}, never>, Node<void, never>, Node<never, void>]
+>;
 
 /**
- * Base tests of AnyLocatorDescription and AnyParameters.
+ * Base tests of PropertiesWithMarkConstraint.
  */
-export type ModifiedLocator<
-  Description extends AnyLocatorDescription,
-  Parameters extends AnyParameters,
-> = Locator<Description, Parameters>;
-
-true satisfies void extends AnyLocatorDescription ? true : false;
-true satisfies {} extends AnyLocatorDescription ? true : false;
-true satisfies {foo: void} extends AnyLocatorDescription ? true : false;
-false satisfies {foo: ''} extends AnyLocatorDescription ? true : false;
-
-true satisfies void extends AnyParameters ? true : false;
-true satisfies {} extends AnyParameters ? true : false;
-true satisfies {foo: ''} extends AnyParameters ? true : false;
-false satisfies {foo: 3} extends AnyParameters ? true : false;
-
-/**
- * Base tests of AnyPropertiesWithMark.
- */
-export type ModifiedCreateLocator<Properties extends Partial<AnyPropertiesWithMark>> =
+export type ModifiedCreateLocator<Properties extends Partial<PropertiesWithMarkConstraint>> =
   CreateLocator<Properties>;
 
 // @ts-expect-error
-({}) satisfies GetLocatorParameters<AnyPropertiesWithMark>;
+({}) satisfies GetLocatorParameters<PropertiesWithMarkConstraint>;
 
-export type ModifiedRemoveMarkFromProperties<Properties extends Partial<AnyPropertiesWithMark>> =
-  RemoveMarkFromProperties<Properties>;
+export type ModifiedRemoveMarkFromProperties<
+  Properties extends Partial<PropertiesWithMarkConstraint>,
+> = RemoveMarkFromProperties<Properties>;
 
 const labelProperties = {} as LabelProperties;
 
 // @ts-expect-error
-({}) satisfies AnyPropertiesWithMark;
+({}) satisfies PropertiesWithMarkConstraint;
 
-labelProperties satisfies AnyPropertiesWithMark;
-labelProperties satisfies Partial<AnyPropertiesWithMark>;
+labelProperties satisfies PropertiesWithMarkConstraint;
+labelProperties satisfies Partial<PropertiesWithMarkConstraint>;
 
-true satisfies ButtonProperties extends AnyPropertiesWithMark ? true : false;
-true satisfies ButtonProperties extends Partial<AnyPropertiesWithMark> ? true : false;
+true satisfies ButtonProperties extends PropertiesWithMarkConstraint ? true : false;
+true satisfies ButtonProperties extends Partial<PropertiesWithMarkConstraint> ? true : false;
 
 const optionalPanelLocatorProperties = {} as OptionalPanelProperties;
 
-optionalPanelLocatorProperties satisfies Partial<AnyPropertiesWithMark>;
+optionalPanelLocatorProperties satisfies Partial<PropertiesWithMarkConstraint>;
 
-false satisfies OptionalPanelProperties extends AnyPropertiesWithMark ? true : false;
-true satisfies OptionalPanelProperties extends Partial<AnyPropertiesWithMark> ? true : false;
+false satisfies OptionalPanelProperties extends PropertiesWithMarkConstraint ? true : false;
+true satisfies OptionalPanelProperties extends Partial<PropertiesWithMarkConstraint> ? true : false;
 
 const multiLocatorProperties = {} as Mark<MultiLocator>;
 
-multiLocatorProperties satisfies AnyPropertiesWithMark;
-multiLocatorProperties satisfies Partial<AnyPropertiesWithMark>;
+multiLocatorProperties satisfies PropertiesWithMarkConstraint;
+multiLocatorProperties satisfies Partial<PropertiesWithMarkConstraint>;
 
-true satisfies Mark<MultiLocator> extends AnyPropertiesWithMark ? true : false;
-true satisfies Mark<MultiLocator> extends Partial<AnyPropertiesWithMark> ? true : false;
+true satisfies Mark<MultiLocator> extends PropertiesWithMarkConstraint ? true : false;
+true satisfies Mark<MultiLocator> extends Partial<PropertiesWithMarkConstraint> ? true : false;
 
-false satisfies Partial<Mark<MultiLocator>> extends AnyPropertiesWithMark ? true : false;
-true satisfies Partial<Mark<MultiLocator>> extends Partial<AnyPropertiesWithMark> ? true : false;
+false satisfies Partial<Mark<MultiLocator>> extends PropertiesWithMarkConstraint ? true : false;
+true satisfies Partial<Mark<MultiLocator>> extends Partial<PropertiesWithMarkConstraint>
+  ? true
+  : false;
 
-export type WrapCreateLocator<Properties extends AnyPropertiesWithMark> = CreateLocator<Properties>;
-export type WrapGetLocatorParameters<Properties extends AnyPropertiesWithMark> =
+export type WrapCreateLocator<Properties extends PropertiesWithMarkConstraint> =
+  CreateLocator<Properties>;
+export type WrapGetLocatorParameters<Properties extends PropertiesWithMarkConstraint> =
   // @ts-expect-error
   GetLocatorParameters<Properties>;
-export type WrapRemoveMarkFromProperties<Properties extends AnyPropertiesWithMark> =
+export type WrapRemoveMarkFromProperties<Properties extends PropertiesWithMarkConstraint> =
   RemoveMarkFromProperties<Properties>;
 
 /**
- * Base tests of AnyPropertiesWithMarkWithParameters.
+ * Base tests of PropertiesWithMarkWithParametersConstraint.
  */
-export type ModifiedGetLocatorParameters<Properties extends AnyPropertiesWithMarkWithParameters> =
-  GetLocatorParameters<Properties>;
+export type ModifiedGetLocatorParameters<
+  Properties extends PropertiesWithMarkWithParametersConstraint,
+> = GetLocatorParameters<Properties>;
 
 // @ts-expect-error
-({}) satisfies AnyPropertiesWithMarkWithParameters;
+({}) satisfies PropertiesWithMarkWithParametersConstraint;
 
-labelProperties satisfies AnyPropertiesWithMarkWithParameters;
-labelProperties satisfies Partial<AnyPropertiesWithMarkWithParameters>;
+labelProperties satisfies PropertiesWithMarkWithParametersConstraint;
+labelProperties satisfies Partial<PropertiesWithMarkWithParametersConstraint>;
 
-true satisfies ButtonProperties extends AnyPropertiesWithMarkWithParameters ? true : false;
-true satisfies ButtonProperties extends Partial<AnyPropertiesWithMarkWithParameters> ? true : false;
+true satisfies ButtonProperties extends PropertiesWithMarkWithParametersConstraint ? true : false;
+true satisfies ButtonProperties extends Partial<PropertiesWithMarkWithParametersConstraint>
+  ? true
+  : false;
 
-optionalPanelLocatorProperties satisfies Partial<AnyPropertiesWithMarkWithParameters>;
+optionalPanelLocatorProperties satisfies Partial<PropertiesWithMarkWithParametersConstraint>;
 
-false satisfies OptionalPanelProperties extends AnyPropertiesWithMarkWithParameters ? true : false;
-true satisfies OptionalPanelProperties extends Partial<AnyPropertiesWithMarkWithParameters>
+false satisfies OptionalPanelProperties extends PropertiesWithMarkWithParametersConstraint
+  ? true
+  : false;
+true satisfies OptionalPanelProperties extends Partial<PropertiesWithMarkWithParametersConstraint>
   ? true
   : false;
 
 // @ts-expect-error
-multiLocatorProperties satisfies AnyPropertiesWithMarkWithParameters;
+multiLocatorProperties satisfies PropertiesWithMarkWithParametersConstraint;
 // @ts-expect-error
-multiLocatorProperties satisfies Partial<AnyPropertiesWithMarkWithParameters>;
+multiLocatorProperties satisfies Partial<PropertiesWithMarkWithParametersConstraint>;
 
-false satisfies MultiLocator extends AnyPropertiesWithMarkWithParameters ? true : false;
-false satisfies MultiLocator extends Partial<AnyPropertiesWithMarkWithParameters> ? true : false;
+false satisfies MultiLocator extends PropertiesWithMarkWithParametersConstraint ? true : false;
+false satisfies MultiLocator extends Partial<PropertiesWithMarkWithParametersConstraint>
+  ? true
+  : false;
 
-false satisfies Partial<MultiLocator> extends AnyPropertiesWithMarkWithParameters ? true : false;
-false satisfies Partial<MultiLocator> extends Partial<AnyPropertiesWithMarkWithParameters>
+false satisfies Partial<MultiLocator> extends PropertiesWithMarkWithParametersConstraint
+  ? true
+  : false;
+false satisfies Partial<MultiLocator> extends Partial<PropertiesWithMarkWithParametersConstraint>
   ? true
   : false;
 
 export type WrapCreateLocatorWithParameters<
-  Properties extends AnyPropertiesWithMarkWithParameters,
+  Properties extends PropertiesWithMarkWithParametersConstraint,
 > = CreateLocator<Properties>;
 
 export type WrapGetLocatorParametersWithParameters<
-  Properties extends AnyPropertiesWithMarkWithParameters,
+  Properties extends PropertiesWithMarkWithParametersConstraint,
 > = GetLocatorParameters<Properties>;
 
 export type WrapRemoveMarkFromPropertiesWithParameters<
-  Properties extends AnyPropertiesWithMarkWithParameters,
+  Properties extends PropertiesWithMarkWithParametersConstraint,
 > = RemoveMarkFromProperties<Properties>;
 
 /**
@@ -1216,6 +1330,10 @@ true satisfies IsEqual<
 /**
  * Base tests of removeMarkFromProperties.
  */
+const neverProperties = removeMarkFromProperties(neverValue);
+
+true satisfies IsEqual<typeof neverProperties, unknown>;
+
 type ButtonLocator = Locator<{bar: {}}, {type: string}>;
 type ButtonOwnProperties = {[SYMBOL]: bigint; foo?: number; bar: boolean};
 type ButtonProperties = {children: unknown} & ButtonOwnProperties & Mark<ButtonLocator>;
@@ -1301,6 +1419,8 @@ export const Button = ({children, ...restProps}: ButtonProperties) => {
 /**
  * Base tests of RemoveMarkFromProperties.
  */
+true satisfies IsEqual<RemoveMarkFromProperties<never>, unknown>;
+
 true satisfies RemoveMarkFromProperties<ButtonProperties> extends ButtonOwnProperties
   ? true
   : false;
@@ -1316,7 +1436,7 @@ true satisfies IsEqual<
 >;
 
 /**
- * Base tests of component inheritance (via properties extension).
+ * Tests of component inheritance (via properties extension).
  */
 export const ButtonWithoutLocator = (properties: ButtonOwnProperties & {children: unknown}) => {
   // @ts-expect-error
@@ -1431,45 +1551,6 @@ export const ClearedLogButton = ({namespace, ...rest}: ClearedLogButtonPropertie
 };
 
 /**
- * Tests of pageObject with locator.
- */
-type HeaderPageObjectLocator = typeof rootLocator.header;
-
-false satisfies IsEqual<HeaderPageObjectLocator, HeaderLocator>;
-
-true satisfies IsEqual<CreateLocator<HeaderLocator, Selector>, HeaderPageObjectLocator>;
-
-class HeaderPageObject {
-  constructor(public locator: HeaderPageObjectLocator) {}
-
-  async assertLanguage() {
-    // @ts-expect-error
-    this.locator.foo({level: 1});
-    // @ts-expect-error
-    this.locator.foo();
-    // @ts-expect-error
-    this.locator.multi.footer({});
-    // @ts-expect-error
-    this.locator.baz;
-
-    (await this.locator.foo({level: '1'}).textContent) satisfies string;
-    (await this.locator.multi.footer().textContent) satisfies string;
-  }
-}
-
-// @ts-expect-error
-new HeaderPageObject(rootLocator);
-// @ts-expect-error
-new HeaderPageObject({});
-// @ts-expect-error
-new HeaderPageObject(rootLocator.main.header.subtree);
-// @ts-expect-error
-new HeaderPageObject(rootLocator.label);
-
-new HeaderPageObject(rootLocator.header);
-new HeaderPageObject(rootLocator.main.header);
-
-/**
  * Tests of explicitly passing additional locator to component in a separate property.
  */
 type MainPageLocator = Locator<{
@@ -1514,183 +1595,6 @@ export const PageWrapper = (properties: Mark<PageWrapperLocator>) => {
       <MainPage {...locator.main()} />
       <MainPage {...locator.main()} headerLocatorMark={locator.header()} />
     </div>
-  );
-};
-
-/**
- * Tests of properties modifiers and symbol properties in locator description.
- */
-type RenderedLocatorWithOptionalField = Locator<{
-  header?: HeaderLocator;
-}>;
-
-true satisfies IsEqual<RenderedLocator, RenderedLocatorWithOptionalField>;
-
-type RenderedLocatorWithReadonly = Locator<{
-  readonly header: HeaderLocator;
-}>;
-
-true satisfies IsEqual<RenderedLocator, RenderedLocatorWithReadonly>;
-
-type RenderedNode = Node<{
-  header: HeaderLocator;
-}>;
-
-type RenderedReadonlyOptionalNode = Node<{
-  readonly header?: HeaderLocator;
-}>;
-
-true satisfies IsEqual<RenderedNode, RenderedReadonlyOptionalNode>;
-
-type RenderedNodeWithParameters = Node<{header: HeaderLocator}, {[SYMBOL]: number}>;
-
-false satisfies IsEqual<RenderedNode, RenderedNodeWithParameters>;
-
-type RenderedLocatorWithSymbolProperty = Locator<{
-  header: HeaderLocator;
-  [SYMBOL]: {foo: 'bar'};
-}>;
-
-const renderedLocatorWithSymbolProperty = createLocator(
-  {} as Mark<RenderedLocatorWithSymbolProperty>,
-);
-
-true satisfies IsEqual<typeof renderedLocatorWithSymbolProperty, RenderedLocatorWithSymbolProperty>;
-true satisfies IsEqual<
-  typeof renderedLocatorWithSymbolProperty,
-  CreateLocator<Mark<RenderedLocatorWithSymbolProperty>>
->;
-
-true satisfies IsEqual<RenderedLocator, RenderedLocatorWithSymbolProperty>;
-
-type RenderedNodeWithSymbolProperty = Node<{
-  header: HeaderLocator;
-  [SYMBOL]: {foo: 'bar'};
-}>;
-
-true satisfies IsEqual<Node<{readonly header?: HeaderLocator}>, RenderedNodeWithSymbolProperty>;
-
-type RenderedLocatorWithOptionalSymbolProperty = Locator<{
-  header: HeaderLocator;
-  readonly [SYMBOL]?: {qux: 'baz'};
-}>;
-
-true satisfies IsEqual<RenderedLocator, RenderedLocatorWithOptionalSymbolProperty>;
-
-type RenderedLocatorWithSymbolInParameters = Locator<{header: HeaderLocator}, {[SYMBOL]: 'baz'}>;
-
-false satisfies IsEqual<RenderedLocator, RenderedLocatorWithSymbolInParameters>;
-
-type RenderedLocatorWithOptionalParameters = Locator<{header: HeaderLocator}, {foo?: string}>;
-
-const Sublink = (properties: Mark<RenderedLocatorWithOptionalParameters>) => {
-  const locator = createLocator(properties);
-
-  return <div {...locator({foo: 'bar'})}></div>;
-};
-
-type LinkProperties = {link: string} & Mark<Locator<{link: RenderedLocatorWithOptionalParameters}>>;
-
-export const Link = (properties: LinkProperties) => {
-  const locator = createLocator(properties);
-
-  true satisfies IsEqual<typeof locator, Locator<{link: RenderedLocatorWithOptionalParameters}>>;
-  true satisfies IsEqual<typeof locator, CreateLocator<LinkProperties>>;
-
-  return (
-    <span {...locator()}>
-      {/* @ts-expect-error */}
-      <a {...locator.link()}>Link</a>
-      {/* @ts-expect-error */}
-      <a {...locator.link({})}>Link</a>
-      <Sublink {...locator.link({})} />
-    </span>
-  );
-};
-
-type RenderedLocatorWithOtherOptionalParameters = Locator<
-  {header: HeaderLocator},
-  {foo?: `foo${string}`}
->;
-
-const RenderedWithOptionalParameters = (
-  properties: Mark<RenderedLocatorWithOptionalParameters>,
-) => {
-  const locator = createLocator(properties);
-
-  true satisfies IsEqual<typeof locator, RenderedLocatorWithOptionalParameters>;
-  true satisfies IsEqual<
-    typeof locator,
-    CreateLocator<Mark<RenderedLocatorWithOptionalParameters>>
-  >;
-
-  const propertiesWithSymbol = {} as Mark<RenderedLocatorWithSymbolProperty> & {[SYMBOL]: number};
-
-  const locatorWithSymbol = createLocator(propertiesWithSymbol);
-
-  true satisfies IsEqual<typeof locatorWithSymbol, RenderedLocatorWithSymbolProperty>;
-  true satisfies IsEqual<
-    typeof locatorWithSymbol,
-    CreateLocator<Mark<RenderedLocatorWithSymbolProperty>>
-  >;
-
-  const propertiesWithoutLocator = removeMarkFromProperties(propertiesWithSymbol);
-
-  // @ts-expect-error
-  const locatorWithoutLocator = createLocator(propertiesWithoutLocator);
-
-  true satisfies IsEqual<typeof locatorWithoutLocator, unknown>;
-  true satisfies IsEqual<
-    typeof locatorWithoutLocator,
-    // @ts-expect-error
-    CreateLocator<typeof propertiesWithoutLocator>
-  >;
-
-  return <div {...locator({})}></div>;
-};
-
-const RenderedWithOtherOptionalParameters = (
-  properties: Mark<RenderedLocatorWithOtherOptionalParameters>,
-) => {
-  const locator = createLocator(properties);
-
-  true satisfies IsEqual<typeof locator, RenderedLocatorWithOtherOptionalParameters>;
-  true satisfies IsEqual<typeof locator, CreateLocator<typeof properties>>;
-
-  return <div {...locator({})}></div>;
-};
-
-type PanelLocator = Locator<
-  {
-    rendered: RenderedLocatorWithOptionalParameters;
-    otherRendered: RenderedLocatorWithOtherOptionalParameters;
-    renderedWithParameters: RenderedNodeWithParameters;
-  },
-  {quux: string}
->;
-
-const Panel = (properties: Mark<PanelLocator>) => {
-  const locator = createLocator(properties);
-
-  true satisfies IsEqual<typeof locator, PanelLocator>;
-  true satisfies IsEqual<typeof locator, CreateLocator<typeof properties>>;
-
-  return (
-    <>
-      {/* @ts-expect-error */}
-      <RenderedWithOptionalParameters {...locator.otherRendered({})} />
-      {/* @ts-expect-error */}
-      <RenderedWithOtherOptionalParameters {...locator.rendered({})} />
-
-      <RenderedWithOptionalParameters {...locator.rendered({})} />
-      <RenderedWithOtherOptionalParameters {...locator.otherRendered({})} />
-
-      {/* @ts-expect-error */}
-      <div {...locator.renderedWithParameters()}></div>
-      {/* @ts-expect-error */}
-      <div {...locator.renderedWithParameters({})}></div>
-      <div {...locator.renderedWithParameters({[SYMBOL]: 3})}></div>
-    </>
   );
 };
 
@@ -1913,3 +1817,448 @@ export const panels = (
     <PanelWithoutLocator {...locatorForEmptyProperties()} />
   </>
 );
+
+/**
+ * Tests of optional parameters.
+ */
+export type ComponentWithRequiredParametersLocator = Locator<
+  {foo: {bar: string}; qux: {quux?: string}; corge: Node<{foo: {baz: string}}, {waldo: string}>},
+  {baz: string}
+>;
+
+export const ComponentWithRequiredParameters = (
+  properties: Partial<Mark<ComponentWithRequiredParametersLocator>>,
+) => {
+  const locator = createLocator(properties);
+  const locatorParameters = getLocatorParameters(properties);
+
+  false satisfies undefined extends typeof locatorParameters ? true : false;
+
+  return (
+    <div {...locator({baz: ''})}>
+      {/* @ts-expect-error */}
+      <div {...locator()}></div>
+      <div {...locator(locatorParameters)}></div>
+      {/* @ts-expect-error */}
+      <div {...locator({bar: ''})}></div>
+      {/* @ts-expect-error */}
+      <div {...locator({baz: 3})}></div>
+      {/* @ts-expect-error */}
+      <div {...locator(undefined)}></div>
+      {/* @ts-expect-error */}
+      <span {...locator.foo()}></span>
+      <span {...locator.foo({bar: ''})}></span>
+      {/* @ts-expect-error */}
+      <span {...locator.foo({baz: ''})}></span>
+      <span {...locator.qux()}></span>
+      <span {...locator.qux(undefined)}></span>
+      <span {...locator.qux({})}></span>
+      <span {...locator.qux({quux: ''})}></span>
+      {/* @ts-expect-error */}
+      <span {...locator.qux({qux: ''})}></span>
+      <div {...locator.corge({waldo: ''})}>
+        {/* @ts-expect-error */}
+        <div {...locator.corge({})}></div>
+        {/* @ts-expect-error */}
+        <div {...locator.corge(undefined)}></div>
+        {/* @ts-expect-error */}
+        <div {...locator.corge({bar: ''})}></div>
+        {/* @ts-expect-error */}
+        <div {...locator.corge({waldo: 3})}></div>
+        {/* @ts-expect-error */}
+        <div {...locator.corge()}></div>
+        {/* @ts-expect-error */}
+        <span {...locator.corge.foo()}></span>
+        {/* @ts-expect-error */}
+        <span {...locator.corge.foo(undefined)}></span>
+        <span {...locator.corge.foo({baz: ''})}></span>
+        {/* @ts-expect-error */}
+        <span {...locator.corge.foo({bar: ''})}></span>
+        {/* @ts-expect-error */}
+        <span {...locator.corge.foo({baz: 3})}></span>
+      </div>
+    </div>
+  );
+};
+
+export type ComponentWithRequiredSymbolParametersLocator = Locator<
+  {
+    foo: {[SYMBOL]: string};
+    qux: {[SYMBOL]?: string};
+    corge: Node<{foo: {[SYMBOL]: string}}, {[SYMBOL]: string}>;
+  },
+  {[SYMBOL]: string}
+>;
+
+export const ComponentWithRequiredSymbolParameters = (
+  properties: Partial<Mark<ComponentWithRequiredSymbolParametersLocator>>,
+) => {
+  const locator = createLocator(properties);
+  const locatorParameters = getLocatorParameters(properties);
+
+  false satisfies undefined extends typeof locatorParameters ? true : false;
+
+  return (
+    <div {...locator({[SYMBOL]: ''})}>
+      {/* @ts-expect-error */}
+      <div {...locator()}></div>
+      <div {...locator(locatorParameters)}></div>
+      {/* @ts-expect-error */}
+      <div {...locator({[SYMBOL]: 3})}></div>
+      {/* @ts-expect-error */}
+      <div {...locator(undefined)}></div>
+      {/* @ts-expect-error */}
+      <span {...locator.foo()}></span>
+      <span {...locator.foo({[SYMBOL]: ''})}></span>
+      <span {...locator.qux()}></span>
+      <span {...locator.qux(undefined)}></span>
+      <span {...locator.qux({})}></span>
+      <span {...locator.qux({[SYMBOL]: ''})}></span>
+      <div {...locator.corge({[SYMBOL]: ''})}>
+        {/* @ts-expect-error */}
+        <div {...locator.corge({})}></div>
+        {/* @ts-expect-error */}
+        <div {...locator.corge(undefined)}></div>
+        {/* @ts-expect-error */}
+        <div {...locator.corge({[SYMBOL]: 3})}></div>
+        {/* @ts-expect-error */}
+        <div {...locator.corge()}></div>
+        {/* @ts-expect-error */}
+        <span {...locator.corge.foo()}></span>
+        {/* @ts-expect-error */}
+        <span {...locator.corge.foo(undefined)}></span>
+        <span {...locator.corge.foo({[SYMBOL]: ''})}></span>
+        {/* @ts-expect-error */}
+        <span {...locator.corge.foo({[SYMBOL]: 3})}></span>
+      </div>
+    </div>
+  );
+};
+
+export type ComponentWithoutRequiredParametersLocator = Locator<
+  {foo: {bar?: string}; qux: {quux: string}; corge: Node<{foo: {baz?: string}}, {waldo?: string}>},
+  {baz?: string}
+>;
+
+export const ComponentWithoutRequiredParameters = (
+  properties: Partial<Mark<ComponentWithoutRequiredParametersLocator>>,
+) => {
+  const locator = createLocator(properties);
+  const locatorParameters = getLocatorParameters(properties);
+
+  true satisfies undefined extends typeof locatorParameters ? true : false;
+
+  return (
+    <div {...locator({baz: ''})}>
+      <div {...locator()}></div>
+      <div {...locator(locatorParameters)}></div>
+      {/* @ts-expect-error */}
+      <div {...locator({bar: ''})}></div>
+      {/* @ts-expect-error */}
+      <div {...locator({baz: 3})}></div>
+      <div {...locator(undefined)}></div>
+      <span {...locator.foo()}></span>
+      <span {...locator.foo({bar: ''})}></span>
+      {/* @ts-expect-error */}
+      <span {...locator.foo({baz: ''})}></span>
+      {/* @ts-expect-error */}
+      <span {...locator.qux()}></span>
+      {/* @ts-expect-error */}
+      <span {...locator.qux(undefined)}></span>
+      {/* @ts-expect-error */}
+      <span {...locator.qux({})}></span>
+      <span {...locator.qux({quux: ''})}></span>
+      {/* @ts-expect-error */}
+      <span {...locator.qux({qux: ''})}></span>
+      <div {...locator.corge({waldo: ''})}>
+        <div {...locator.corge({})}></div>
+        <div {...locator.corge(undefined)}></div>
+        {/* @ts-expect-error */}
+        <div {...locator.corge({bar: ''})}></div>
+        {/* @ts-expect-error */}
+        <div {...locator.corge({waldo: 3})}></div>
+        <div {...locator.corge()}></div>
+        <span {...locator.corge.foo()}></span>
+        <span {...locator.corge.foo(undefined)}></span>
+        <span {...locator.corge.foo({baz: ''})}></span>
+        {/* @ts-expect-error */}
+        <span {...locator.corge.foo({bar: ''})}></span>
+        {/* @ts-expect-error */}
+        <span {...locator.corge.foo({baz: 3})}></span>
+      </div>
+    </div>
+  );
+};
+
+export type ComponentWithoutSymbolRequiredParametersLocator = Locator<
+  {
+    foo: {[SYMBOL]?: string};
+    qux: {[SYMBOL]: string};
+    corge: Node<{foo: {[SYMBOL]?: string}}, {[SYMBOL]?: string}>;
+  },
+  {[SYMBOL]?: string}
+>;
+
+export const ComponentWithoutSymbolRequiredParameters = (
+  properties: Partial<Mark<ComponentWithoutSymbolRequiredParametersLocator>>,
+) => {
+  const locator = createLocator(properties);
+  const locatorParameters = getLocatorParameters(properties);
+
+  true satisfies undefined extends typeof locatorParameters ? true : false;
+
+  return (
+    <div {...locator({[SYMBOL]: ''})}>
+      <div {...locator()}></div>
+      <div {...locator(locatorParameters)}></div>
+      {/* @ts-expect-error */}
+      <div {...locator({[SYMBOL]: 3})}></div>
+      <div {...locator(undefined)}></div>
+      <span {...locator.foo()}></span>
+      <span {...locator.foo({[SYMBOL]: ''})}></span>
+      {/* @ts-expect-error */}
+      <span {...locator.qux()}></span>
+      {/* @ts-expect-error */}
+      <span {...locator.qux(undefined)}></span>
+      {/* @ts-expect-error */}
+      <span {...locator.qux({})}></span>
+      <span {...locator.qux({[SYMBOL]: ''})}></span>
+      <div {...locator.corge({[SYMBOL]: ''})}>
+        <div {...locator.corge({})}></div>
+        <div {...locator.corge(undefined)}></div>
+        {/* @ts-expect-error */}
+        <div {...locator.corge({[SYMBOL]: 3})}></div>
+        <div {...locator.corge()}></div>
+        <span {...locator.corge.foo()}></span>
+        <span {...locator.corge.foo(undefined)}></span>
+        <span {...locator.corge.foo({[SYMBOL]: ''})}></span>
+        {/* @ts-expect-error */}
+        <span {...locator.corge.foo({[SYMBOL]: 3})}></span>
+      </div>
+    </div>
+  );
+};
+
+/**
+ * Tests of pageObject with locator.
+ */
+type HeaderPageObjectLocator = typeof rootLocator.header;
+
+false satisfies IsEqual<HeaderPageObjectLocator, HeaderLocator>;
+
+true satisfies IsEqual<CreateLocator<HeaderLocator, Selector>, HeaderPageObjectLocator>;
+
+class HeaderPageObject {
+  constructor(public locator: HeaderPageObjectLocator) {}
+
+  async assertLanguage() {
+    // @ts-expect-error
+    this.locator.foo({level: 1});
+    // @ts-expect-error
+    this.locator.foo();
+    // @ts-expect-error
+    this.locator.multi.footer({});
+    // @ts-expect-error
+    this.locator.baz;
+
+    (await this.locator.foo({level: '1'}).textContent) satisfies string;
+    (await this.locator.multi.footer().textContent) satisfies string;
+  }
+}
+
+// @ts-expect-error
+new HeaderPageObject(rootLocator);
+// @ts-expect-error
+new HeaderPageObject({});
+// @ts-expect-error
+new HeaderPageObject(rootLocator.main.header.subtree);
+// @ts-expect-error
+new HeaderPageObject(rootLocator.label);
+
+new HeaderPageObject(rootLocator.header);
+new HeaderPageObject(rootLocator.main.header);
+
+/**
+ * Tests of properties modifiers and symbol properties in locator description.
+ */
+type RenderedLocatorWithOptionalField = Locator<{
+  header?: HeaderLocator;
+}>;
+
+true satisfies IsEqual<RenderedLocator, RenderedLocatorWithOptionalField>;
+
+type RenderedLocatorWithReadonly = Locator<{
+  readonly header: HeaderLocator;
+}>;
+
+true satisfies IsEqual<RenderedLocator, RenderedLocatorWithReadonly>;
+
+type RenderedNode = Node<{
+  header: HeaderLocator;
+}>;
+
+type RenderedReadonlyOptionalNode = Node<{
+  readonly header?: HeaderLocator;
+}>;
+
+true satisfies IsEqual<RenderedNode, RenderedReadonlyOptionalNode>;
+
+type RenderedNodeWithParameters = Node<{header: HeaderLocator}, {[SYMBOL]: number}>;
+
+false satisfies IsEqual<RenderedNode, RenderedNodeWithParameters>;
+
+type RenderedLocatorWithSymbolProperty = Locator<{
+  header: HeaderLocator;
+  [SYMBOL]: {foo: 'bar'};
+}>;
+
+const renderedLocatorWithSymbolProperty = createLocator(
+  {} as Mark<RenderedLocatorWithSymbolProperty>,
+);
+
+true satisfies IsEqual<typeof renderedLocatorWithSymbolProperty, RenderedLocatorWithSymbolProperty>;
+true satisfies IsEqual<
+  typeof renderedLocatorWithSymbolProperty,
+  CreateLocator<Mark<RenderedLocatorWithSymbolProperty>>
+>;
+
+true satisfies IsEqual<RenderedLocator, RenderedLocatorWithSymbolProperty>;
+
+type RenderedNodeWithSymbolProperty = Node<{
+  header: HeaderLocator;
+  [SYMBOL]: {foo: 'bar'};
+}>;
+
+true satisfies IsEqual<Node<{readonly header?: HeaderLocator}>, RenderedNodeWithSymbolProperty>;
+
+type RenderedLocatorWithOptionalSymbolProperty = Locator<{
+  header: HeaderLocator;
+  readonly [SYMBOL]?: {qux: 'baz'};
+}>;
+
+true satisfies IsEqual<RenderedLocator, RenderedLocatorWithOptionalSymbolProperty>;
+
+type RenderedLocatorWithSymbolInParameters = Locator<{header: HeaderLocator}, {[SYMBOL]: 'baz'}>;
+
+false satisfies IsEqual<RenderedLocator, RenderedLocatorWithSymbolInParameters>;
+
+type RenderedLocatorWithOptionalParameters = Locator<{header: HeaderLocator}, {foo?: string}>;
+
+const Sublink = (properties: Mark<RenderedLocatorWithOptionalParameters>) => {
+  const locator = createLocator(properties);
+  const locatorParameters = getLocatorParameters(properties);
+
+  true satisfies undefined extends typeof locatorParameters ? true : false;
+
+  return (
+    <div {...locator({foo: 'bar'})}>
+      <span {...locator()}></span>
+    </div>
+  );
+};
+
+type LinkProperties = {link: string} & Mark<Locator<{link: RenderedLocatorWithOptionalParameters}>>;
+
+export const Link = (properties: LinkProperties) => {
+  const locator = createLocator(properties);
+
+  true satisfies IsEqual<typeof locator, Locator<{link: RenderedLocatorWithOptionalParameters}>>;
+  true satisfies IsEqual<typeof locator, CreateLocator<LinkProperties>>;
+
+  return (
+    <span {...locator()}>
+      {/* @ts-expect-error */}
+      <a {...locator.link()}>Link</a>
+      {/* @ts-expect-error */}
+      <a {...locator.link({})}>Link</a>
+      <Sublink {...locator.link({})} />
+      <Sublink {...locator.link()} />
+    </span>
+  );
+};
+
+type RenderedLocatorWithOtherOptionalParameters = Locator<
+  {header: HeaderLocator},
+  {foo?: `foo${string}`}
+>;
+
+const RenderedWithOptionalParameters = (
+  properties: Mark<RenderedLocatorWithOptionalParameters>,
+) => {
+  const locator = createLocator(properties);
+
+  true satisfies IsEqual<typeof locator, RenderedLocatorWithOptionalParameters>;
+  true satisfies IsEqual<
+    typeof locator,
+    CreateLocator<Mark<RenderedLocatorWithOptionalParameters>>
+  >;
+
+  const propertiesWithSymbol = {} as Mark<RenderedLocatorWithSymbolProperty> & {[SYMBOL]: number};
+
+  const locatorWithSymbol = createLocator(propertiesWithSymbol);
+
+  true satisfies IsEqual<typeof locatorWithSymbol, RenderedLocatorWithSymbolProperty>;
+  true satisfies IsEqual<
+    typeof locatorWithSymbol,
+    CreateLocator<Mark<RenderedLocatorWithSymbolProperty>>
+  >;
+
+  const propertiesWithoutLocator = removeMarkFromProperties(propertiesWithSymbol);
+
+  // @ts-expect-error
+  const locatorWithoutLocator = createLocator(propertiesWithoutLocator);
+
+  true satisfies IsEqual<typeof locatorWithoutLocator, unknown>;
+  true satisfies IsEqual<
+    typeof locatorWithoutLocator,
+    // @ts-expect-error
+    CreateLocator<typeof propertiesWithoutLocator>
+  >;
+
+  return <div {...locator({})}></div>;
+};
+
+const RenderedWithOtherOptionalParameters = (
+  properties: Mark<RenderedLocatorWithOtherOptionalParameters>,
+) => {
+  const locator = createLocator(properties);
+
+  true satisfies IsEqual<typeof locator, RenderedLocatorWithOtherOptionalParameters>;
+  true satisfies IsEqual<typeof locator, CreateLocator<typeof properties>>;
+
+  return <div {...locator({})}></div>;
+};
+
+type PanelLocator = Locator<
+  {
+    rendered: RenderedLocatorWithOptionalParameters;
+    otherRendered: RenderedLocatorWithOtherOptionalParameters;
+    renderedWithParameters: RenderedNodeWithParameters;
+  },
+  {quux: string}
+>;
+
+const Panel = (properties: Mark<PanelLocator>) => {
+  const locator = createLocator(properties);
+
+  true satisfies IsEqual<typeof locator, PanelLocator>;
+  true satisfies IsEqual<typeof locator, CreateLocator<typeof properties>>;
+
+  return (
+    <>
+      {/* @ts-expect-error */}
+      <RenderedWithOptionalParameters {...locator.otherRendered({})} />
+      {/* @ts-expect-error */}
+      <RenderedWithOtherOptionalParameters {...locator.rendered({})} />
+
+      <RenderedWithOptionalParameters {...locator.rendered({})} />
+      <RenderedWithOtherOptionalParameters {...locator.otherRendered({})} />
+
+      {/* @ts-expect-error */}
+      <div {...locator.renderedWithParameters()}></div>
+      {/* @ts-expect-error */}
+      <div {...locator.renderedWithParameters({})}></div>
+      <div {...locator.renderedWithParameters({[SYMBOL]: 3})}></div>
+    </>
+  );
+};

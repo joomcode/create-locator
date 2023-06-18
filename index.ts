@@ -54,9 +54,14 @@ const addLength = (value: unknown): string => {
 };
 
 /**
+ * create-locator 📌 package url on npm website.
+ */
+const packageUrl = 'https://www.npmjs.com/package/create-locator';
+
+/**
  * Symbol key for cache of locator attributes.
  */
-const CACHE = Symbol.for('create-locator:cache');
+const CACHE = Symbol.for(`${packageUrl}#cache`);
 
 /**
  * Creates a proxy object that represents the locator at runtime, by root options and path.
@@ -184,17 +189,17 @@ const handler: ProxyHandler<LocatorProxy> = {
 /**
  * Symbol key for locator in path attribute value.
  */
-const LOCATOR = Symbol.for('create-locator:locator');
+const LOCATOR = Symbol.for(`${packageUrl}#locator`);
 
 /**
  * Symbol key for options of root locator.
  */
-const OPTIONS = Symbol.for('create-locator:options');
+const OPTIONS = Symbol.for(`${packageUrl}#options`);
 
 /**
  * Symbol key for path of locator.
  */
-const PATH = Symbol.for('create-locator:path');
+const PATH = Symbol.for(`${packageUrl}#path`);
 
 /**
  * Set attributes from parameters to attributes object.
@@ -262,7 +267,15 @@ export const createLocator = ((
 export const getLocatorParameters = ((properties: Properties) => {
   const pathAttributeValue = getPathAttributeValueFromProperties(properties);
 
-  return pathAttributeValue?.parameters || anyLocator;
+  if (!pathAttributeValue) {
+    return anyLocator;
+  }
+
+  if (pathAttributeValue.parameters === undefined) {
+    return undefined;
+  }
+
+  return pathAttributeValue.parameters || anyLocator;
 }) as GetLocatorParametersFunction;
 
 /**
@@ -297,15 +310,16 @@ export const removeMarkFromProperties = ((properties: Properties) => {
 }) as RemoveMarkFromPropertiesFunction;
 
 export type {
-  AnyLocatorDescription,
-  AnyParameters,
-  AnyPropertiesWithMark,
-  AnyPropertiesWithMarkWithParameters,
   ClearHtmlAttributes,
   CreateLocator,
   GetLocatorParameters,
   Locator,
+  LocatorConstraint,
+  LocatorDescriptionConstraint,
   Mark,
   Node,
+  ParametersConstraint,
+  PropertiesWithMarkConstraint,
+  PropertiesWithMarkWithParametersConstraint,
   RemoveMarkFromProperties,
 } from './types';

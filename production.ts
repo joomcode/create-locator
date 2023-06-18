@@ -32,15 +32,16 @@ export const removeMarkFromProperties = ((properties) =>
   properties) as RemoveMarkFromPropertiesFunction;
 
 export type {
-  AnyLocatorDescription,
-  AnyParameters,
-  AnyPropertiesWithMark,
-  AnyPropertiesWithMarkWithParameters,
   ClearHtmlAttributes,
   CreateLocator,
   GetLocatorParameters,
   Locator,
+  LocatorConstraint,
+  LocatorDescriptionConstraint,
   Mark,
   Node,
+  ParametersConstraint,
+  PropertiesWithMarkConstraint,
+  PropertiesWithMarkWithParametersConstraint,
   RemoveMarkFromProperties,
 } from './types';
