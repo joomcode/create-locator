@@ -2,7 +2,6 @@ import React from 'react';
 
 import {
   anyLocator,
-  type ClearHtmlAttributes,
   createLocator,
   type CreateLocator,
   getLocatorParameters,
@@ -10,6 +9,7 @@ import {
   type Locator,
   type LocatorConstraint,
   type LocatorDescriptionConstraint,
+  type LocatorOfElement,
   type Mark,
   type Node,
   type ParametersConstraint,
@@ -41,7 +41,7 @@ type IsEqual<X, Y> = (<T>() => T extends X ? 1 : 2) extends <T>() => T extends Y
 declare const SYMBOL: unique symbol;
 
 /**
- * Base checks of Locator and Node type parameters.
+ * Base checks of Locator, LocatorOfElement and Node type parameters.
  */
 export type Checks = [
   Locator<{}, {}>,
@@ -99,6 +99,62 @@ export type Checks = [
   Locator<M1>,
   // @ts-expect-error
   Locator<N1>,
+
+  LocatorOfElement<{}, {}>,
+  LocatorOfElement<{foo: L1}, {}>,
+  LocatorOfElement<{foo: {}}, {bar: 'baz'}>,
+  LocatorOfElement<{foo: void}, {bar: 'baz'}>,
+  LocatorOfElement<{foo: void}, void>,
+  LocatorOfElement<{foo: {qux: 'quux'}}, {bar: 'baz'}>,
+  LocatorOfElement<{foo: {qux: 'quux'}; bar: L1}>,
+  LocatorOfElement<{foo: {qux: 'quux'}; bar: L1; baz: N1}>,
+  LocatorOfElement<{foo: undefined}>,
+  LocatorOfElement<{foo: never}>,
+  LocatorOfElement<undefined>,
+  LocatorOfElement<never>,
+  LocatorOfElement<never, void>,
+  LocatorOfElement<never, undefined>,
+  LocatorOfElement<never, never>,
+  // @ts-expect-error
+  LocatorOfElement<{foo: symbol}>,
+  // @ts-expect-error
+  LocatorOfElement<{}, {}, {}>,
+  // @ts-expect-error
+  LocatorOfElement<L1>,
+  // @ts-expect-error
+  LocatorOfElement<N1>,
+  // @ts-expect-error
+  LocatorOfElement<{foo: 2}>,
+  LocatorOfElement<{foo: void}>,
+  LocatorOfElement<{foo: undefined}>,
+  // @ts-expect-error
+  LocatorOfElement<{foo: unknown}>,
+  // @ts-expect-error
+  LocatorOfElement<{foo: object}>,
+  // @ts-expect-error
+  LocatorOfElement<{foo: {}}, object>,
+  // @ts-expect-error
+  LocatorOfElement<{}, {foo: 2}>,
+  // @ts-expect-error
+  LocatorOfElement<{}, {foo: {}}>,
+  // @ts-expect-error
+  LocatorOfElement<{foo: {bar: 3}}>,
+  // @ts-expect-error
+  LocatorOfElement<{}, {foo: L1}>,
+  // @ts-expect-error
+  LocatorOfElement<{button: Partial<L1>}>,
+  // @ts-expect-error
+  LocatorOfElement<{button: Partial<N1>}>,
+  // @ts-expect-error
+  LocatorOfElement<{button: M1}>,
+  // @ts-expect-error
+  LocatorOfElement<{button: Partial<M1>}>,
+  // @ts-expect-error
+  LocatorOfElement<L1>,
+  // @ts-expect-error
+  LocatorOfElement<M1>,
+  // @ts-expect-error
+  LocatorOfElement<N1>,
 
   // @ts-expect-error
   Mark<{}>,
@@ -440,11 +496,10 @@ type RenderedLocator = Locator<{
   header: HeaderLocator;
 }>;
 
-export type ComponentWithElementPropertiesLocator = Locator<{foo: void}>;
+export type ComponentWithElementPropertiesLocator = LocatorOfElement<{foo: void}>;
 
 export const ComponentWithElementProperties = (
-  properties: ClearHtmlAttributes<JSX.IntrinsicElements['div']> &
-    Mark<ComponentWithElementPropertiesLocator>,
+  properties: JSX.IntrinsicElements['div'] & Mark<ComponentWithElementPropertiesLocator>,
 ) => {
   const locator = createLocator(properties);
   const propertiesWithoutMark = removeMarkFromProperties(properties);
@@ -453,20 +508,19 @@ export const ComponentWithElementProperties = (
 
   return (
     <div aria-invalid={properties['aria-invalid']} {...locator()}>
-      {/* @ts-expect-error */}
       <span {...properties}></span>
       <span {...propertiesWithoutMark}></span>
     </div>
   );
 };
 
-export type ComponentWithElementPropertiesWithParametersLocator = Locator<
+export type ComponentWithElementPropertiesWithParametersLocator = LocatorOfElement<
   {foo: {}},
   {bar: 'baz' | 'qux'}
 >;
 
 export const ComponentWithElementPropertiesWithParameters = (
-  properties: ClearHtmlAttributes<JSX.IntrinsicElements['a']> &
+  properties: JSX.IntrinsicElements['a'] &
     Mark<ComponentWithElementPropertiesWithParametersLocator>,
 ) => {
   const locator = createLocator(properties);
@@ -476,7 +530,6 @@ export const ComponentWithElementPropertiesWithParameters = (
 
   return (
     <div aria-invalid={properties['aria-invalid']} {...locator({bar: 'baz'})}>
-      {/* @ts-expect-error */}
       <span {...properties}></span>
       <span {...propertiesWithoutMark}></span>
       {/* @ts-expect-error */}
@@ -1103,6 +1156,148 @@ true satisfies {foo: ''} extends ParametersConstraint ? true : false;
 false satisfies {foo: 3} extends ParametersConstraint ? true : false;
 
 /**
+ * Base tests of LocatorOfElement.
+ */
+true satisfies IsEqual<LocatorOfElement<void>, LocatorOfElement<undefined>>;
+false satisfies IsEqual<Locator<void>, LocatorOfElement<void>>;
+true satisfies IsEqual<
+  LocatorOfElement<void, {foo: string}>,
+  LocatorOfElement<undefined, {foo: string}>
+>;
+false satisfies IsEqual<
+  LocatorOfElement<void, {foo: string}>,
+  LocatorOfElement<undefined, {foo?: string}>
+>;
+
+true satisfies IsEqual<
+  [unknown, unknown, unknown, unknown],
+  [
+    LocatorOfElement<never>,
+    LocatorOfElement<{foo: void}, never>,
+    LocatorOfElement<void, never>,
+    LocatorOfElement<never, void>,
+  ]
+>;
+
+export type ComponentLikeElementLocator = Locator<{foo: void}, {bar?: string}>;
+type ComponentLikeElementProperties = React.AriaAttributes & Mark<ComponentLikeElementLocator>;
+type OptionalComponentLikeElementProperties = React.AriaAttributes &
+  Partial<Mark<ComponentLikeElementLocator>>;
+
+export const ComponentLikeElement = (properties: ComponentLikeElementProperties) => {
+  // @ts-expect-error
+  const locator = createLocator(properties);
+  // @ts-expect-error
+  const locatorParameters = getLocatorParameters(properties);
+  // @ts-expect-error
+  const propertiesWithoutMark = removeMarkFromProperties(properties);
+
+  true satisfies IsEqual<typeof locator, unknown>;
+  true satisfies IsEqual<typeof locatorParameters, unknown>;
+  true satisfies IsEqual<typeof propertiesWithoutMark, unknown>;
+
+  // @ts-expect-error
+  return <div {...locator()}></div>;
+};
+
+export const OptionalComponentLikeElement = (
+  properties: OptionalComponentLikeElementProperties,
+) => {
+  // @ts-expect-error
+  const locator = createLocator(properties);
+  // @ts-expect-error
+  const locatorParameters = getLocatorParameters(properties);
+  // @ts-expect-error
+  const propertiesWithoutMark = removeMarkFromProperties(properties);
+
+  true satisfies IsEqual<typeof locator, unknown>;
+  true satisfies IsEqual<typeof locatorParameters, unknown>;
+  true satisfies IsEqual<typeof propertiesWithoutMark, unknown>;
+
+  // @ts-expect-error
+  return <div {...locator()}></div>;
+};
+
+export type ComponentWithLocatorOfElementLocator = LocatorOfElement<{foo: void}, {bar?: string}>;
+type ComponentWithLocatorOfElementProperties = React.AriaAttributes &
+  Mark<ComponentWithLocatorOfElementLocator>;
+type OptionalComponentWithLocatorOfElementProperties = React.AriaAttributes &
+  Partial<Mark<ComponentWithLocatorOfElementLocator>>;
+
+export const ComponentWithLocatorOfElement = (
+  properties: ComponentWithLocatorOfElementProperties,
+) => {
+  const locator = createLocator(properties);
+  const locatorParameters = getLocatorParameters(properties);
+  const propertiesWithoutMark = removeMarkFromProperties(properties);
+
+  false satisfies IsEqual<typeof locator, unknown>;
+  false satisfies IsEqual<typeof locatorParameters, unknown>;
+  false satisfies IsEqual<typeof propertiesWithoutMark, unknown>;
+
+  return (
+    <div {...locator()}>
+      <div {...locator(locatorParameters)}></div>
+    </div>
+  );
+};
+
+export const OptionalComponentWithLocatorOfElement = (
+  properties: OptionalComponentWithLocatorOfElementProperties,
+) => {
+  const locator = createLocator(properties);
+  const locatorParameters = getLocatorParameters(properties);
+  const propertiesWithoutMark = removeMarkFromProperties(properties);
+
+  false satisfies IsEqual<typeof locator, unknown>;
+  false satisfies IsEqual<typeof locatorParameters, unknown>;
+  false satisfies IsEqual<typeof propertiesWithoutMark, unknown>;
+
+  return (
+    <div {...locator()}>
+      <div {...locator(locatorParameters)}></div>
+    </div>
+  );
+};
+
+export type WidgetLocator = Locator<{
+  componentLikeElement: ComponentLikeElementLocator;
+  optionalComponentLikeElement: ComponentLikeElementLocator;
+  componentWithLocatorOfElement: ComponentWithLocatorOfElementLocator;
+  optionalComponentWithLocatorOfElement: ComponentWithLocatorOfElementLocator;
+}>;
+
+export const Widget = (properties: Partial<Mark<WidgetLocator>>) => {
+  const locator = createLocator(properties);
+
+  return (
+    <main {...locator()}>
+      {/* @ts-expect-error */}
+      <ComponentLikeElement />
+      {/* @ts-expect-error */}
+      <ComponentLikeElement {...locator.componentLikeElement()} />
+      {/* @ts-expect-error */}
+      <div {...locator.componentLikeElement()}></div>
+
+      <OptionalComponentLikeElement />
+      {/* @ts-expect-error */}
+      <OptionalComponentLikeElement {...locator.optionalComponentLikeElement()} />
+      {/* @ts-expect-error */}
+      <div {...locator.componentLikeElement()}></div>
+
+      {/* @ts-expect-error */}
+      <ComponentWithLocatorOfElement />
+      <ComponentWithLocatorOfElement {...locator.componentWithLocatorOfElement()} />
+      <div {...locator.componentWithLocatorOfElement()}></div>
+
+      <OptionalComponentWithLocatorOfElement />
+      <OptionalComponentWithLocatorOfElement {...locator.optionalComponentWithLocatorOfElement()} />
+      <div {...locator.optionalComponentWithLocatorOfElement()}></div>
+    </main>
+  );
+};
+
+/**
  * Base tests of Mark.
  */
 true satisfies IsEqual<Mark<never>, unknown>;
@@ -1289,43 +1484,6 @@ export type WrapGetLocatorParametersWithParameters<
 export type WrapRemoveMarkFromPropertiesWithParameters<
   Properties extends PropertiesWithMarkWithParametersConstraint,
 > = RemoveMarkFromProperties<Properties>;
-
-/**
- * Base tests of ClearHtmlAttributes.
- */
-({}) as ClearHtmlAttributes<{}>;
-({}) as ClearHtmlAttributes<object>;
-// @ts-expect-error
-({}) as ClearHtmlAttributes<{foo: string}>;
-// @ts-expect-error
-({}) as ClearHtmlAttributes<LabelLocator>;
-// @ts-expect-error
-({}) as ClearHtmlAttributes<MultiLocator>;
-// @ts-expect-error
-({}) as ClearHtmlAttributes<HeaderLocator>;
-// @ts-expect-error
-({}) as ClearHtmlAttributes<AppLocator>;
-
-// @ts-expect-error
-type ClearedLabelProperties = ClearHtmlAttributes<LabelProperties>;
-// @ts-expect-error
-type ClearedHeaderProperties = ClearHtmlAttributes<HeaderProperties>;
-
-true satisfies IsEqual<LabelProperties, ClearedLabelProperties>;
-true satisfies IsEqual<HeaderProperties, ClearedHeaderProperties>;
-
-true satisfies IsEqual<
-  ClearHtmlAttributes<JSX.IntrinsicElements['a']>,
-  Omit<JSX.IntrinsicElements['a'], ErrorAttribute>
->;
-true satisfies IsEqual<
-  ClearHtmlAttributes<JSX.IntrinsicElements['div']>,
-  Omit<JSX.IntrinsicElements['div'], ErrorAttribute>
->;
-true satisfies IsEqual<
-  ClearHtmlAttributes<React.AriaAttributes>,
-  Omit<React.AriaAttributes, ErrorAttribute>
->;
 
 /**
  * Base tests of removeMarkFromProperties.
@@ -1736,12 +1894,12 @@ const PanelWithOptionalLocator = (properties: OptionalPanelProperties) => {
   // @ts-expect-error
   const propertiesForEmptyProperties = removeMarkFromProperties({});
 
-  true satisfies IsEqual<typeof propertiesForEmptyProperties, {}>;
+  true satisfies IsEqual<typeof propertiesForEmptyProperties, unknown>;
 
   // @ts-expect-error
   const propertiesForEmptyObject = removeMarkFromProperties({} as object);
 
-  true satisfies IsEqual<typeof propertiesForEmptyObject, {}>;
+  true satisfies IsEqual<typeof propertiesForEmptyObject, unknown>;
 
   // @ts-expect-error
   const propertiesFromSomeProperties = removeMarkFromProperties(someProperties);
@@ -1796,7 +1954,7 @@ const PanelWithoutLocator = (properties: {}) => {
   // @ts-expect-error
   const propertiesWithoutLocator = removeMarkFromProperties(properties);
 
-  true satisfies IsEqual<typeof propertiesWithoutLocator, {}>;
+  true satisfies IsEqual<typeof propertiesWithoutLocator, unknown>;
 
   // @ts-expect-error
   return <div {...locator()}></div>;

@@ -22,9 +22,10 @@ export const testBasicInteractions: Test = (
 
   Object.defineProperty(parameters, 'bar', {value: 'baz'});
 
-  const propertiesWithParameters = {...locator(parameters)};
+  const propertiesWithParameters = {...locator(parameters)} as Mark<RootLocator>;
+
   // @ts-expect-error
-  const propertiesWithoutParameters = {...locator()};
+  const propertiesWithoutParameters = {...locator()} as Mark<RootLocator>;
   const keysWithLocator = Object.keys(propertiesWithParameters);
 
   assert(
@@ -391,13 +392,13 @@ export const testBasicInteractions: Test = (
   assertPropertiesAreEqual(
     Object.getOwnPropertyNames(Object.prototype),
     Object.prototype,
-    objectPrototypePropertiesAfterRemoving,
+    objectPrototypePropertiesAfterRemoving as object,
   );
 
   assertPropertiesAreEqual(
     Object.getOwnPropertyNames(Object.prototype),
     propertiesFromObjectPrototype,
-    objectPrototypePropertiesAfterRemoving,
+    objectPrototypePropertiesAfterRemoving as object,
   );
 
   assert(

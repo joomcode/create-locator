@@ -310,12 +310,12 @@ export const removeMarkFromProperties = ((properties: Properties) => {
 }) as RemoveMarkFromPropertiesFunction;
 
 export type {
-  ClearHtmlAttributes,
   CreateLocator,
   GetLocatorParameters,
   Locator,
   LocatorConstraint,
   LocatorDescriptionConstraint,
+  LocatorOfElement,
   Mark,
   Node,
   ParametersConstraint,

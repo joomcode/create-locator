@@ -40,7 +40,7 @@ import {Baz, type BazLocator} from 'src/components/Baz';
 
 export type FooLocator = Locator<{ // declare locator type
   bar: void; // element locator without parameters
-  baz: BazLocator; // component locator
+  baz: BazLocator; // child component locator
   qux: {quux: string}; // element locator with parameters
 }>;
 
@@ -68,7 +68,7 @@ then its locator can be declared using `void`:
 export type BazLocator = Locator<void>; // equivalent of Locator<{}>
 ```
 
-When marking up a root application component, you need to specify a _root_ component locator type,
+When marking up a root application component, you need to specify a _root_ locator type,
 and a _prefix_ that starts the paths of all locators in this component tree:
 
 ```tsx
@@ -81,7 +81,7 @@ export type RootLocator = Locator<{
   main: MainLocator;
 }>;
 
-// create root locator by root component locator type and path prefix
+// create root locator by root locator type and path prefix
 const rootLocator = createLocator<RootLocator>('app');
 
 const App = () => {
@@ -104,7 +104,7 @@ you can specify options for generating attributes from locators.
 Here is a complete list of these options with their default values (each can be omitted):
 
 ```tsx
-// create root locator by root component locator type, path prefix and options
+// create root locator by root locator type, path prefix and options
 const rootLocator = createLocator<RootLocator>('app', {
   // if true, then locator attributes will not be rendered at all
   isProduction: false,
@@ -270,11 +270,13 @@ The `create-locator/production` entry point is about five times smaller than the
 
 ## Using HTML attributes as component properties
 
-In some rare cases, we want to allow a component to accept any the properties (attributes)
+In some rare cases, we want to allow a component to accept any properties (attributes)
 of some HTML element — for example, to have component `Button` accept any attributes
 of the `button` element (usually via `JSX.IntrinsicElements`):
 
 ```tsx
+export type ButtonLocator = Locator<···>;
+
 // component Button accepts any properties of the button element
 type ButtonProperties = BaseButtonProperties &
   JSX.IntrinsicElements['button'] &
@@ -285,18 +287,23 @@ With these types of component properties, the `create-locator` 📌 will treat t
 as an HTML element, and this will lead to type errors when marking the `Button` with locator
 (because you cannot mark HTML element with component locator).
 
-To avoid type errors, clear the HTML element attributes from internal `create-locator` 📌 marks
-when added to the component properties (this will not change the types
-of the attributes themselves in any way) using the generic `ClearHtmlAttributes`:
+Specifically, you'll get a warning error when using component properties in an `createLocator`,
+`getLocatorParameters`, and `removeMarkFromProperties` functions with text like this:
+`'This component behaves like an element; use LocatorOfElement for it'`.
+
+To avoid all these errors, use `LocatorOfElement` instead of `Locator` when declaring
+a locator type for such components (the API of these generics is completely the same):
 
 ```tsx
-import {type ClearHtmlAttributes, ···} from 'create-locator';
+import {type LocatorOfElement, ···} from 'create-locator';
 
 ···
 
+export type ButtonLocator = LocatorOfElement<···>;
+
+// component Button accepts any properties of the button element
 type ButtonProperties = BaseButtonProperties &
-  // the attributes themselves will not change in any way
-  ClearHtmlAttributes<JSX.IntrinsicElements['button']> &
+  JSX.IntrinsicElements['button'] &
   Mark<ButtonLocator>;
 ```
 

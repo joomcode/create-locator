@@ -34,8 +34,8 @@ type CannotMarkElementMessage = 'Cannot mark HTML element with component locator
  */
 type CreateComponentLocator = <Properties extends Partial<PropertiesWithMarkConstraint>>(
   this: void,
-  properties: Properties extends Partial<WithMark<never>> ? never : Properties,
-) => CreateLocator<Properties>;
+  properties: PropertiesError<Properties> extends string ? PropertiesError<Properties> : Properties,
+) => CreateLocator<PropertiesError<Properties> extends string ? never : Properties>;
 
 /**
  * createLocator overload for root locator.
@@ -113,6 +113,17 @@ type IsEqual<X, Y> = (<Type>() => Type extends X ? 1 : 2) extends <Type>() => Ty
 type IsIncludeUndefined<Type> = true extends (Type extends undefined ? true : never) ? true : false;
 
 /**
+ * Returns `true` if properties object valid for `CreateComponentLocator`, `false` otherwise.
+ */
+type PropertiesError<Properties> = Properties extends Partial<WithMark<never>>
+  ? 'Properties are unmarked by any locator; use & Mark<SomeLocator>'
+  : Properties extends Partial<WithMark<WithLocator<'LocatorOfElement'>>>
+  ? undefined
+  : Properties extends ElementAttributeError
+  ? 'This component behaves like an element; use LocatorOfElement for it'
+  : undefined;
+
+/**
  * Returns `true` if parameters is empty, `false` otherwise.
  * `IsParametersEmpty<{foo: string}>` = `false`.
  * `IsParametersEmpty<{}>` = `true`.
@@ -143,14 +154,21 @@ type LocatorArguments<Parameters> = IsIncludeUndefined<Parameters> extends true
  */
 type LocatorCallResult<Tree, IsChildLocator extends boolean = false> = Tree extends object
   ? WithMark<Tree> &
-      ElementAttributeError<IsChildLocator extends true ? CannotMarkElementMessage : undefined>
+      ElementAttributeError<
+        IsChildLocator extends true
+          ? Tree extends WithLocator<'LocatorOfElement'>
+            ? undefined
+            : CannotMarkElementMessage
+          : undefined
+      >
   : object;
 
 /**
  * Type of runtime locator object by locator tree.
  */
-type LocatorFromLocatorTree<Tree> = BaseNode<ExtractNodeParameters<Tree>, Tree> &
-  WithLocator & {readonly [Key in string & keyof Tree]: TreeNode<Key, UnwrapTree<Tree[Key]>>};
+type LocatorFromLocatorTree<Tree> = BaseNode<ExtractNodeParameters<Tree>, Tree> & {
+  readonly [Key in string & keyof Tree]: TreeNode<Key, UnwrapTree<Tree[Key]>>;
+} & WithLocator<Tree extends WithLocator ? Tree[LocatorKey] : 'Locator'>;
 
 /**
  * Type of symbol key to define locator.
@@ -163,13 +181,14 @@ type LocatorKey = typeof LOCATOR;
 type LocatorTree<
   Description,
   Parameters,
+  Kind = 'Locator',
   MergedDescriptions = UnionToIntersection<Description>,
 > = BaseNode<Parameters> & {
   readonly [Key in string & keyof MergedDescriptions]-?: TreeNode<
     Key,
     LocatorTreeNode<Key, Exclude<MergedDescriptions[Key], undefined>>
   >;
-};
+} & WithLocator<Kind>;
 
 /**
  * Get locator tree from locator object.
@@ -177,7 +196,7 @@ type LocatorTree<
 type LocatorTreeFromLocator<SomeLocator> = SomeLocator extends WithLocator
   ? BaseNode<ExtractNodeParameters<SomeLocator>> & {
       readonly [Key in string & keyof SomeLocator]: TreeNode<Key, UnwrapTree<SomeLocator[Key]>>;
-    }
+    } & WithLocator<SomeLocator[LocatorKey]>
   : unknown;
 
 /**
@@ -309,7 +328,7 @@ type WithHidden<NormalizedTree = object> = Readonly<Record<HiddenKey, Normalized
 /**
  * Object with locator key with locator kind (it's locator itself).
  */
-type WithLocator<Kind = 'Locator'> = Readonly<Record<LocatorKey, Kind>>;
+type WithLocator<Kind = string> = Readonly<Record<LocatorKey, Kind>>;
 
 /**
  * Object with mark with locator tree (unnormalized tree of locators, produced by Locator<...>).
@@ -340,14 +359,6 @@ export type AnyLocator = ((parameters?: any) => AnyMark) & WithLocator;
  * Attributes object.
  */
 export type Attributes = Readonly<Record<string, string>>;
-
-/**
- * Clear HTML element attributes, that is removes error attribute from them.
- */
-export type ClearHtmlAttributes<SomeAttributes extends ElementAttributeError> =
-  SomeAttributes extends ElementAttributeError
-    ? Omit<SomeAttributes, ErrorAttribute>
-    : SomeAttributes;
 
 /**
  * Presentation of createLocator function in types.
@@ -400,8 +411,8 @@ export type GetLocatorParametersFunction = <
   Properties extends Partial<PropertiesWithMarkWithParametersConstraint>,
 >(
   this: void,
-  properties: Properties extends Partial<WithMark<never>> ? never : Properties,
-) => GetLocatorParameters<Properties>;
+  properties: PropertiesError<Properties> extends string ? PropertiesError<Properties> : Properties,
+) => GetLocatorParameters<PropertiesError<Properties> extends string ? never : Properties>;
 
 /**
  * Symbol key for saving hidden normalized tree.
@@ -443,6 +454,23 @@ export type LocatorDescriptionConstraint = Readonly<
         WithParameters<NotLocatorDescription>
     >
 > | void;
+
+/**
+ * Creates locator type by locator description and locator parameters
+ * for component, behaves like an element.
+ */
+export type LocatorOfElement<
+  Description extends LocatorDescriptionConstraint,
+  Parameters extends ParametersConstraint = void,
+> = true extends IsEqual<Description, never> | IsEqual<Parameters, never>
+  ? unknown
+  : LocatorFromLocatorTree<
+      LocatorTree<
+        Description,
+        AddUndefinedIfRequiredParametersEmpty<Parameters>,
+        'LocatorOfElement'
+      >
+    >;
 
 /**
  * Additional option of root locator for mapping attributes.
@@ -519,8 +547,8 @@ export type RemoveMarkFromPropertiesFunction = <
   Properties extends Partial<PropertiesWithMarkConstraint>,
 >(
   this: void,
-  properties: Properties extends Partial<WithMark<never>> ? never : Properties,
-) => RemoveMarkFromProperties<Properties>;
+  properties: PropertiesError<Properties> extends string ? PropertiesError<Properties> : Properties,
+) => RemoveMarkFromProperties<PropertiesError<Properties> extends string ? never : Properties>;
 
 /**
  * Options of root locator (as createLocator second argument).
