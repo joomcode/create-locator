@@ -1,10 +1,10 @@
 import type React from 'react';
 
 import type {
-  CreateLocatorFunction,
-  GetLocatorParametersFunction,
-  RemoveMarkFromPropertiesFunction,
-} from 'create-locator/types';
+  createLocator as originalCreateLocator,
+  getLocatorParameters as originalGetLocatorParameters,
+  removeMarkFromProperties as originalRemoveMarkFromProperties,
+} from 'create-locator';
 
 import type {Tree} from './memory.spec';
 
@@ -19,9 +19,9 @@ declare global {
 const getRandomString = (): string => Math.random().toString(27).slice(2);
 
 export type Api = readonly [
-  createLocator: CreateLocatorFunction,
-  getLocatorParameters: GetLocatorParametersFunction,
-  removeMarkFromProperties: RemoveMarkFromPropertiesFunction,
+  createLocator: typeof originalCreateLocator,
+  getLocatorParameters: typeof originalGetLocatorParameters,
+  removeMarkFromProperties: typeof originalRemoveMarkFromProperties,
 ];
 
 export function assert(value: unknown, message?: string): asserts value is true {

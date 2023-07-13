@@ -7,7 +7,7 @@ import type {
   RootOptions,
 } from './types';
 
-import {anyLocator} from './production';
+import {anyLocator as productionAnyLocator} from './production';
 
 /**
  * Options of root locator, maybe with mapping attributes function.
@@ -135,7 +135,7 @@ const getPathAttributeValueFromProperties = (
  * Proxy handler for locator proxy.
  */
 const handler: ProxyHandler<LocatorProxy> = {
-  apply(target, thisArg, [parameters]): Attributes {
+  apply(target, _thisArg, [parameters]): Attributes {
     const cache = target[CACHE];
     const key = getKey(parameters);
 
@@ -163,7 +163,7 @@ const handler: ProxyHandler<LocatorProxy> = {
       toString,
     };
 
-    attributes[pathAttribute] = pathAttributeValue as unknown as string satisfies typeof thisArg;
+    attributes[pathAttribute] = pathAttributeValue as unknown as string;
 
     cache[key] = attributes;
 
@@ -233,7 +233,7 @@ function toString(this: PathAttributeValue): string {
 /**
  * Proxy object that represents the locator in production mode (and, for example, in unit tests).
  */
-export {anyLocator};
+export const anyLocator = productionAnyLocator;
 
 /**
  * Creates root locator (by prefix and options) or component locator (by component properties).
