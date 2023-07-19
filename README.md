@@ -145,7 +145,8 @@ and `pathSeparator`, and for locator parameter names
 
 ## Install
 
-Requires [node](https://nodejs.org/en/) version 8 or higher:
+Requires [node](https://nodejs.org/en/) version 8 or higher and
+[TypeScript](https://www.typescriptlang.org/) version 4.7 or higher:
 
 ```sh
 npm install create-locator

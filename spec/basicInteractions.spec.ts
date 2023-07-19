@@ -2,11 +2,12 @@ import type {Locator, Mark, Node} from 'create-locator';
 
 import {assert, assertPropertiesAreEqual, getShallowCopy, type Test} from './utils';
 
-type ChildLocator = Locator<void, {foo: string}>;
+type ChildLocator = Locator<void, {foo: string}, 'sameParameters'>;
 
 type RootLocator = Locator<
   {toString: {foo: string}; bar: Node<{baz: {}}, {quux: string}>; child: ChildLocator},
-  {qux: string}
+  {qux: string},
+  'sameParameters'
 >;
 
 export const testBasicInteractions: Test = (

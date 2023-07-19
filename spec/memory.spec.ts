@@ -112,4 +112,4 @@ const tick = (): void => {
 
 tick();
 
-export type Tree = {[x: string]: string | Tree};
+export type Tree = {[key: string]: string | Tree};

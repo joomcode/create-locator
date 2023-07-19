@@ -17,7 +17,7 @@ export const testRender: Test = (
     return locator;
   }) as typeof originalCreateLocator;
 
-  type FooLocator = Locator<{fooLeaf: {quux: string}}, {corge: string}>;
+  type FooLocator = Locator<{fooLeaf: {quux: string}}, {corge: string}, 'sameParameters'>;
   type NodeLocator = Node<{subLeaf: {baz: string}}, {qux: string}>;
 
   type RootLocator = Locator<
@@ -96,7 +96,7 @@ export const testRender: Test = (
 
   type ElementType = 'image' | 'text';
 
-  type LabelLocator = Locator<{}, {level?: string; type?: ElementType}>;
+  type LabelLocator = Locator<{}, {level?: string; type?: ElementType}, 'sameParameters'>;
   type LabelProperties = {children?: object[]; level?: string; text: string} & Mark<LabelLocator>;
 
   const Label = ({level = '3', text, ...rest}: LabelProperties) => {
@@ -160,7 +160,7 @@ export const testRender: Test = (
     );
   };
 
-  type FooterLocator = Locator<{faq: {}}, {link: string}>;
+  type FooterLocator = Locator<{faq: {}}, {link: string}, 'sameParameters'>;
   type FooterProperties = Partial<Mark<FooterLocator>>;
 
   const Footer = (properties: FooterProperties) => {

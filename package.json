@@ -1,6 +1,6 @@
 {
   "name": "create-locator",
-  "version": "0.0.15",
+  "version": "0.0.16",
   "description": "Creates typed component locators for tests 📌",
   "author": "uid11",
   "bugs": "https://github.com/joomcode/create-locator/issues",

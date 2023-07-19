@@ -34,7 +34,7 @@ type ErrorAttribute = keyof L1 & keyof M1;
 
 declare const ERROR_ATTRIBUTE: ErrorAttribute;
 
-type IsEqual<X, Y> = (<T>() => T extends X ? 1 : 2) extends <T>() => T extends Y ? 1 : 2
+type IsEqual<X, Y> = (<Type>() => Type extends X ? 1 : 2) extends <Type>() => Type extends Y ? 1 : 2
   ? true
   : false;
 
@@ -61,8 +61,9 @@ export type Checks = [
   Locator<never, never>,
   // @ts-expect-error
   Locator<{foo: symbol}>,
-  // @ts-expect-error
   Locator<{}, {}, {}>,
+  // @ts-expect-error
+  Locator<{}, {}, {}, {}>,
   // @ts-expect-error
   Locator<L1>,
   // @ts-expect-error
@@ -117,8 +118,9 @@ export type Checks = [
   LocatorOfElement<never, never>,
   // @ts-expect-error
   LocatorOfElement<{foo: symbol}>,
-  // @ts-expect-error
   LocatorOfElement<{}, {}, {}>,
+  // @ts-expect-error
+  LocatorOfElement<{}, {}, {}, {}>,
   // @ts-expect-error
   LocatorOfElement<L1>,
   // @ts-expect-error
@@ -241,7 +243,7 @@ const propertiesWithAriaInvalid = {} as {'aria-invalid': React.AriaAttributes['a
 /**
  * Base tests of component, element and node locator.
  */
-export type LabelLocator = Locator<{}, {level: string}>;
+export type LabelLocator = Locator<{}, {level: string}, 'sameParameters'>;
 type LabelProperties = {level?: string; text: string} & Mark<LabelLocator>;
 
 export const Label = ({level, text, ...rest}: LabelProperties) => {
@@ -516,7 +518,8 @@ export const ComponentWithElementProperties = (
 
 export type ComponentWithElementPropertiesWithParametersLocator = LocatorOfElement<
   {foo: {}},
-  {bar: 'baz' | 'qux'}
+  {bar: 'baz' | 'qux'},
+  'sameParameters'
 >;
 
 export const ComponentWithElementPropertiesWithParameters = (
@@ -550,7 +553,8 @@ export type MainLocator = Locator<
     withElementProperties: ComponentWithElementPropertiesLocator;
     withElementPropertiesWithParameters: ComponentWithElementPropertiesWithParametersLocator;
   },
-  {text: 'foo' | 'bar'}
+  {text: 'foo' | 'bar'},
+  'sameParameters'
 >;
 
 type MainVoidLocator = Locator<
@@ -562,7 +566,8 @@ type MainVoidLocator = Locator<
     withElementProperties: ComponentWithElementPropertiesLocator;
     withElementPropertiesWithParameters: ComponentWithElementPropertiesWithParametersLocator;
   },
-  {text: 'foo' | 'bar'}
+  {text: 'foo' | 'bar'},
+  'sameParameters'
 >;
 
 true satisfies IsEqual<MainLocator, MainVoidLocator>;
@@ -959,8 +964,10 @@ true satisfies IsEqual<typeof appLocator, AppLocator>;
 true satisfies IsEqual<typeof rootLocator, RootLocatorVariable>;
 
 true satisfies IsEqual<
-  [unknown, unknown, unknown, unknown, unknown],
+  [unknown, unknown, unknown, unknown, unknown, unknown],
   [
+    // @ts-expect-error
+    CreateLocator<string>,
     // @ts-expect-error
     CreateLocator<Partial<AppLocator>, Selector>,
     // @ts-expect-error
@@ -993,7 +1000,7 @@ const neverLocatorParameters = getLocatorParameters(neverValue);
 true satisfies IsEqual<typeof neverLocatorParameters, unknown>;
 
 type BannerParameters = {id: `id${string}`; [SYMBOL]?: number};
-export type BannerLocator = Locator<{text: {}}, BannerParameters>;
+export type BannerLocator = Locator<{text: {}}, BannerParameters, 'sameParameters'>;
 
 export const Banner = (properties: Mark<BannerLocator>) => {
   const locator = createLocator(properties);
@@ -1022,7 +1029,9 @@ export const Banner = (properties: Mark<BannerLocator>) => {
     LocatorWithEmptyParameters
   >;
 
-  const propertiesWithSymbolParameters = {} as Mark<Locator<{}, {readonly [SYMBOL]: 'foo'}>>;
+  const propertiesWithSymbolParameters = {} as Mark<
+    Locator<{}, {readonly [SYMBOL]: 'foo'}, 'sameParameters'>
+  >;
   const symbolParameters = getLocatorParameters(propertiesWithSymbolParameters);
 
   true satisfies IsEqual<typeof symbolParameters, {readonly [SYMBOL]: 'foo'}>;
@@ -1085,20 +1094,34 @@ export type LayoutLocator = Locator<{foo: {bar: string} | {baz: string} | undefi
 /**
  * Base tests of GetLocatorParameters.
  */
-true satisfies IsEqual<GetLocatorParameters<never>, unknown>;
-
 true satisfies IsEqual<BannerParameters, GetLocatorParameters<Mark<BannerLocator>>>;
 true satisfies IsEqual<BannerParameters, GetLocatorParameters<Partial<Mark<BannerLocator>>>>;
 
-true satisfies IsEqual<GetLocatorParameters<Mark<Locator<{}, {foo: string}>>>, {foo: string}>;
+true satisfies IsEqual<
+  GetLocatorParameters<Mark<Locator<{}, {foo: string}, 'sameParameters'>>>,
+  {foo: string}
+>;
 
 true satisfies IsEqual<
-  GetLocatorParameters<Mark<Locator<{}, {[SYMBOL]: string}>>>,
+  GetLocatorParameters<Mark<Locator<{}, {[SYMBOL]: string}, 'sameParameters'>>>,
   {[SYMBOL]: string}
 >;
 
-// @ts-expect-error
-({}) as GetLocatorParameters<{foo: ''}>;
+true satisfies IsEqual<
+  [unknown, unknown, unknown, unknown, unknown, unknown],
+  [
+    // @ts-expect-error
+    GetLocatorParameters<Mark<Locator<void>>>,
+    // @ts-expect-error
+    GetLocatorParameters<Partial<Mark<Locator<void>>>>,
+    GetLocatorParameters<never>,
+    GetLocatorParameters<{}>,
+    // @ts-expect-error
+    GetLocatorParameters<string>,
+    // @ts-expect-error
+    GetLocatorParameters<{fooBarBazQuxQuuxCorgeWaldo: ''}>,
+  ]
+>;
 
 /**
  * Base tests of Locator.
@@ -1108,9 +1131,321 @@ true satisfies IsEqual<Locator<void, {foo: string}>, Locator<undefined, {foo: st
 false satisfies IsEqual<Locator<void, {foo: string}>, Locator<undefined, {foo?: string}>>;
 
 true satisfies IsEqual<
-  [unknown, unknown, unknown, unknown],
-  [Locator<never>, Locator<{foo: void}, never>, Locator<void, never>, Locator<never, void>]
+  [unknown, unknown, unknown, unknown, unknown, unknown, unknown],
+  [
+    // @ts-expect-error
+    Locator<string>,
+    // @ts-expect-error
+    Locator<{}, string>,
+    // @ts-expect-error
+    Locator<{}, {}, 'SameParameters'>,
+    Locator<never>,
+    Locator<{foo: void}, never>,
+    Locator<void, never>,
+    Locator<never, void>,
+  ]
 >;
+
+export type WithoutComponentParametersLocator = Locator<{label: LabelLocator}, {foo: string}>;
+
+export const WithoutComponentParameters = (properties: Mark<WithoutComponentParametersLocator>) => {
+  const locator = createLocator(properties);
+  // @ts-expect-error
+  const locatorParameters = getLocatorParameters(properties);
+
+  true satisfies IsEqual<typeof locatorParameters, unknown>;
+
+  return (
+    <div {...locator({foo: 'bar'})}>
+      {/* @ts-expect-error */}
+      <span {...locator}></span>
+      {/* @ts-expect-error */}
+      <span {...locator()}></span>
+      {/* @ts-expect-error */}
+      <span {...locator({})}></span>
+      {/* @ts-expect-error */}
+      <span {...locator({bar: 'foo'})}></span>
+    </div>
+  );
+};
+
+export const OptionalWithoutComponentParameters = (
+  properties: Partial<Mark<WithoutComponentParametersLocator>>,
+) => {
+  const locator = createLocator(properties);
+  // @ts-expect-error
+  const locatorParameters = getLocatorParameters(properties);
+
+  true satisfies IsEqual<typeof locatorParameters, unknown>;
+
+  return (
+    <div {...locator({foo: 'bar'})}>
+      {/* @ts-expect-error */}
+      <span {...locator}></span>
+      {/* @ts-expect-error */}
+      <span {...locator()}></span>
+      {/* @ts-expect-error */}
+      <span {...locator({})}></span>
+      {/* @ts-expect-error */}
+      <span {...locator({bar: 'foo'})}></span>
+    </div>
+  );
+};
+
+type SomeParameters = {bar: 'baz' | 'qux'};
+
+export type WithComponentParametersLocator = Locator<
+  {label: LabelLocator},
+  {foo: string},
+  SomeParameters
+>;
+
+export const WithComponentParameters = (properties: Mark<WithComponentParametersLocator>) => {
+  const locator = createLocator(properties);
+  const locatorParameters = getLocatorParameters(properties);
+
+  true satisfies IsEqual<typeof locatorParameters, SomeParameters>;
+
+  return (
+    <div {...locator({foo: locatorParameters.bar})}>
+      {/* @ts-expect-error */}
+      <span {...locator(locatorParameters)}></span>
+      {/* @ts-expect-error */}
+      <span {...locator}></span>
+      {/* @ts-expect-error */}
+      <span {...locator()}></span>
+      {/* @ts-expect-error */}
+      <span {...locator({})}></span>
+      {/* @ts-expect-error */}
+      <span {...locator({bar: 'foo'})}></span>
+    </div>
+  );
+};
+
+export const OptionalWithComponentParameters = (
+  properties: Partial<Mark<WithComponentParametersLocator>>,
+) => {
+  const locator = createLocator(properties);
+  const locatorParameters = getLocatorParameters(properties);
+
+  true satisfies IsEqual<typeof locatorParameters, SomeParameters>;
+
+  return (
+    <div {...locator({foo: locatorParameters.bar})}>
+      {/* @ts-expect-error */}
+      <span {...locator(locatorParameters)}></span>
+      {/* @ts-expect-error */}
+      <span {...locator}></span>
+      {/* @ts-expect-error */}
+      <span {...locator()}></span>
+      {/* @ts-expect-error */}
+      <span {...locator({})}></span>
+      {/* @ts-expect-error */}
+      <span {...locator({bar: 'foo'})}></span>
+    </div>
+  );
+};
+
+export type SameParametersLocator = Locator<{label: LabelLocator}, {foo: string}, 'sameParameters'>;
+
+true satisfies IsEqual<
+  SameParametersLocator,
+  Locator<{label: LabelLocator}, {foo: string}, {foo: string}>
+>;
+false satisfies IsEqual<
+  SameParametersLocator,
+  Locator<{label: LabelLocator}, {foo: string}, {readonly foo: string}>
+>;
+false satisfies IsEqual<
+  SameParametersLocator,
+  Locator<{label: LabelLocator}, {foo: string}, {foo?: string}>
+>;
+
+export const SameParameters = (properties: Mark<SameParametersLocator>) => {
+  const locator = createLocator(properties);
+  const locatorParameters = getLocatorParameters(properties);
+
+  true satisfies IsEqual<typeof locatorParameters, {foo: string}>;
+
+  return (
+    <div {...locator({foo: locatorParameters.foo})}>
+      <span {...locator(locatorParameters)}></span>
+      {/* @ts-expect-error */}
+      <span {...locator}></span>
+      {/* @ts-expect-error */}
+      <span {...locator()}></span>
+      {/* @ts-expect-error */}
+      <span {...locator({})}></span>
+      {/* @ts-expect-error */}
+      <span {...locator({bar: 'foo'})}></span>
+    </div>
+  );
+};
+
+export const OptionalSameParameters = (properties: Partial<Mark<SameParametersLocator>>) => {
+  const locator = createLocator(properties);
+  const locatorParameters = getLocatorParameters(properties);
+
+  true satisfies IsEqual<typeof locatorParameters, {foo: string}>;
+
+  return (
+    <div {...locator({foo: locatorParameters.foo})}>
+      <span {...locator(locatorParameters)}></span>
+      {/* @ts-expect-error */}
+      <span {...locator}></span>
+      {/* @ts-expect-error */}
+      <span {...locator()}></span>
+      {/* @ts-expect-error */}
+      <span {...locator({})}></span>
+      {/* @ts-expect-error */}
+      <span {...locator({bar: 'foo'})}></span>
+    </div>
+  );
+};
+
+export type SwitchLocator = Locator<{
+  sameParameters: SameParametersLocator;
+  withComponentParameters: WithComponentParametersLocator;
+  withoutComponentParameters: WithoutComponentParametersLocator;
+}>;
+
+export const Switch = (properties: Mark<SwitchLocator>) => {
+  const locator = createLocator(properties);
+
+  return (
+    <div {...locator()}>
+      {/* @ts-expect-error */}
+      <WithComponentParameters {...locator.withComponentParameters()} />
+      {/* @ts-expect-error */}
+      <WithComponentParameters {...locator.withComponentParameters({})} />
+      {/* @ts-expect-error */}
+      <WithComponentParameters {...locator.withComponentParameters({foo: ''})} />
+      {/* @ts-expect-error */}
+      <WithComponentParameters {...locator.withComponentParameters({bar: ''})} />
+      {/* @ts-expect-error */}
+      <WithComponentParameters />
+      {/* @ts-expect-error */}
+      <WithComponentParameters {...locator.withoutComponentParameters()} />
+      {/* @ts-expect-error */}
+      <WithComponentParameters {...locator.sameParameters({foo: 'bar'})} />
+      <WithComponentParameters {...locator.withComponentParameters({bar: 'baz'})} />
+      {/* @ts-expect-error */}
+      <a {...locator.withComponentParameters({bar: 'baz'})}></a>
+
+      {/* @ts-expect-error */}
+      <WithoutComponentParameters />
+      <WithoutComponentParameters {...locator.withComponentParameters({bar: 'baz'})} />
+      <WithoutComponentParameters {...locator.sameParameters({foo: 'baz'})} />
+      {/* @ts-expect-error */}
+      <WithoutComponentParameters {...locator.withComponentParameters({foo: 'bar'})} />
+      <WithoutComponentParameters {...locator.withoutComponentParameters()} />
+      {/* @ts-expect-error */}
+      <WithoutComponentParameters {...locator.withoutComponentParameters({})} />
+      {/* @ts-expect-error */}
+      <WithoutComponentParameters {...locator.withoutComponentParameters({foo: 'bar'})} />
+      {/* @ts-expect-error */}
+      <WithoutComponentParameters {...locator.withoutComponentParameters({bar: 'baz'})} />
+
+      {/* @ts-expect-error */}
+      <SameParameters {...locator.sameParameters()} />
+      {/* @ts-expect-error */}
+      <SameParameters {...locator.sameParameters({})} />
+      {/* @ts-expect-error */}
+      <SameParameters {...locator.sameParameters({bar: ''})} />
+      {/* @ts-expect-error */}
+      <SameParameters />
+      {/* @ts-expect-error */}
+      <SameParameters {...locator.withoutComponentParameters()} />
+      {/* @ts-expect-error */}
+      <SameParameters {...locator.withComponentParameters({bar: 'baz'})} />
+      <SameParameters {...locator.sameParameters({foo: 'baz'})} />
+      {/* @ts-expect-error */}
+      <a {...locator.sameParameters({foo: 'baz'})}></a>
+    </div>
+  );
+};
+
+export const mappedSwitchLocator = createLocator<SwitchLocator, Selector>('root', {
+  mapAttributes() {
+    return {} as Selector;
+  },
+});
+
+true satisfies IsEqual<typeof mappedSwitchLocator, CreateLocator<SwitchLocator, Selector>>;
+
+// @ts-expect-error
+mappedSwitchLocator.withoutComponentParameters();
+mappedSwitchLocator.withoutComponentParameters({foo: 'bar'});
+// @ts-expect-error
+mappedSwitchLocator.withoutComponentParameters({bar: 'baz'});
+
+// @ts-expect-error
+mappedSwitchLocator.withComponentParameters();
+mappedSwitchLocator.withComponentParameters({foo: 'bar'});
+// @ts-expect-error
+mappedSwitchLocator.withComponentParameters({bar: 'baz'});
+
+// @ts-expect-error
+mappedSwitchLocator.sameParameters();
+mappedSwitchLocator.sameParameters({foo: 'bar'});
+// @ts-expect-error
+mappedSwitchLocator.sameParameters({bar: 'baz'});
+
+export const OptionalSwitch = (properties: Partial<Mark<SwitchLocator>>) => {
+  const locator = createLocator(properties);
+
+  return (
+    <div {...locator()}>
+      {/* @ts-expect-error */}
+      <WithComponentParameters {...locator.withComponentParameters()} />
+      {/* @ts-expect-error */}
+      <WithComponentParameters {...locator.withComponentParameters({})} />
+      {/* @ts-expect-error */}
+      <WithComponentParameters {...locator.withComponentParameters({foo: ''})} />
+      {/* @ts-expect-error */}
+      <WithComponentParameters {...locator.withComponentParameters({bar: ''})} />
+      {/* @ts-expect-error */}
+      <WithComponentParameters />
+      {/* @ts-expect-error */}
+      <WithComponentParameters {...locator.withoutComponentParameters()} />
+      {/* @ts-expect-error */}
+      <WithComponentParameters {...locator.sameParameters({foo: 'bar'})} />
+      <WithComponentParameters {...locator.withComponentParameters({bar: 'baz'})} />
+      {/* @ts-expect-error */}
+      <a {...locator.withComponentParameters({bar: 'baz'})}></a>
+
+      {/* @ts-expect-error */}
+      <WithoutComponentParameters />
+      <WithoutComponentParameters {...locator.withComponentParameters({bar: 'baz'})} />
+      <WithoutComponentParameters {...locator.sameParameters({foo: 'baz'})} />
+      {/* @ts-expect-error */}
+      <WithoutComponentParameters {...locator.withComponentParameters({foo: 'bar'})} />
+      <WithoutComponentParameters {...locator.withoutComponentParameters()} />
+      {/* @ts-expect-error */}
+      <WithoutComponentParameters {...locator.withoutComponentParameters({})} />
+      {/* @ts-expect-error */}
+      <WithoutComponentParameters {...locator.withoutComponentParameters({foo: 'bar'})} />
+      {/* @ts-expect-error */}
+      <WithoutComponentParameters {...locator.withoutComponentParameters({bar: 'baz'})} />
+
+      {/* @ts-expect-error */}
+      <SameParameters {...locator.sameParameters()} />
+      {/* @ts-expect-error */}
+      <SameParameters {...locator.sameParameters({})} />
+      {/* @ts-expect-error */}
+      <SameParameters {...locator.sameParameters({bar: ''})} />
+      {/* @ts-expect-error */}
+      <SameParameters />
+      {/* @ts-expect-error */}
+      <SameParameters {...locator.withoutComponentParameters()} />
+      {/* @ts-expect-error */}
+      <SameParameters {...locator.withComponentParameters({bar: 'baz'})} />
+      <SameParameters {...locator.sameParameters({foo: 'baz'})} />
+      {/* @ts-expect-error */}
+      <a {...locator.sameParameters({foo: 'baz'})}></a>
+    </div>
+  );
+};
 
 /**
  * Base tests of LocatorConstraint.
@@ -1170,8 +1505,14 @@ false satisfies IsEqual<
 >;
 
 true satisfies IsEqual<
-  [unknown, unknown, unknown, unknown],
+  [unknown, unknown, unknown, unknown, unknown, unknown, unknown],
   [
+    // @ts-expect-error
+    LocatorOfElement<string>,
+    // @ts-expect-error
+    LocatorOfElement<{}, string>,
+    // @ts-expect-error
+    LocatorOfElement<{}, {}, 'SameParameters'>,
     LocatorOfElement<never>,
     LocatorOfElement<{foo: void}, never>,
     LocatorOfElement<void, never>,
@@ -1218,7 +1559,11 @@ export const OptionalComponentLikeElement = (
   return <div {...locator()}></div>;
 };
 
-export type ComponentWithLocatorOfElementLocator = LocatorOfElement<{foo: void}, {bar?: string}>;
+export type ComponentWithLocatorOfElementLocator = LocatorOfElement<
+  {foo: void},
+  {bar?: string},
+  'sameParameters'
+>;
 type ComponentWithLocatorOfElementProperties = React.AriaAttributes &
   Mark<ComponentWithLocatorOfElementLocator>;
 type OptionalComponentWithLocatorOfElementProperties = React.AriaAttributes &
@@ -1260,6 +1605,42 @@ export const OptionalComponentWithLocatorOfElement = (
   );
 };
 
+export const NotElementComponentWithLocatorOfElement = (
+  properties: Mark<ComponentWithLocatorOfElementLocator>,
+) => {
+  // @ts-expect-error
+  const locator = createLocator(properties);
+  // @ts-expect-error
+  const locatorParameters = getLocatorParameters(properties);
+  // @ts-expect-error
+  const propertiesWithoutMark = removeMarkFromProperties(properties);
+
+  true satisfies IsEqual<typeof locator, unknown>;
+  true satisfies IsEqual<typeof locatorParameters, unknown>;
+  true satisfies IsEqual<typeof propertiesWithoutMark, unknown>;
+
+  // @ts-expect-error
+  return <div {...locator()}></div>;
+};
+
+export const OptionalNotElementComponentWithLocatorOfElement = (
+  properties: Partial<Mark<ComponentWithLocatorOfElementLocator>>,
+) => {
+  // @ts-expect-error
+  const locator = createLocator(properties);
+  // @ts-expect-error
+  const locatorParameters = getLocatorParameters(properties);
+  // @ts-expect-error
+  const propertiesWithoutMark = removeMarkFromProperties(properties);
+
+  true satisfies IsEqual<typeof locator, unknown>;
+  true satisfies IsEqual<typeof locatorParameters, unknown>;
+  true satisfies IsEqual<typeof propertiesWithoutMark, unknown>;
+
+  // @ts-expect-error
+  return <div {...locator()}></div>;
+};
+
 export type WidgetLocator = Locator<{
   componentLikeElement: ComponentLikeElementLocator;
   optionalComponentLikeElement: ComponentLikeElementLocator;
@@ -1297,6 +1678,260 @@ export const Widget = (properties: Partial<Mark<WidgetLocator>>) => {
   );
 };
 
+export type WithComponentParametersLocatorOfElement = LocatorOfElement<
+  {label: LabelLocator},
+  {foo: string},
+  SomeParameters
+>;
+
+export const WithComponentParametersLikeElement = (
+  properties: Mark<WithComponentParametersLocatorOfElement> & React.AriaAttributes,
+) => {
+  const locator = createLocator(properties);
+  const locatorParameters = getLocatorParameters(properties);
+
+  true satisfies IsEqual<typeof locatorParameters, SomeParameters>;
+
+  return (
+    <div {...locator({foo: locatorParameters.bar})}>
+      {/* @ts-expect-error */}
+      <span {...locator(locatorParameters)}></span>
+      {/* @ts-expect-error */}
+      <span {...locator}></span>
+      {/* @ts-expect-error */}
+      <span {...locator()}></span>
+      {/* @ts-expect-error */}
+      <span {...locator({})}></span>
+      {/* @ts-expect-error */}
+      <span {...locator({bar: 'foo'})}></span>
+    </div>
+  );
+};
+
+export type WithoutComponentParametersLocatorOfElement = LocatorOfElement<
+  {label: LabelLocator},
+  {foo: string}
+>;
+
+export const WithoutComponentParametersLikeElement = (
+  properties: Mark<WithoutComponentParametersLocatorOfElement> & React.AriaAttributes,
+) => {
+  const locator = createLocator(properties);
+  // @ts-expect-error
+  const locatorParameters = getLocatorParameters(properties);
+
+  true satisfies IsEqual<typeof locatorParameters, unknown>;
+
+  return (
+    <div {...locator({foo: 'bar'})}>
+      {/* @ts-expect-error */}
+      <span {...locator}></span>
+      {/* @ts-expect-error */}
+      <span {...locator()}></span>
+      {/* @ts-expect-error */}
+      <span {...locator({})}></span>
+      {/* @ts-expect-error */}
+      <span {...locator({bar: 'foo'})}></span>
+    </div>
+  );
+};
+
+export type SameParametersLocatorOfElement = LocatorOfElement<
+  {label: LabelLocator},
+  {foo: string},
+  'sameParameters'
+>;
+
+true satisfies IsEqual<
+  SameParametersLocatorOfElement,
+  LocatorOfElement<{label: LabelLocator}, {foo: string}, {foo: string}>
+>;
+false satisfies IsEqual<
+  SameParametersLocatorOfElement,
+  Locator<{label: LabelLocator}, {foo: string}, {readonly foo: string}>
+>;
+false satisfies IsEqual<
+  SameParametersLocatorOfElement,
+  Locator<{label: LabelLocator}, {foo: string}, {foo?: string}>
+>;
+
+export const SameParametersLikeElement = (
+  properties: Mark<SameParametersLocatorOfElement> & React.AriaAttributes,
+) => {
+  const locator = createLocator(properties);
+  const locatorParameters = getLocatorParameters(properties);
+
+  true satisfies IsEqual<typeof locatorParameters, {foo: string}>;
+
+  return (
+    <div {...locator({foo: locatorParameters.foo})}>
+      <span {...locator(locatorParameters)}></span>
+      {/* @ts-expect-error */}
+      <span {...locator}></span>
+      {/* @ts-expect-error */}
+      <span {...locator()}></span>
+      {/* @ts-expect-error */}
+      <span {...locator({})}></span>
+      {/* @ts-expect-error */}
+      <span {...locator({bar: 'foo'})}></span>
+    </div>
+  );
+};
+
+export type SwitchLocatorOfElement = Locator<{
+  sameParameters: SameParametersLocatorOfElement;
+  withComponentParameters: WithComponentParametersLocatorOfElement;
+  withoutComponentParameters: WithoutComponentParametersLocatorOfElement;
+}>;
+
+export const SwitchLikeElement = (properties: Mark<SwitchLocatorOfElement>) => {
+  const locator = createLocator(properties);
+
+  return (
+    <div {...locator()}>
+      {/* @ts-expect-error */}
+      <WithComponentParametersLikeElement {...locator.withComponentParameters()} />
+      {/* @ts-expect-error */}
+      <WithComponentParametersLikeElement {...locator.withComponentParameters({})} />
+      {/* @ts-expect-error */}
+      <WithComponentParametersLikeElement {...locator.withComponentParameters({foo: ''})} />
+      {/* @ts-expect-error */}
+      <WithComponentParametersLikeElement {...locator.withComponentParameters({bar: ''})} />
+      {/* @ts-expect-error */}
+      <WithComponentParametersLikeElement />
+      {/* @ts-expect-error */}
+      <WithComponentParametersLikeElement {...locator.withoutComponentParameters()} />
+      {/* @ts-expect-error */}
+      <WithComponentParametersLikeElement {...locator.sameParameters({foo: 'bar'})} />
+      <WithComponentParametersLikeElement {...locator.withComponentParameters({bar: 'baz'})} />
+      <a {...locator.withComponentParameters({bar: 'baz'})}></a>
+
+      {/* @ts-expect-error */}
+      <WithoutComponentParametersLikeElement />
+      <WithoutComponentParametersLikeElement {...locator.withComponentParameters({bar: 'baz'})} />
+      <WithoutComponentParametersLikeElement {...locator.sameParameters({foo: 'baz'})} />
+      {/* @ts-expect-error */}
+      <WithoutComponentParametersLikeElement {...locator.withComponentParameters({foo: 'bar'})} />
+      <WithoutComponentParametersLikeElement {...locator.withoutComponentParameters()} />
+      {/* @ts-expect-error */}
+      <WithoutComponentParametersLikeElement {...locator.withoutComponentParameters({})} />
+      <WithoutComponentParametersLikeElement
+        // @ts-expect-error
+        {...locator.withoutComponentParameters({foo: 'bar'})}
+      />
+      <WithoutComponentParametersLikeElement
+        // @ts-expect-error
+        {...locator.withoutComponentParameters({bar: 'baz'})}
+      />
+
+      {/* @ts-expect-error */}
+      <SameParametersLikeElement {...locator.sameParameters()} />
+      {/* @ts-expect-error */}
+      <SameParametersLikeElement {...locator.sameParameters({})} />
+      {/* @ts-expect-error */}
+      <SameParametersLikeElement {...locator.sameParameters({bar: ''})} />
+      {/* @ts-expect-error */}
+      <SameParametersLikeElement />
+      {/* @ts-expect-error */}
+      <SameParametersLikeElement {...locator.withoutComponentParameters()} />
+      {/* @ts-expect-error */}
+      <SameParametersLikeElement {...locator.withComponentParameters({bar: 'baz'})} />
+      <SameParametersLikeElement {...locator.sameParameters({foo: 'baz'})} />
+      <a {...locator.sameParameters({foo: 'baz'})}></a>
+    </div>
+  );
+};
+
+export const OptionalSwitchLikeElement = (properties: Partial<Mark<SwitchLocatorOfElement>>) => {
+  const locator = createLocator(properties);
+
+  return (
+    <div {...locator()}>
+      {/* @ts-expect-error */}
+      <WithComponentParametersLikeElement {...locator.withComponentParameters()} />
+      {/* @ts-expect-error */}
+      <WithComponentParametersLikeElement {...locator.withComponentParameters({})} />
+      {/* @ts-expect-error */}
+      <WithComponentParametersLikeElement {...locator.withComponentParameters({foo: ''})} />
+      {/* @ts-expect-error */}
+      <WithComponentParametersLikeElement {...locator.withComponentParameters({bar: ''})} />
+      {/* @ts-expect-error */}
+      <WithComponentParametersLikeElement />
+      {/* @ts-expect-error */}
+      <WithComponentParametersLikeElement {...locator.withoutComponentParameters()} />
+      {/* @ts-expect-error */}
+      <WithComponentParametersLikeElement {...locator.sameParameters({foo: 'bar'})} />
+      <WithComponentParametersLikeElement {...locator.withComponentParameters({bar: 'baz'})} />
+      <a {...locator.withComponentParameters({bar: 'baz'})}></a>
+
+      {/* @ts-expect-error */}
+      <WithoutComponentParametersLikeElement />
+      <WithoutComponentParametersLikeElement {...locator.withComponentParameters({bar: 'baz'})} />
+      <WithoutComponentParametersLikeElement {...locator.sameParameters({foo: 'baz'})} />
+      {/* @ts-expect-error */}
+      <WithoutComponentParametersLikeElement {...locator.withComponentParameters({foo: 'bar'})} />
+      <WithoutComponentParametersLikeElement {...locator.withoutComponentParameters()} />
+      {/* @ts-expect-error */}
+      <WithoutComponentParametersLikeElement {...locator.withoutComponentParameters({})} />
+      <WithoutComponentParametersLikeElement
+        // @ts-expect-error
+        {...locator.withoutComponentParameters({foo: 'bar'})}
+      />
+      <WithoutComponentParametersLikeElement
+        // @ts-expect-error
+        {...locator.withoutComponentParameters({bar: 'baz'})}
+      />
+
+      {/* @ts-expect-error */}
+      <SameParametersLikeElement {...locator.sameParameters()} />
+      {/* @ts-expect-error */}
+      <SameParametersLikeElement {...locator.sameParameters({})} />
+      {/* @ts-expect-error */}
+      <SameParametersLikeElement {...locator.sameParameters({bar: ''})} />
+      {/* @ts-expect-error */}
+      <SameParametersLikeElement />
+      {/* @ts-expect-error */}
+      <SameParametersLikeElement {...locator.withoutComponentParameters()} />
+      {/* @ts-expect-error */}
+      <SameParametersLikeElement {...locator.withComponentParameters({bar: 'baz'})} />
+      <SameParametersLikeElement {...locator.sameParameters({foo: 'baz'})} />
+      <a {...locator.sameParameters({foo: 'baz'})}></a>
+    </div>
+  );
+};
+
+export const mappedSwitchLocatorOfElement = createLocator<SwitchLocatorOfElement, Selector>(
+  'root',
+  {
+    mapAttributes() {
+      return {} as Selector;
+    },
+  },
+);
+
+true satisfies IsEqual<
+  typeof mappedSwitchLocatorOfElement,
+  CreateLocator<SwitchLocatorOfElement, Selector>
+>;
+
+// @ts-expect-error
+mappedSwitchLocatorOfElement.withoutComponentParameters();
+mappedSwitchLocatorOfElement.withoutComponentParameters({foo: 'bar'});
+// @ts-expect-error
+mappedSwitchLocatorOfElement.withoutComponentParameters({bar: 'baz'});
+
+// @ts-expect-error
+mappedSwitchLocatorOfElement.withComponentParameters();
+mappedSwitchLocatorOfElement.withComponentParameters({foo: 'bar'});
+// @ts-expect-error
+mappedSwitchLocatorOfElement.withComponentParameters({bar: 'baz'});
+
+// @ts-expect-error
+mappedSwitchLocatorOfElement.sameParameters();
+mappedSwitchLocatorOfElement.sameParameters({foo: 'bar'});
+// @ts-expect-error
+mappedSwitchLocatorOfElement.sameParameters({bar: 'baz'});
+
 /**
  * Base tests of Mark.
  */
@@ -1325,8 +1960,10 @@ type FooLocator = Locator<{foo: AppLocator; node: Node<{baz: {}}>}, {bar: string
 true satisfies IsEqual<FooLocator, CreateLocator<Mark<FooLocator>>>;
 
 true satisfies IsEqual<
-  [unknown, unknown, unknown, unknown, unknown, unknown, unknown],
+  [unknown, unknown, unknown, unknown, unknown, unknown, unknown, unknown],
   [
+    // @ts-expect-error
+    Mark<string>,
     // @ts-expect-error
     Mark<Partial<Locator<{foo: {}}>>>,
     // @ts-expect-error
@@ -1373,8 +2010,17 @@ true satisfies IsEqual<Node<void, {foo: string}>, Node<undefined, {foo: string}>
 false satisfies IsEqual<Node<void, {foo: string}>, Node<undefined, {foo?: string}>>;
 
 true satisfies IsEqual<
-  [unknown, unknown, unknown, unknown],
-  [Node<never>, Node<{foo: void}, never>, Node<void, never>, Node<never, void>]
+  [unknown, unknown, unknown, unknown, unknown, unknown],
+  [
+    // @ts-expect-error
+    Node<string>,
+    // @ts-expect-error
+    Node<{}, string>,
+    Node<never>,
+    Node<{foo: void}, never>,
+    Node<void, never>,
+    Node<never, void>,
+  ]
 >;
 
 /**
@@ -1492,7 +2138,7 @@ const neverProperties = removeMarkFromProperties(neverValue);
 
 true satisfies IsEqual<typeof neverProperties, unknown>;
 
-type ButtonLocator = Locator<{bar: {}}, {type: string}>;
+type ButtonLocator = Locator<{bar: {}}, {type: string}, 'sameParameters'>;
 type ButtonOwnProperties = {[SYMBOL]: bigint; foo?: number; bar: boolean};
 type ButtonProperties = {children: unknown} & ButtonOwnProperties & Mark<ButtonLocator>;
 type ButtonOwnPropertiesWithReadonly = {foo?: 'baz'; readonly bar: boolean};
@@ -1759,7 +2405,7 @@ export const PageWrapper = (properties: Mark<PageWrapperLocator>) => {
 /**
  * Tests of locator with parameters.
  */
-type PanelWithParametersLocator = Locator<{}, {foo: string}>;
+type PanelWithParametersLocator = Locator<{}, {foo: string}, 'sameParameters'>;
 type SomeProperties = {foo: 'bar'};
 
 const PanelWithParameters = (properties: Mark<PanelWithParametersLocator>) => {
@@ -1981,7 +2627,8 @@ export const panels = (
  */
 export type ComponentWithRequiredParametersLocator = Locator<
   {foo: {bar: string}; qux: {quux?: string}; corge: Node<{foo: {baz: string}}, {waldo: string}>},
-  {baz: string}
+  {baz: string},
+  'sameParameters'
 >;
 
 export const ComponentWithRequiredParameters = (
@@ -2045,7 +2692,8 @@ export type ComponentWithRequiredSymbolParametersLocator = Locator<
     qux: {[SYMBOL]?: string};
     corge: Node<{foo: {[SYMBOL]: string}}, {[SYMBOL]: string}>;
   },
-  {[SYMBOL]: string}
+  {[SYMBOL]: string},
+  'sameParameters'
 >;
 
 export const ComponentWithRequiredSymbolParameters = (
@@ -2095,7 +2743,8 @@ export const ComponentWithRequiredSymbolParameters = (
 
 export type ComponentWithoutRequiredParametersLocator = Locator<
   {foo: {bar?: string}; qux: {quux: string}; corge: Node<{foo: {baz?: string}}, {waldo?: string}>},
-  {baz?: string}
+  {baz?: string},
+  'sameParameters'
 >;
 
 export const ComponentWithoutRequiredParameters = (
@@ -2154,7 +2803,8 @@ export type ComponentWithoutSymbolRequiredParametersLocator = Locator<
     qux: {[SYMBOL]: string};
     corge: Node<{foo: {[SYMBOL]?: string}}, {[SYMBOL]?: string}>;
   },
-  {[SYMBOL]?: string}
+  {[SYMBOL]?: string},
+  'sameParameters'
 >;
 
 export const ComponentWithoutSymbolRequiredParameters = (
@@ -2300,7 +2950,11 @@ type RenderedLocatorWithSymbolInParameters = Locator<{header: HeaderLocator}, {[
 
 false satisfies IsEqual<RenderedLocator, RenderedLocatorWithSymbolInParameters>;
 
-type RenderedLocatorWithOptionalParameters = Locator<{header: HeaderLocator}, {foo?: string}>;
+type RenderedLocatorWithOptionalParameters = Locator<
+  {header: HeaderLocator},
+  {foo?: string},
+  'sameParameters'
+>;
 
 const Sublink = (properties: Mark<RenderedLocatorWithOptionalParameters>) => {
   const locator = createLocator(properties);
@@ -2337,7 +2991,8 @@ export const Link = (properties: LinkProperties) => {
 
 type RenderedLocatorWithOtherOptionalParameters = Locator<
   {header: HeaderLocator},
-  {foo?: `foo${string}`}
+  {foo?: `foo${string}`},
+  'sameParameters'
 >;
 
 const RenderedWithOptionalParameters = (
@@ -2393,7 +3048,8 @@ type PanelLocator = Locator<
     otherRendered: RenderedLocatorWithOtherOptionalParameters;
     renderedWithParameters: RenderedNodeWithParameters;
   },
-  {quux: string}
+  {quux: string},
+  'sameParameters'
 >;
 
 const Panel = (properties: Mark<PanelLocator>) => {
