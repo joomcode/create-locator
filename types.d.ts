@@ -70,7 +70,7 @@ type CreateRootLocatorWithMapping = <RootLocator extends WithLocator, MapResult>
 /**
  * Generates a type error with some message on HTML element.
  */
-type ElementAttributeError<out Message extends string | undefined = undefined> = {
+type ElementAttributeError<Message extends string | undefined = undefined> = {
   readonly [Key in ErrorAttribute]?: Message | ErrorAttributeBaseType;
 };
 
@@ -198,7 +198,7 @@ type LocatorFromLocatorTree<Tree> = BaseNode<
 /**
  * The function part of the base node or normalized base node.
  */
-type LocatorFunction<in out Parameters, out Return> = (
+type LocatorFunction<Parameters, Return> = (
   this: void,
   ...arguments: LocatorArguments<Parameters>
 ) => Return;
@@ -286,7 +286,7 @@ type NormalizeSubnode<Subnode, MapResult> = Subnode extends WithHidden
 /**
  * Normalize subnodes of locator tree.
  */
-type NormalizeSubnodes<Subnodes, in out MapResult> = {
+type NormalizeSubnodes<Subnodes, MapResult> = {
   readonly [Key in string & keyof Subnodes]: TreeNode<
     Key,
     NormalizeSubnode<UnwrapTree<Subnodes[Key]>, MapResult>
@@ -352,39 +352,39 @@ type UnwrapTree<Tree> = Tree extends WithTree ? Tree[TreeKey] : Tree;
 /**
  * Any node of locator tree with some component parameters.
  */
-type WithComponentParameters<out Parameters = unknown> = Readonly<
+type WithComponentParameters<Parameters = unknown> = Readonly<
   Record<ComponentParametersKey, Parameters>
 >;
 
 /**
  * Object with hidden normalized tree of locators.
  */
-type WithHidden<out NormalizedTree = object> = Readonly<Record<HiddenKey, NormalizedTree>>;
+type WithHidden<NormalizedTree = object> = Readonly<Record<HiddenKey, NormalizedTree>>;
 
 /**
  * Object with locator key with locator kind (it's locator itself).
  */
-type WithLocator<out Kind = string> = Readonly<Record<LocatorKey, Kind>>;
+type WithLocator<Kind = string> = Readonly<Record<LocatorKey, Kind>>;
 
 /**
  * Object with mark with locator tree (unnormalized tree of locators, produced by Locator<...>).
  */
-type WithMark<out Tree = object> = Readonly<Record<MarkKey, Tree>>;
+type WithMark<Tree = object> = Readonly<Record<MarkKey, Tree>>;
 
 /**
  * Object with node locator (produced by Node<...>).
  */
-type WithNode<out Tree = object> = Readonly<Record<NodeKey, Tree>>;
+type WithNode<Tree = object> = Readonly<Record<NodeKey, Tree>>;
 
 /**
  * Any node of locator tree with some parameters.
  */
-type WithParameters<out Parameters = unknown> = Readonly<Record<ParametersKey, Parameters>>;
+type WithParameters<Parameters = unknown> = Readonly<Record<ParametersKey, Parameters>>;
 
 /**
  * Object with tree of locators under some prototype key.
  */
-type WithTree<out Tree = object> = Readonly<Record<TreeKey, Tree>>;
+type WithTree<Tree = object> = Readonly<Record<TreeKey, Tree>>;
 
 /**
  * Any locator, that is locator that matches any other locators (for use in unit tests).
@@ -548,7 +548,7 @@ export type LocatorOfElement<
 /**
  * Additional option of root locator for mapping attributes.
  */
-export type MapAttributes<out MapResult> = {
+export type MapAttributes<MapResult> = {
   readonly mapAttributes: (this: void, attributes: Attributes) => MapResult;
 };
 
