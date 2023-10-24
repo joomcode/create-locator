@@ -28,7 +28,7 @@ let baselineUsage: Record<string, number>;
 let previousUsage = process.memoryUsage();
 let tickCount = 0;
 
-const getTickCountString = (ticks: number) => `${Math.round(ticks / 1000)} K ticks`;
+const getTickCountString = (ticks: number) => `${Math.round(ticks / 1000)}K ticks`;
 
 const processDiff = (
   assertLimits: boolean,
@@ -64,9 +64,9 @@ const processDiff = (
 
   if (assertLimits) {
     if (isLimitExceeded) {
-      throw new Error(`Limit of +${bytesPerTickLimit} bytes per tick limit exceeded`);
+      throw new Error(`Limit of +${bytesPerTickLimit} bytes per tick exceeded`);
     } else {
-      ok(`Limit of +${bytesPerTickLimit} bytes per tick limit not exceeded`);
+      ok(`Limit of +${bytesPerTickLimit} bytes per tick not exceeded`);
     }
   }
 };
@@ -106,6 +106,12 @@ const tick = (): void => {
   const rootLocator = createLocator<Locator<void>>('app');
 
   createLocatorByTree(rootLocator, createRandomTree());
+
+  const mappedLocator = createLocator<Locator<void>, object>('app', {
+    mapAttributesChain: (attributesChain) => attributesChain,
+  });
+
+  createLocatorByTree(mappedLocator as typeof anyLocator, createRandomTree());
 
   process.nextTick(tick);
 };

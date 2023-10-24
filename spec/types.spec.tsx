@@ -2,6 +2,8 @@ import React from 'react';
 
 import {
   anyLocator,
+  type AnyMark,
+  type Attributes,
   createLocator,
   type CreateLocator,
   getLocatorParameters,
@@ -17,6 +19,7 @@ import {
   type PropertiesWithMarkWithParametersConstraint,
   removeMarkFromProperties,
   type RemoveMarkFromProperties,
+  type RootOptions,
 } from 'create-locator';
 
 type L1 = Locator<{}>;
@@ -243,6 +246,12 @@ const propertiesWithAriaInvalid = {} as {'aria-invalid': React.AriaAttributes['a
 /**
  * Base tests of component, element and node locator.
  */
+const EmptyComponent = (properties: Mark<Locator<void>>) => {
+  const locator = createLocator(properties);
+
+  return <div {...locator()}></div>;
+};
+
 export type LabelLocator = Locator<{}, {level: string}, 'sameParameters'>;
 type LabelProperties = {level?: string; text: string} & Mark<LabelLocator>;
 
@@ -314,6 +323,10 @@ export const Multi = (properties: Mark<MultiLocator>) => {
       <Label text="bar" {...anyLocator()} />
       {/* @ts-expect-error */}
       <Label text="bar" {...anyLocator} />
+      {/* @ts-expect-error */}
+      <EmptyComponent {...locator({level: levelString})} />
+      {/* @ts-expect-error */}
+      <EmptyComponent {...locator()} />
     </div>
   );
 };
@@ -409,6 +422,8 @@ export const Header = ({foo, ...rest}: HeaderProperties) => {
   // @ts-expect-error
   locator.bind.foo;
 
+  const voidLocator = {} as Locator<void>;
+
   return (
     <h1 {...locator()}>
       Header
@@ -466,6 +481,10 @@ export const Header = ({foo, ...rest}: HeaderProperties) => {
       {/* @ts-expect-error */}
       <span {...locator.subtree.name({level: '1'})}></span>
       <Label text="bar" {...locator.subtree.name({level: '1'})} />
+      <div {...voidLocator()}></div>
+      <EmptyComponent {...voidLocator()} />
+      {/* @ts-expect-error */}
+      <Multi {...voidLocator()} />
     </h1>
   );
 };
@@ -516,9 +535,14 @@ export const ComponentWithElementProperties = (
   );
 };
 
+export enum Bar {
+  Baz = 'baz',
+  Qux = 'qux',
+}
+
 export type ComponentWithElementPropertiesWithParametersLocator = LocatorOfElement<
   {foo: {}},
-  {bar: 'baz' | 'qux'},
+  {bar: Bar},
   'sameParameters'
 >;
 
@@ -532,20 +556,42 @@ export const ComponentWithElementPropertiesWithParameters = (
   true satisfies IsEqual<typeof locator, CreateLocator<typeof properties>>;
 
   return (
-    <div aria-invalid={properties['aria-invalid']} {...locator({bar: 'baz'})}>
+    <div aria-invalid={properties['aria-invalid']} {...locator({bar: Bar.Baz})}>
       <span {...properties}></span>
       <span {...propertiesWithoutMark}></span>
       {/* @ts-expect-error */}
       <span {...locator()}></span>
-      <span {...locator({bar: 'qux'})}></span>
+      <span {...locator({bar: Bar.Qux})}></span>
       {/* @ts-expect-error */}
-      <span {...locator({bar: 'quxx'})}></span>
+      <span {...locator({bar: 'qux'})}></span>
     </div>
   );
 };
 
+const enum Text {
+  Foo = 'foo',
+  Bar = 'bar',
+}
+
+export type ArticleLocator = Locator<{label: LabelLocator}, {id: string}>;
+export type ArticleElementLocator = LocatorOfElement<
+  {label: LabelLocator},
+  {id: string},
+  {notId: string}
+>;
+
+export type ContentLocator = Locator<
+  {
+    article: ArticleLocator;
+    articleElement: ArticleElementLocator;
+  },
+  {text: Text}
+>;
+
 export type MainLocator = Locator<
   {
+    article: ArticleLocator;
+    articleElement: ArticleElementLocator;
     header: HeaderLocator;
     rendered: RenderedLocator;
     text: {value?: string};
@@ -553,12 +599,14 @@ export type MainLocator = Locator<
     withElementProperties: ComponentWithElementPropertiesLocator;
     withElementPropertiesWithParameters: ComponentWithElementPropertiesWithParametersLocator;
   },
-  {text: 'foo' | 'bar'},
+  {text: Text},
   'sameParameters'
 >;
 
 type MainVoidLocator = Locator<
   {
+    article: ArticleLocator;
+    articleElement: ArticleElementLocator;
     header: HeaderLocator;
     rendered: RenderedLocator;
     text: {value?: string};
@@ -566,7 +614,7 @@ type MainVoidLocator = Locator<
     withElementProperties: ComponentWithElementPropertiesLocator;
     withElementPropertiesWithParameters: ComponentWithElementPropertiesWithParametersLocator;
   },
-  {text: 'foo' | 'bar'},
+  {text: Text},
   'sameParameters'
 >;
 
@@ -603,7 +651,7 @@ export const Main = ({render, ...rest}: MainProperties) => {
   const textValue: {readonly value: string} = {value: 'bar'};
 
   return (
-    <main {...locator({text: 'foo'})}>
+    <main {...locator({text: Text.Foo})}>
       <Header {...locator.header()} />
       Some main text
       {rendered}
@@ -621,11 +669,11 @@ export const Main = ({render, ...rest}: MainProperties) => {
       {/* @ts-expect-error */}
       <ComponentWithElementPropertiesWithParameters {...locator.withElementProperties()} />
       <ComponentWithElementPropertiesWithParameters
-        {...locator.withElementPropertiesWithParameters({bar: 'baz'})}
+        {...locator.withElementPropertiesWithParameters({bar: Bar.Baz})}
       />
       {/* @ts-expect-error */}
       <ComponentWithElementProperties
-        {...locator.withElementPropertiesWithParameters({bar: 'baz'})}
+        {...locator.withElementPropertiesWithParameters({bar: Bar.Baz})}
       />
     </main>
   );
@@ -650,7 +698,7 @@ const MainWrapper = (properties: Mark<MainLocator>) => {
       <Main render={() => {}} {...locator} />
       {/* @ts-expect-error */}
       <Main render={() => {}} {...locator()} />
-      <Main render={() => {}} {...locator({text: 'bar'})} />
+      <Main render={() => {}} {...locator({text: Text.Bar})} />
       {/* @ts-expect-error */}
       <Main render={() => {}} {...anyLocator} />
       <Main render={() => {}} {...anyLocator()} />
@@ -659,7 +707,7 @@ const MainWrapper = (properties: Mark<MainLocator>) => {
       <Main render={() => {}} {...anyLocator({foo: 2})} />
       {/* @ts-expect-error */}
       <Main render={() => {}} {...anyLocator({}, {})} />
-      <span {...locator({text: 'bar'})}></span>
+      <span {...locator({text: Text.Bar})}></span>
     </div>
   );
 };
@@ -668,6 +716,7 @@ const MainWrapper = (properties: Mark<MainLocator>) => {
  * Base tests of root locator.
  */
 export type AppLocator = Locator<{
+  content: ContentLocator;
   header: HeaderLocator;
   readonly label: LabelLocator;
   main: MainLocator;
@@ -676,6 +725,7 @@ export type AppLocator = Locator<{
 }>;
 
 type AppVoidLocator = Locator<{
+  content: ContentLocator;
   header: HeaderLocator;
   readonly label: LabelLocator;
   main: MainLocator;
@@ -685,6 +735,7 @@ type AppVoidLocator = Locator<{
 
 type AppLocatorWithVoidParameters = Locator<
   {
+    content: ContentLocator;
     header: HeaderLocator;
     readonly label: LabelLocator;
     main: MainLocator;
@@ -710,13 +761,13 @@ createLocator('app', {foo: ''});
 // @ts-expect-error
 createLocator('app', {isProduction: true});
 // @ts-expect-error
-createLocator('app', {mapAttributes: () => {}});
+createLocator('app', {mapAttributesChain: () => {}});
 // @ts-expect-error
-createLocator<AppLocator>('app', {mapAttributes: () => {}});
+createLocator<AppLocator>('app', {mapAttributesChain: () => {}});
 // @ts-expect-error
-createLocator<AppLocator>('app', {mapAttributes: () => 3});
-createLocator<AppLocator, number>('app', {mapAttributes: () => 3});
-createLocator<AppLocator, void>('app', {mapAttributes: () => {}});
+createLocator<AppLocator>('app', {mapAttributesChain: () => 3});
+createLocator<AppLocator, number>('app', {mapAttributesChain: () => 3});
+createLocator<AppLocator, void>('app', {mapAttributesChain: () => {}});
 
 true satisfies IsEqual<typeof appLocator, AppLocator>;
 true satisfies IsEqual<CreateLocator<Mark<AppLocator>>, AppLocator>;
@@ -768,14 +819,14 @@ export const App = () => {
       {/* @ts-expect-error */}
       <Main render={render} {...appLocator.main()} />
       {/* @ts-expect-error */}
-      <Main render={render} {...appLocator.main({textFoo: 'foo'})} />
+      <Main render={render} {...appLocator.main({textFoo: Text.Foo})} />
       {/* @ts-expect-error */}
-      <Main render={render} {...appLocator.main({text: 'baz'})} />
       <Main render={render} {...appLocator.main({text: 'foo'})} />
+      <Main render={render} {...appLocator.main({text: Text.Foo})} />
       <Label level="1" text="baz" {...appLocator.label({level: 'baz'})} />
       {/* @ts-expect-error */}
       <MainWrapper {...appLocator.main()} />
-      <MainWrapper {...appLocator.main({text: 'foo'})} />
+      <MainWrapper {...appLocator.main({text: Text.Foo})} />
       {/* @ts-expect-error */}
       <Wrapper {...appLocator.header} />
       {/* @ts-expect-error */}
@@ -806,7 +857,7 @@ rootLocatorWithParameters({foo: ''});
 createLocator<Locator<{foo: {}}, {bar: string}>, symbol>('root');
 
 // @ts-expect-error
-createLocator<Locator<{foo: {}}, {bar: string}>, symbol>('root', {mapAttributes: () => {}});
+createLocator<Locator<{foo: {}}, {bar: string}>, symbol>('root', {mapAttributesChain: () => {}});
 
 /**
  * Base tests of root locator with attributes mapping.
@@ -815,7 +866,7 @@ type Selector = {readonly textContent: Promise<string>};
 
 export const rootLocator = createLocator<AppLocator, Selector>('app', {
   isProduction: true,
-  mapAttributes() {
+  mapAttributesChain() {
     return {} as Selector;
   },
   parameterAttributePrefix: 'data-test-',
@@ -834,38 +885,47 @@ const rootLocator1 = createLocator<AppLocator, Selector>('app');
 // @ts-expect-error
 const rootLocator2 = createLocator<AppLocator, Selector>('app', {});
 // @ts-expect-error
-const rootLocator3 = createLocator<AppLocator, Selector>('app', {mapAttributes() {}});
+const rootLocator3 = createLocator<AppLocator, Selector>('app', {mapAttributesChain() {}});
 
 true satisfies IsEqual<
   [AppLocator, AppLocator, AppLocator],
   [typeof rootLocator1, typeof rootLocator2, typeof rootLocator3]
 >;
 
-declare const mapAttributesToNever: () => never;
+declare const mapAttributesChainToNever: () => never;
 
 const mappedToNeverLocator = createLocator<AppLocator, never>('app', {
-  mapAttributes: mapAttributesToNever,
+  mapAttributesChain: mapAttributesChainToNever,
 });
 
 true satisfies IsEqual<typeof mappedToNeverLocator, CreateLocator<AppLocator, never>>;
 
 mappedToNeverLocator.header() satisfies never;
 
-const mapAttributes = (attributes: {}) => attributes as Selector;
+const mapAttributesChain = (attributesChain: {}) => attributesChain as Selector;
 
 // @ts-expect-error
-const appLocator1 = createLocator<Partial<AppLocator>, Selector>('app', {mapAttributes});
+const appLocator1 = createLocator<Partial<AppLocator>, Selector>('app', {mapAttributesChain});
 
-const appLocator2 = createLocator<AppLocator, Selector>('app', {mapAttributes});
+const appLocator2 = createLocator<AppLocator, Selector>('app', {mapAttributesChain});
 
 true satisfies IsEqual<typeof appLocator1, unknown>;
 
 true satisfies IsEqual<typeof appLocator2, CreateLocator<AppLocator, Selector>>;
 
 rootLocator() satisfies Selector;
-rootLocator.main({text: 'foo'}) satisfies Selector;
-rootLocator.main.header.alsoSubtree.corge({bar: 'foo'}) satisfies Selector;
+rootLocator.main({text: Text.Foo}) satisfies {header: object};
+rootLocator.main({text: Text.Foo})() satisfies Selector;
+// @ts-expect-error
+rootLocator.main({text: Text.Foo})({text: Text.Foo}) satisfies object;
+rootLocator.main.header.alsoSubtree.corge({bar: 'foo'})() satisfies Selector;
+rootLocator.main.header.alsoSubtree.corge() satisfies Selector;
 rootLocator.main.header.alsoSubtree.corge.garply() satisfies Selector;
+
+const corgeSelector = rootLocator.main.header.alsoSubtree.corge();
+const corgeSelectorWithParameters = rootLocator.main.header.alsoSubtree.corge({bar: 'foo'})();
+
+true satisfies IsEqual<typeof corgeSelector, typeof corgeSelectorWithParameters>;
 
 // @ts-expect-error
 locator.main.header.header;
@@ -876,15 +936,124 @@ locator.main.header.alsoSubtree.corge({bar: 'baz'});
 const rootLocatorWithParametersWithMapping = createLocator<
   Locator<{foo: {}}, {bar: string}>,
   symbol
->('root', {mapAttributes: () => Symbol()});
+>('root', {mapAttributesChain: () => Symbol()});
 
-// @ts-expect-error
 rootLocatorWithParametersWithMapping();
 
 // @ts-expect-error
 rootLocatorWithParametersWithMapping({bar: 2});
 
 rootLocatorWithParametersWithMapping({bar: ''});
+
+// @ts-expect-error
+rootLocator.header({});
+
+rootLocator.main.article.label() satisfies Selector;
+// @ts-expect-error
+rootLocator.main().article.label() satisfies Selector;
+rootLocator.main({text: Text.Bar}).article.label() satisfies Selector;
+rootLocator.main({text: Text.Bar}).article({id: '12345'}).label() satisfies Selector;
+// @ts-expect-error
+rootLocator.main({text: Text.Bar}).article({id: 12345}).label() satisfies Selector;
+// @ts-expect-error
+rootLocator.main({text: Text.Bar}).article().label() satisfies Selector;
+rootLocator.main({text: Text.Bar}).article({id: '12345'}).label({level: '3'})() satisfies Selector;
+rootLocator.main.article({id: '12345'}).label({level: '3'})() satisfies Selector;
+rootLocator.main.article.label({level: '3'})() satisfies Selector;
+rootLocator.main.article({id: '12345'}).label() satisfies Selector;
+rootLocator.main.article.label() satisfies Selector;
+rootLocator.main({text: Text.Bar}).article.label({level: '3'})() satisfies Selector;
+// @ts-expect-error
+rootLocator.main({text: 'baz'}).article.label({level: '3'})() satisfies Selector;
+// @ts-expect-error
+rootLocator.main({text: Text.Bar}).article().label({level: '3'})() satisfies Selector;
+rootLocator.main({text: Text.Bar}).article({id: '12345'}).label({level: '3'})(
+  // @ts-expect-error
+  {},
+) satisfies Selector;
+
+rootLocator.main.articleElement.label() satisfies Selector;
+// @ts-expect-error
+rootLocator.main().articleElement.label() satisfies Selector;
+rootLocator.main({text: Text.Bar}).articleElement.label() satisfies Selector;
+// @ts-expect-error
+rootLocator.main({text: Text.Bar}).articleElement().label() satisfies Selector;
+rootLocator.main({text: Text.Bar}).articleElement({id: '12345'}).label() satisfies Selector;
+// @ts-expect-error
+rootLocator.main({text: Text.Bar}).articleElement({id: 12345}).label() satisfies Selector;
+// @ts-expect-error
+rootLocator.main({text: Text.Bar}).articleElement().label() satisfies Selector;
+rootLocator
+  .main({text: Text.Bar})
+  .articleElement({id: '12345'})
+  .label({level: '3'})() satisfies Selector;
+rootLocator.main.articleElement({id: '12345'}).label({level: '3'})() satisfies Selector;
+rootLocator.main.articleElement.label({level: '3'})() satisfies Selector;
+rootLocator.main.articleElement({id: '12345'}).label() satisfies Selector;
+rootLocator.main.articleElement.label() satisfies Selector;
+rootLocator.main({text: Text.Bar}).articleElement.label({level: '3'})() satisfies Selector;
+// @ts-expect-error
+rootLocator.main({text: 'baz'}).articleElement.label({level: '3'})() satisfies Selector;
+// @ts-expect-error
+rootLocator.main({text: Text.Bar}).articleElement().label({level: '3'})() satisfies Selector;
+rootLocator.main({text: Text.Bar}).articleElement({id: '12345'}).label({level: '3'})(
+  // @ts-expect-error
+  {},
+) satisfies Selector;
+
+rootLocator.content.article.label() satisfies Selector;
+// @ts-expect-error
+rootLocator.content().article.label() satisfies Selector;
+rootLocator.content({text: Text.Bar}).article.label() satisfies Selector;
+rootLocator.content({text: Text.Bar}).article({id: '12345'}).label() satisfies Selector;
+// @ts-expect-error
+rootLocator.content({text: Text.Bar}).article({id: 12345}).label() satisfies Selector;
+// @ts-expect-error
+rootLocator.content({text: Text.Bar}).article().label() satisfies Selector;
+rootLocator
+  .content({text: Text.Bar})
+  .article({id: '12345'})
+  .label({level: '3'})() satisfies Selector;
+rootLocator.content.article({id: '12345'}).label({level: '3'})() satisfies Selector;
+rootLocator.content.article.label({level: '3'})() satisfies Selector;
+rootLocator.content.article({id: '12345'}).label() satisfies Selector;
+rootLocator.content.article.label() satisfies Selector;
+rootLocator.content({text: Text.Bar}).article.label({level: '3'})() satisfies Selector;
+// @ts-expect-error
+rootLocator.content({text: 'baz'}).article.label({level: '3'})() satisfies Selector;
+// @ts-expect-error
+rootLocator.content({text: Text.Bar}).article().label({level: '3'})() satisfies Selector;
+rootLocator.content({text: Text.Bar}).article({id: '12345'}).label({level: '3'})(
+  // @ts-expect-error
+  {},
+) satisfies Selector;
+
+rootLocator.content.articleElement.label() satisfies Selector;
+// @ts-expect-error
+rootLocator.content().articleElement.label() satisfies Selector;
+rootLocator.content({text: Text.Bar}).articleElement.label() satisfies Selector;
+rootLocator.content({text: Text.Bar}).articleElement({id: '12345'}).label() satisfies Selector;
+// @ts-expect-error
+rootLocator.content({text: Text.Bar}).articleElement({id: 12345}).label() satisfies Selector;
+// @ts-expect-error
+rootLocator.content({text: Text.Bar}).articleElement().label() satisfies Selector;
+rootLocator
+  .content({text: Text.Bar})
+  .articleElement({id: '12345'})
+  .label({level: '3'})() satisfies Selector;
+rootLocator.content.articleElement({id: '12345'}).label({level: '3'})() satisfies Selector;
+rootLocator.content.articleElement.label({level: '3'})() satisfies Selector;
+rootLocator.content.articleElement({id: '12345'}).label() satisfies Selector;
+rootLocator.content.articleElement.label() satisfies Selector;
+rootLocator.content({text: Text.Bar}).articleElement.label({level: '3'})() satisfies Selector;
+// @ts-expect-error
+rootLocator.content({text: 'baz'}).articleElement.label({level: '3'})() satisfies Selector;
+// @ts-expect-error
+rootLocator.content({text: Text.Bar}).articleElement().label({level: '3'})() satisfies Selector;
+rootLocator.content({text: Text.Bar}).articleElement({id: '12345'}).label({level: '3'})(
+  // @ts-expect-error
+  {},
+) satisfies Selector;
 
 /**
  * Base tests of static components.
@@ -917,10 +1086,12 @@ export type AnyLocator = typeof anyLocator;
 
 const anyMark = anyLocator();
 
-export type AnyMark = typeof anyMark;
+export type AnyMarkFromAnyLocator = typeof anyMark;
 
-true satisfies PropertiesWithMarkConstraint extends AnyMark ? true : false;
-true satisfies PropertiesWithMarkWithParametersConstraint extends AnyMark ? true : false;
+true satisfies PropertiesWithMarkConstraint extends AnyMarkFromAnyLocator ? true : false;
+true satisfies PropertiesWithMarkWithParametersConstraint extends AnyMarkFromAnyLocator
+  ? true
+  : false;
 
 true satisfies LabelLocator extends AnyLocator ? true : false;
 true satisfies MultiLocator extends AnyLocator ? true : false;
@@ -934,6 +1105,23 @@ true satisfies AppLocator extends AnyLocator ? true : false;
 false satisfies {} extends AnyLocator ? true : false;
 false satisfies {foo: any} extends AnyLocator ? true : false;
 false satisfies object extends AnyLocator ? true : false;
+
+<div {...anyMark}></div>;
+// @ts-expect-error
+<div {...anyLocator}></div>;
+
+/**
+ * Base tests of AnyMark.
+ */
+true satisfies IsEqual<AnyMark, AnyMarkFromAnyLocator>;
+
+/**
+ * Base tests of Attributes.
+ */
+export const someAttributes: Attributes = {
+  'data-testid': 'foo',
+  'data-test-bar': 'baz',
+};
 
 /**
  * Base tests of CreateLocator.
@@ -1090,6 +1278,21 @@ export const RenderedBanner = (properties: Mark<RenderedLocator>) => {
 };
 
 export type LayoutLocator = Locator<{foo: {bar: string} | {baz: string} | undefined}>;
+
+export function Row(props: Mark<ItemLocator>) {
+  const locator = createLocator(props);
+  const locatorParameters = getLocatorParameters(props);
+
+  return <div {...locator(locatorParameters)}></div>;
+}
+
+export type ItemLocator = Locator<void, {language: string}, 'sameParameters'>;
+
+export function Item(props: {children: string} & Mark<ItemLocator>) {
+  const locator = createLocator(props);
+
+  return <Row {...locator({language: 'en'})}>{props.children}</Row>;
+}
 
 /**
  * Base tests of GetLocatorParameters.
@@ -1366,26 +1569,23 @@ export const Switch = (properties: Mark<SwitchLocator>) => {
 };
 
 export const mappedSwitchLocator = createLocator<SwitchLocator, Selector>('root', {
-  mapAttributes() {
+  mapAttributesChain() {
     return {} as Selector;
   },
 });
 
 true satisfies IsEqual<typeof mappedSwitchLocator, CreateLocator<SwitchLocator, Selector>>;
 
-// @ts-expect-error
 mappedSwitchLocator.withoutComponentParameters();
 mappedSwitchLocator.withoutComponentParameters({foo: 'bar'});
 // @ts-expect-error
 mappedSwitchLocator.withoutComponentParameters({bar: 'baz'});
 
-// @ts-expect-error
 mappedSwitchLocator.withComponentParameters();
 mappedSwitchLocator.withComponentParameters({foo: 'bar'});
 // @ts-expect-error
 mappedSwitchLocator.withComponentParameters({bar: 'baz'});
 
-// @ts-expect-error
 mappedSwitchLocator.sameParameters();
 mappedSwitchLocator.sameParameters({foo: 'bar'});
 // @ts-expect-error
@@ -1669,6 +1869,7 @@ export const Widget = (properties: Partial<Mark<WidgetLocator>>) => {
       {/* @ts-expect-error */}
       <ComponentWithLocatorOfElement />
       <ComponentWithLocatorOfElement {...locator.componentWithLocatorOfElement()} />
+      <ComponentWithLocatorOfElement {...anyLocator()} />
       <div {...locator.componentWithLocatorOfElement()}></div>
 
       <OptionalComponentWithLocatorOfElement />
@@ -1903,7 +2104,7 @@ export const OptionalSwitchLikeElement = (properties: Partial<Mark<SwitchLocator
 export const mappedSwitchLocatorOfElement = createLocator<SwitchLocatorOfElement, Selector>(
   'root',
   {
-    mapAttributes() {
+    mapAttributesChain() {
       return {} as Selector;
     },
   },
@@ -1914,19 +2115,16 @@ true satisfies IsEqual<
   CreateLocator<SwitchLocatorOfElement, Selector>
 >;
 
-// @ts-expect-error
 mappedSwitchLocatorOfElement.withoutComponentParameters();
 mappedSwitchLocatorOfElement.withoutComponentParameters({foo: 'bar'});
 // @ts-expect-error
 mappedSwitchLocatorOfElement.withoutComponentParameters({bar: 'baz'});
 
-// @ts-expect-error
 mappedSwitchLocatorOfElement.withComponentParameters();
 mappedSwitchLocatorOfElement.withComponentParameters({foo: 'bar'});
 // @ts-expect-error
 mappedSwitchLocatorOfElement.withComponentParameters({bar: 'baz'});
 
-// @ts-expect-error
 mappedSwitchLocatorOfElement.sameParameters();
 mappedSwitchLocatorOfElement.sameParameters({foo: 'bar'});
 // @ts-expect-error
@@ -2240,6 +2438,30 @@ true satisfies IsEqual<
 >;
 
 /**
+ * Base tests of RootOptions.
+ */
+const rootOptions: RootOptions = {};
+
+export const alsoRootLocator = createLocator<LabelLocator>('root', rootOptions);
+
+rootOptions.isProduction satisfies boolean | undefined;
+rootOptions.mapAttributesChain satisfies Function | undefined;
+rootOptions.parameterAttributePrefix satisfies string | undefined;
+rootOptions.pathAttribute satisfies string | undefined;
+rootOptions.pathSeparator satisfies string | undefined;
+
+// @ts-expect-error
+rootOptions.isProduction = false;
+// @ts-expect-error
+rootOptions.mapAttributesChain = () => {};
+// @ts-expect-error
+rootOptions.parameterAttributePrefix = 'testid';
+// @ts-expect-error
+rootOptions.pathAttribute = 'data-test';
+// @ts-expect-error
+rootOptions.pathSeparator = '|';
+
+/**
  * Tests of component inheritance (via properties extension).
  */
 export const ButtonWithoutLocator = (properties: ButtonOwnProperties & {children: unknown}) => {
@@ -2269,8 +2491,6 @@ export const LogButton = ({namespace, ...rest}: LogButtonProperties) => {
   const restWithoutMark = removeMarkFromProperties(rest);
 
   true satisfies IsEqual<'children' | keyof ButtonOwnProperties, keyof typeof restWithoutMark>;
-
-  console.log(namespace);
 
   return (
     <>
@@ -2324,8 +2544,6 @@ export const ClearedLogButton = ({namespace, ...rest}: ClearedLogButtonPropertie
   const locatorParametersWithoutMark = getLocatorParameters(restWithoutMark);
 
   true satisfies IsEqual<typeof locatorParametersWithoutMark, unknown>;
-
-  console.log(namespace);
 
   return (
     <>
@@ -2862,14 +3080,14 @@ class HeaderPageObject {
   async assertLanguage() {
     // @ts-expect-error
     this.locator.foo({level: 1});
-    // @ts-expect-error
     this.locator.foo();
     // @ts-expect-error
     this.locator.multi.footer({});
     // @ts-expect-error
     this.locator.baz;
 
-    (await this.locator.foo({level: '1'}).textContent) satisfies string;
+    (await this.locator.foo({level: '1'})().textContent) satisfies string;
+    (await this.locator.foo().textContent) satisfies string;
     (await this.locator.multi.footer().textContent) satisfies string;
   }
 }

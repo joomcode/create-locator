@@ -7,7 +7,7 @@ import type {
 
 const attributes = {};
 
-const toString = () => '';
+const toString = (): string => '';
 
 export const anyLocator: AnyLocator = new Proxy(
   Object.setPrototypeOf(() => {}, null),
@@ -31,7 +31,11 @@ export const getLocatorParameters = (() => anyLocator) as GetLocatorParametersFu
 export const removeMarkFromProperties = ((properties) =>
   properties) as RemoveMarkFromPropertiesFunction;
 
+export const setGlobalProductionMode = (): void => {};
+
 export type {
+  AnyMark,
+  Attributes,
   CreateLocator,
   GetLocatorParameters,
   Locator,
@@ -44,4 +48,5 @@ export type {
   PropertiesWithMarkConstraint,
   PropertiesWithMarkWithParametersConstraint,
   RemoveMarkFromProperties,
+  RootOptions,
 } from './types';

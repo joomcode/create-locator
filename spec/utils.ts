@@ -4,6 +4,7 @@ import type {
   createLocator as originalCreateLocator,
   getLocatorParameters as originalGetLocatorParameters,
   removeMarkFromProperties as originalRemoveMarkFromProperties,
+  setGlobalProductionMode as originalSetGlobalProductionMode,
 } from 'create-locator';
 
 import type {Tree} from './memory.spec';
@@ -22,9 +23,10 @@ export type Api = readonly [
   createLocator: typeof originalCreateLocator,
   getLocatorParameters: typeof originalGetLocatorParameters,
   removeMarkFromProperties: typeof originalRemoveMarkFromProperties,
+  setGlobalProductionMode: typeof originalSetGlobalProductionMode,
 ];
 
-export function assert(value: unknown, message?: string): asserts value is true {
+export function assert(value: boolean, message?: string): asserts value is true {
   if (value !== true) {
     throw new TypeError(`❌ Assert "${message}" fails`);
   }
@@ -91,7 +93,7 @@ export const createRandomTree = (): Tree => {
   return tree;
 };
 
-export const getShallowCopy = <T>(value: T): T => {
+export const getShallowCopy = <Type>(value: Type): Type => {
   if (!value || (typeof value !== 'object' && typeof value !== 'function')) {
     return value;
   }
@@ -107,7 +109,7 @@ export const getShallowCopy = <T>(value: T): T => {
 
 export const {log} = console;
 
-export const ok = (message: string) => log(`\x1B[32m[OK]\x1B[39m ${message}`);
+export const ok = (message: string): void => log(`\x1B[32m[OK]\x1B[39m ${message}`);
 
 const createElement: typeof React.createElement = (ComponentOrTag, properties, ...children) => {
   properties = {children, ...properties};

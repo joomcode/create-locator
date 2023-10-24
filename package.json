@@ -6,10 +6,11 @@
   "bugs": "https://github.com/joomcode/create-locator/issues",
   "devDependencies": {
     "prettier": ">=3",
-    "typescript": ">=5.1"
+    "typescript": ">=5.2"
   },
   "exports": {
     ".": "./index.js",
+    "./getCssSelectorFromAttributesChain": "./getCssSelectorFromAttributesChain.js",
     "./production": "./production.js"
   },
   "homepage": "https://github.com/joomcode/create-locator#readme",

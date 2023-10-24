@@ -2,7 +2,7 @@ import type {Locator} from 'create-locator';
 
 import {assert, assertShallowEqual, getShallowCopy, type Test} from './utils';
 
-type AnyLocator = (parameters?: unknown) => object;
+type AnyLocator = (parameters?: unknown) => {second: AnyLocator};
 
 type RootLocator = Locator<{foo: Record<string, string>}, Record<string, string>>;
 
@@ -14,9 +14,13 @@ const attributesAreCached = (
 ): void => {
   const attributesSet = new Set();
 
+  assert(locator() === locator());
+
   assert(
-    locator() === locator(undefined),
-    `${locatorName}: attributes without parameters is equal to attributes with undefined parameters`,
+    (locator() !== locator(undefined)) === isDevelopment,
+    `${locatorName}: attributes without parameters is${
+      isDevelopment ? ' not' : ''
+    } equal to attributes with undefined parameters`,
   );
 
   for (const parameters of parametersArray) {
@@ -44,6 +48,25 @@ const attributesAreCached = (
     assertShallowEqual(attributes, fourthAttributesCopy);
 
     attributesSet.add(attributes);
+
+    if (isDevelopment && locatorName === 'locatorWithMap') {
+      const mappedAttributesChains = new Set();
+
+      for (const secondParameters of parametersArray) {
+        const mapped = locator(parameters).second(secondParameters);
+        const mappedCopy = locator(getShallowCopy(parameters)).second(secondParameters);
+        const mappedSecondCopy = locator(parameters).second(getShallowCopy(secondParameters));
+
+        assert(mapped === mappedCopy && mapped === mappedSecondCopy);
+
+        mappedAttributesChains.add(mapped);
+      }
+
+      assert(
+        mappedAttributesChains.size === parametersArray.length,
+        `${locatorName}: has correct number of cached mapped attributes chains`,
+      );
+    }
   }
 
   assert(
@@ -57,7 +80,7 @@ export const testCache: Test = ([createLocator], environment) => {
 
   const rootLocator = createLocator<RootLocator>('root');
   const locatorWithMap = createLocator<RootLocator, object>('root', {
-    mapAttributes: (attributes) => attributes,
+    mapAttributesChain: (attributesChain) => attributesChain,
   });
 
   const SYMBOL = Symbol();
@@ -88,7 +111,12 @@ export const testCache: Test = ([createLocator], environment) => {
 
   parametersArray.push(last);
 
-  attributesAreCached(rootLocator as AnyLocator, 'rootLocator', parametersArray, isDevelopment);
+  attributesAreCached(
+    rootLocator as unknown as AnyLocator,
+    'rootLocator',
+    parametersArray,
+    isDevelopment,
+  );
   attributesAreCached(
     rootLocator.foo as AnyLocator,
     'childLocator',

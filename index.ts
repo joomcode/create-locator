@@ -1,18 +1,12 @@
 import type {
   Attributes,
   CreateLocatorFunction,
+  FilledRootOptions,
   GetLocatorParametersFunction,
-  MapAttributes,
   RemoveMarkFromPropertiesFunction,
-  RootOptions,
 } from './types';
 
 import {anyLocator as productionAnyLocator} from './production';
-
-/**
- * Options of root locator, maybe with mapping attributes function.
- */
-type Options = Partial<MapAttributes<Attributes>> & RootOptions;
 
 /**
  * Some locator parameters.
@@ -28,9 +22,11 @@ type Properties = Readonly<Record<string, object | PathAttributeValue>>;
  * Locator proxy object.
  */
 type LocatorProxy = Record<string, unknown> & {
-  [CACHE]: Record<string, Attributes>;
+  [ATTRIBUTES]?: Attributes | undefined;
+  [CACHE]: Record<string, Attributes | LocatorProxy>;
   [LOCATOR]: LocatorProxy;
-  [OPTIONS]: Options;
+  [OPTIONS]: FilledRootOptions;
+  [PARENT]?: LocatorProxy | undefined;
   [PATH]: string;
 };
 
@@ -61,12 +57,22 @@ const packageUrl = 'https://www.npmjs.com/package/create-locator';
 /**
  * Symbol key for cache of locator attributes.
  */
+const ATTRIBUTES = Symbol.for(`${packageUrl}#attributes`);
+
+/**
+ * Symbol key for cache of locator call results.
+ */
 const CACHE = Symbol.for(`${packageUrl}#cache`);
 
 /**
  * Creates a proxy object that represents the locator at runtime, by root options and path.
  */
-const createLocatorProxy = (options: Options, path: string): LocatorProxy => {
+const createLocatorProxy = (
+  options: FilledRootOptions,
+  path: string,
+  parent?: LocatorProxy,
+  attributes?: Attributes,
+): LocatorProxy => {
   const cache = {__proto__: null} as unknown as Record<string, Attributes>;
   const target: LocatorProxy = Object.setPrototypeOf(() => {}, null);
 
@@ -85,13 +91,18 @@ const createLocatorProxy = (options: Options, path: string): LocatorProxy => {
 
   target[LOCATOR] = locatorProxy;
 
+  if (parent || attributes) {
+    target[ATTRIBUTES] = attributes;
+    target[PARENT] = parent;
+  }
+
   return locatorProxy;
 };
 
 /**
  * Default options of root locator (without mapping attributes function).
  */
-const DEFAULT_OPTIONS: RootOptions = {
+const DEFAULT_OPTIONS: FilledRootOptions = {
   isProduction: false,
   parameterAttributePrefix: 'data-test-',
   pathAttribute: 'data-testid',
@@ -99,7 +110,7 @@ const DEFAULT_OPTIONS: RootOptions = {
 };
 
 /**
- * Get string key for any value for its memoization.
+ * Get string key for any value for its caching.
  */
 const getKey = (value: unknown): string => {
   const type = typeof value;
@@ -112,6 +123,25 @@ const getKey = (value: unknown): string => {
   }
 
   return parts.join('');
+};
+
+/**
+ * Get a chain of parent attributes for `mapAttributesChain` function.
+ */
+const getParentAttributesChain = (target: LocatorProxy): readonly Attributes[] => {
+  const attributesChain: Attributes[] = [
+    target[ATTRIBUTES] || {[target[OPTIONS].pathAttribute]: target[PATH]},
+  ];
+
+  let currentTarget: LocatorProxy | undefined = target;
+
+  while ((currentTarget = currentTarget[PARENT])) {
+    if (currentTarget[ATTRIBUTES]) {
+      attributesChain.unshift(currentTarget[ATTRIBUTES]);
+    }
+  }
+
+  return attributesChain;
 };
 
 /**
@@ -132,28 +162,36 @@ const getPathAttributeValueFromProperties = (
 };
 
 /**
+ * If `true`, then all locators work in production mode.
+ */
+let isGlobalProductionMode: boolean = false;
+
+/**
  * Proxy handler for locator proxy.
  */
 const handler: ProxyHandler<LocatorProxy> = {
-  apply(target, _thisArg, [parameters]): Attributes {
+  apply(target, _thisArg, args): Attributes | LocatorProxy {
     const cache = target[CACHE];
-    const key = getKey(parameters);
+    const [parameters] = args;
+    const key = args.length ? getKey(parameters) : 'noArgs';
 
     if (key in cache) {
       return cache[key]!;
     }
 
-    const {mapAttributes, parameterAttributePrefix, pathAttribute} = target[OPTIONS];
+    const {mapAttributesChain, parameterAttributePrefix, pathAttribute} = target[OPTIONS];
     const attributes: Record<string, string> = {[pathAttribute]: target[PATH]};
 
     setAttributesFromParameters(attributes, parameterAttributePrefix, parameters);
 
-    if (mapAttributes) {
-      const mapped = mapAttributes(attributes);
+    if (mapAttributesChain) {
+      const mappingResult = args.length
+        ? createLocatorProxy(target[OPTIONS], target[PATH], target[PARENT], attributes)
+        : mapAttributesChain(getParentAttributesChain(target));
 
-      cache[key] = mapped;
+      cache[key] = mappingResult;
 
-      return mapped;
+      return mappingResult;
     }
 
     const pathAttributeValue: PathAttributeValue = {
@@ -179,7 +217,11 @@ const handler: ProxyHandler<LocatorProxy> = {
     const options = target[OPTIONS];
     const newPath = `${target[PATH]}${options.pathSeparator}${property}`;
 
-    target[property] = createLocatorProxy(options, newPath);
+    target[property] = createLocatorProxy(
+      options,
+      newPath,
+      options.mapAttributesChain ? target : undefined,
+    );
 
     return target[property];
   },
@@ -195,6 +237,11 @@ const LOCATOR = Symbol.for(`${packageUrl}#locator`);
  * Symbol key for options of root locator.
  */
 const OPTIONS = Symbol.for(`${packageUrl}#options`);
+
+/**
+ * Symbol key for parent locator.
+ */
+const PARENT = Symbol.for(`${packageUrl}#parent`);
 
 /**
  * Symbol key for path of locator.
@@ -217,14 +264,14 @@ const setAttributesFromParameters = (
 };
 
 /**
- * Method toJSON (and, in fact, toString) for locator proxy.
+ * Method `toJSON` (and, in fact, `toString`) for locator proxy.
  */
 function toJSON(this: LocatorProxy): string {
   return this[PATH];
 }
 
 /**
- * Method toString for path attribute value.
+ * Method `toString` for path attribute value.
  */
 function toString(this: PathAttributeValue): string {
   return this[LOCATOR][PATH];
@@ -240,10 +287,14 @@ export const anyLocator = productionAnyLocator;
  */
 export const createLocator = ((
   prefixOrProperties: string | Properties,
-  maybeOptions?: Options,
+  maybeOptions?: FilledRootOptions,
 ): LocatorProxy => {
+  if (isGlobalProductionMode) {
+    return anyLocator as unknown as LocatorProxy;
+  }
+
   if (typeof prefixOrProperties === 'string') {
-    const options: Options = Object.assign({}, DEFAULT_OPTIONS, maybeOptions);
+    const options: FilledRootOptions = Object.assign({}, DEFAULT_OPTIONS, maybeOptions);
 
     if (options.isProduction) {
       return anyLocator as unknown as LocatorProxy;
@@ -262,9 +313,13 @@ export const createLocator = ((
 }) as CreateLocatorFunction;
 
 /**
- * Get parameters of component locator by component properties.
+ * Get component parameters of locator from parent component (by component properties).
  */
 export const getLocatorParameters = ((properties: Properties) => {
+  if (isGlobalProductionMode) {
+    return anyLocator;
+  }
+
   const pathAttributeValue = getPathAttributeValueFromProperties(properties);
 
   if (!pathAttributeValue) {
@@ -283,6 +338,10 @@ export const getLocatorParameters = ((properties: Properties) => {
  * Returns properties without locator mark.
  */
 export const removeMarkFromProperties = ((properties: Properties) => {
+  if (isGlobalProductionMode) {
+    return properties;
+  }
+
   const pathAttributeValue = getPathAttributeValueFromProperties(properties);
 
   if (!pathAttributeValue) {
@@ -309,7 +368,16 @@ export const removeMarkFromProperties = ((properties: Properties) => {
   return propertiesWithoutLocator;
 }) as RemoveMarkFromPropertiesFunction;
 
+/**
+ * Set production mode for all locators at all.
+ */
+export const setGlobalProductionMode = (): void => {
+  isGlobalProductionMode = true;
+};
+
 export type {
+  AnyMark,
+  Attributes,
   CreateLocator,
   GetLocatorParameters,
   Locator,
@@ -322,4 +390,5 @@ export type {
   PropertiesWithMarkConstraint,
   PropertiesWithMarkWithParametersConstraint,
   RemoveMarkFromProperties,
+  RootOptions,
 } from './types';

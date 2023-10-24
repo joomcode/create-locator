@@ -11,7 +11,7 @@ type RootLocator = Locator<
 >;
 
 export const testBasicInteractions: Test = (
-  [createLocator, getLocatorParameters, removeMarkFromProperties],
+  [createLocator, getLocatorParameters, removeMarkFromProperties, setGlobalProductionMode],
   environment,
 ) => {
   const locator = createLocator<RootLocator>('root');
@@ -428,5 +428,109 @@ export const testBasicInteractions: Test = (
     assert(error instanceof TypeError, 'preventing an extensions on locator throws an exception');
   }
 
-  assert(throwCounter === expectedThrowCounter, 'all expected exceptions are thrown');
+  type Level4Locator = Locator<void, {parameter4: string}>;
+  type Level3Locator = Locator<{level4: Level4Locator}, {parameter3: string}>;
+  type Level2Locator = Locator<{level3: Level3Locator}, {parameter2: string}>;
+  type Level1Locator = Locator<{level2: Level2Locator}, {parameter1: string}>;
+
+  const mappedLocator = createLocator<Level1Locator, readonly Record<string, string>[]>('level1', {
+    mapAttributesChain: (attributesChain) => attributesChain,
+  });
+
+  if (isDevelopment) {
+    const actualAttributesChains = {
+      noParameters: mappedLocator.level2.level3.level4(),
+      parameters1: mappedLocator({parameter1: 'value1'}).level2.level3.level4(),
+      parameters2: mappedLocator.level2({parameter2: 'value2'}).level3.level4(),
+      parameters3: mappedLocator.level2.level3({parameter3: 'value3'}).level4(),
+      parameters4: mappedLocator.level2.level3.level4({parameter4: 'value4'})(),
+      mixedParameters24: mappedLocator
+        .level2({parameter2: 'value'})
+        .level3.level4({parameter4: 'value4'})(),
+      mixedParameters13: mappedLocator({parameter1: 'value1'})
+        .level2.level3({parameter3: 'value3'})
+        .level4(),
+    };
+
+    const expectedAttributesChain = {
+      noParameters: [{'data-testid': 'level1-level2-level3-level4'}],
+      parameters1: [
+        {'data-testid': 'level1', 'data-test-parameter1': 'value1'},
+        {'data-testid': 'level1-level2-level3-level4'},
+      ],
+      parameters2: [
+        {
+          'data-testid': 'level1-level2',
+          'data-test-parameter2': 'value2',
+        },
+        {'data-testid': 'level1-level2-level3-level4'},
+      ],
+      parameters3: [
+        {
+          'data-testid': 'level1-level2-level3',
+          'data-test-parameter3': 'value3',
+        },
+        {'data-testid': 'level1-level2-level3-level4'},
+      ],
+      parameters4: [
+        {
+          'data-testid': 'level1-level2-level3-level4',
+          'data-test-parameter4': 'value4',
+        },
+      ],
+      mixedParameters24: [
+        {'data-testid': 'level1-level2', 'data-test-parameter2': 'value'},
+        {
+          'data-testid': 'level1-level2-level3-level4',
+          'data-test-parameter4': 'value4',
+        },
+      ],
+      mixedParameters13: [
+        {'data-testid': 'level1', 'data-test-parameter1': 'value1'},
+        {
+          'data-testid': 'level1-level2-level3',
+          'data-test-parameter3': 'value3',
+        },
+        {'data-testid': 'level1-level2-level3-level4'},
+      ],
+    };
+
+    assert(
+      JSON.stringify(actualAttributesChains) === JSON.stringify(expectedAttributesChain),
+      'attributes chain for mapped locators formed correctly for locators with parameters on all levels',
+    );
+
+    const someLocator = createLocator<RootLocator>('app');
+    const someProperties: Mark<RootLocator> = someLocator({qux: 'foo'});
+
+    assert(typeof setGlobalProductionMode === 'function', 'setGlobalProductionMode is function');
+
+    assert(
+      ((createLocator<RootLocator>('app') as object) === getLocatorParameters(someProperties)) ===
+        !isDevelopment,
+      'develop mode works correct for createLocator and getLocatorParameters',
+    );
+
+    assert(
+      (removeMarkFromProperties(someProperties) === someProperties) === !isDevelopment,
+      'develop mode works correct for removeMarkFromProperties',
+    );
+
+    setGlobalProductionMode();
+
+    const productionLocator = createLocator<RootLocator>('app');
+    const productionProperties: Mark<RootLocator> = productionLocator({qux: 'foo'});
+
+    assert(
+      (createLocator<RootLocator>('app') as object) === getLocatorParameters(productionProperties),
+      'setGlobalProductionMode turn on global production mode for createLocator and getLocatorParameters',
+    );
+
+    assert(
+      removeMarkFromProperties(someProperties) === someProperties,
+      'setGlobalProductionMode turn on global production mode for removeMarkFromProperties',
+    );
+
+    assert(throwCounter === expectedThrowCounter, 'all expected exceptions are thrown');
+  }
 };

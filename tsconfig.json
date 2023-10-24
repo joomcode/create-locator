@@ -3,11 +3,10 @@
     "allowUnreachableCode": false,
     "allowUnusedLabels": false,
     "declaration": true,
+    "esModuleInterop": true,
     "exactOptionalPropertyTypes": true,
-    "forceConsistentCasingInFileNames": true,
     "jsx": "react",
-    "module": "nodenext",
-    "moduleResolution": "node",
+    "module": "CommonJS",
     "noEmitOnError": true,
     "noFallthroughCasesInSwitch": true,
     "noImplicitOverride": true,
@@ -20,8 +19,7 @@
     "skipLibCheck": false,
     "strict": true,
     "target": "ES2015",
-    "types": [],
-    "verbatimModuleSyntax": true
+    "types": []
   },
-  "files": ["./index.ts"]
+  "files": ["./index.ts", "./getCssSelectorFromAttributesChain.ts"]
 }
