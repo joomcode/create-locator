@@ -9,6 +9,127 @@ import type {
 import {anyLocator as productionAnyLocator} from './production';
 
 /**
+ * Proxy object that represents the locator in production mode (and, for example, in unit tests).
+ */
+export const anyLocator = productionAnyLocator;
+
+/**
+ * Creates root locator (by prefix and options) or component locator (by component properties).
+ */
+export const createLocator = ((
+  prefixOrProperties: string | Properties,
+  maybeOptions?: FilledRootOptions,
+): LocatorProxy => {
+  if (isGlobalProductionMode) {
+    return anyLocator as unknown as LocatorProxy;
+  }
+
+  if (typeof prefixOrProperties === 'string') {
+    const options: FilledRootOptions = Object.assign({}, DEFAULT_OPTIONS, maybeOptions);
+
+    if (options.isProduction) {
+      return anyLocator as unknown as LocatorProxy;
+    }
+
+    return createLocatorProxy(options, prefixOrProperties);
+  }
+
+  const pathAttributeValue = getPathAttributeValueFromProperties(prefixOrProperties);
+
+  if (!pathAttributeValue) {
+    return anyLocator as unknown as LocatorProxy;
+  }
+
+  return pathAttributeValue[LOCATOR];
+}) as CreateLocatorFunction;
+
+/**
+ * Get component parameters of locator from parent component (by component properties).
+ */
+export const getLocatorParameters = ((properties: Properties) => {
+  if (isGlobalProductionMode) {
+    return anyLocator;
+  }
+
+  const pathAttributeValue = getPathAttributeValueFromProperties(properties);
+
+  if (!pathAttributeValue) {
+    return anyLocator;
+  }
+
+  if (pathAttributeValue.parameters === undefined) {
+    return undefined;
+  }
+
+  return pathAttributeValue.parameters || anyLocator;
+}) as GetLocatorParametersFunction;
+
+/**
+ * Removes locator mark from properties (or rest properties) object.
+ * Returns properties without locator mark.
+ */
+export const removeMarkFromProperties = ((properties: Properties) => {
+  if (isGlobalProductionMode) {
+    return properties;
+  }
+
+  const pathAttributeValue = getPathAttributeValueFromProperties(properties);
+
+  if (!pathAttributeValue) {
+    return properties;
+  }
+
+  const {[LOCATOR]: locator, parameters} = pathAttributeValue;
+  const {parameterAttributePrefix, pathAttribute} = locator[OPTIONS];
+  const attributes = {__proto__: null, [pathAttribute]: ''} as Attributes;
+  const propertiesWithoutLocator = {__proto__: Object.getPrototypeOf(properties)};
+
+  setAttributesFromParameters(attributes, parameterAttributePrefix, parameters);
+
+  for (const key of Reflect.ownKeys(properties)) {
+    if (!(key in attributes)) {
+      Object.defineProperty(
+        propertiesWithoutLocator,
+        key,
+        Object.getOwnPropertyDescriptor(properties, key)!,
+      );
+    }
+  }
+
+  return propertiesWithoutLocator;
+}) as RemoveMarkFromPropertiesFunction;
+
+/**
+ * Set production mode for all locators at all.
+ */
+export const setGlobalProductionMode = (): void => {
+  isGlobalProductionMode = true;
+};
+
+/**
+ * If `true`, then all locators work in production mode.
+ */
+var isGlobalProductionMode: boolean = false;
+
+export type {
+  AnyMark,
+  Attributes,
+  CreateLocator,
+  GetLocatorParameters,
+  Locator,
+  LocatorConstraint,
+  LocatorDescriptionConstraint,
+  LocatorOfElement,
+  Mark,
+  Node,
+  ParametersConstraint,
+  PropertiesWithMarkConstraint,
+  PropertiesWithMarkWithParametersConstraint,
+  RemoveMarkFromProperties,
+  RootOptions,
+} from './types';
+
+/**
  * Some locator parameters.
  */
 type Parameters = Readonly<Record<string, unknown>>;
@@ -162,11 +283,6 @@ const getPathAttributeValueFromProperties = (
 };
 
 /**
- * If `true`, then all locators work in production mode.
- */
-let isGlobalProductionMode: boolean = false;
-
-/**
  * Proxy handler for locator proxy.
  */
 const handler: ProxyHandler<LocatorProxy> = {
@@ -276,119 +392,3 @@ function toJSON(this: LocatorProxy): string {
 function toString(this: PathAttributeValue): string {
   return this[LOCATOR][PATH];
 }
-
-/**
- * Proxy object that represents the locator in production mode (and, for example, in unit tests).
- */
-export const anyLocator = productionAnyLocator;
-
-/**
- * Creates root locator (by prefix and options) or component locator (by component properties).
- */
-export const createLocator = ((
-  prefixOrProperties: string | Properties,
-  maybeOptions?: FilledRootOptions,
-): LocatorProxy => {
-  if (isGlobalProductionMode) {
-    return anyLocator as unknown as LocatorProxy;
-  }
-
-  if (typeof prefixOrProperties === 'string') {
-    const options: FilledRootOptions = Object.assign({}, DEFAULT_OPTIONS, maybeOptions);
-
-    if (options.isProduction) {
-      return anyLocator as unknown as LocatorProxy;
-    }
-
-    return createLocatorProxy(options, prefixOrProperties);
-  }
-
-  const pathAttributeValue = getPathAttributeValueFromProperties(prefixOrProperties);
-
-  if (!pathAttributeValue) {
-    return anyLocator as unknown as LocatorProxy;
-  }
-
-  return pathAttributeValue[LOCATOR];
-}) as CreateLocatorFunction;
-
-/**
- * Get component parameters of locator from parent component (by component properties).
- */
-export const getLocatorParameters = ((properties: Properties) => {
-  if (isGlobalProductionMode) {
-    return anyLocator;
-  }
-
-  const pathAttributeValue = getPathAttributeValueFromProperties(properties);
-
-  if (!pathAttributeValue) {
-    return anyLocator;
-  }
-
-  if (pathAttributeValue.parameters === undefined) {
-    return undefined;
-  }
-
-  return pathAttributeValue.parameters || anyLocator;
-}) as GetLocatorParametersFunction;
-
-/**
- * Removes locator mark from properties (or rest properties) object.
- * Returns properties without locator mark.
- */
-export const removeMarkFromProperties = ((properties: Properties) => {
-  if (isGlobalProductionMode) {
-    return properties;
-  }
-
-  const pathAttributeValue = getPathAttributeValueFromProperties(properties);
-
-  if (!pathAttributeValue) {
-    return properties;
-  }
-
-  const {[LOCATOR]: locator, parameters} = pathAttributeValue;
-  const {parameterAttributePrefix, pathAttribute} = locator[OPTIONS];
-  const attributes = {__proto__: null, [pathAttribute]: ''} as Attributes;
-  const propertiesWithoutLocator = {__proto__: Object.getPrototypeOf(properties)};
-
-  setAttributesFromParameters(attributes, parameterAttributePrefix, parameters);
-
-  for (const key of Reflect.ownKeys(properties)) {
-    if (!(key in attributes)) {
-      Object.defineProperty(
-        propertiesWithoutLocator,
-        key,
-        Object.getOwnPropertyDescriptor(properties, key)!,
-      );
-    }
-  }
-
-  return propertiesWithoutLocator;
-}) as RemoveMarkFromPropertiesFunction;
-
-/**
- * Set production mode for all locators at all.
- */
-export const setGlobalProductionMode = (): void => {
-  isGlobalProductionMode = true;
-};
-
-export type {
-  AnyMark,
-  Attributes,
-  CreateLocator,
-  GetLocatorParameters,
-  Locator,
-  LocatorConstraint,
-  LocatorDescriptionConstraint,
-  LocatorOfElement,
-  Mark,
-  Node,
-  ParametersConstraint,
-  PropertiesWithMarkConstraint,
-  PropertiesWithMarkWithParametersConstraint,
-  RemoveMarkFromProperties,
-  RootOptions,
-} from './types';

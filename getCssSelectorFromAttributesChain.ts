@@ -1,20 +1,36 @@
 import type {Attributes} from './types';
 
 /**
- * Attribute CSS selectors by attribute value inclusion type.
+ * Get CSS selector string from attributes chain.
+ * This function is convenient to use inside `mapAttributesChain` function.
  */
-const attributeSelectors = {
-  any: (name: string) => `[${name}]`,
-  contains: (name: string, value: string) => `[${name}*="${value}"]`,
-  endsWith: (name: string, value: string) => `[${name}$="${value}"]`,
-  exact: (name: string, value: string) => `[${name}="${value}"]`,
-  startsWith: (name: string, value: string) => `[${name}^="${value}"]`,
+export const getCssSelectorFromAttributesChain = (
+  attributesChain: readonly Attributes[],
+): string => {
+  const cssSelectors = attributesChain.map(getCssSelectorFromAttributes).filter(Boolean);
+
+  if (cssSelectors.length === 0) {
+    return '*';
+  }
+
+  return cssSelectors.join(' ');
 };
 
 /**
- * Regexp to split a string by stars.
+ * Get CSS selector string from attributes object.
  */
-const starsRegexp = /\*+/;
+const getCssSelectorFromAttributes = (attributes: Attributes): string => {
+  const attributeCssSelectors: string[] = [];
+
+  for (const attributeName of Object.keys(attributes)) {
+    const attributeValue = attributes[attributeName]!;
+    const cssSelector = getAttributeCssSelector(attributeName, attributeValue);
+
+    attributeCssSelectors.push(cssSelector);
+  }
+
+  return attributeCssSelectors.join('');
+};
 
 /**
  * Get CSS selector string for single attribute.
@@ -53,33 +69,17 @@ const getAttributeCssSelector = (attributeName: string, attributeValue: string):
 };
 
 /**
- * Get CSS selector string from attributes object.
+ * Attribute CSS selectors by attribute value inclusion type.
  */
-const getCssSelectorFromAttributes = (attributes: Attributes): string => {
-  const attributeCssSelectors: string[] = [];
-
-  for (const attributeName of Object.keys(attributes)) {
-    const attributeValue = attributes[attributeName]!;
-    const cssSelector = getAttributeCssSelector(attributeName, attributeValue);
-
-    attributeCssSelectors.push(cssSelector);
-  }
-
-  return attributeCssSelectors.join('');
+const attributeSelectors = {
+  any: (name: string) => `[${name}]`,
+  contains: (name: string, value: string) => `[${name}*="${value}"]`,
+  endsWith: (name: string, value: string) => `[${name}$="${value}"]`,
+  exact: (name: string, value: string) => `[${name}="${value}"]`,
+  startsWith: (name: string, value: string) => `[${name}^="${value}"]`,
 };
 
 /**
- * Get CSS selector string from attributes chain.
- * This function is convenient to use inside `mapAttributesChain` function.
+ * Regexp to split a string by stars.
  */
-export const getCssSelectorFromAttributesChain = (
-  attributesChain: readonly Attributes[],
-): string => {
-  const cssSelectors = attributesChain.map(getCssSelectorFromAttributes).filter(Boolean);
-
-  if (cssSelectors.length === 0) {
-    return '*';
-  }
-
-  return cssSelectors.join(' ');
-};
+const starsRegexp = /\*+/;

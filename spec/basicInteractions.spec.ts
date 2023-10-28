@@ -508,12 +508,12 @@ export const testBasicInteractions: Test = (
     assert(
       ((createLocator<RootLocator>('app') as object) === getLocatorParameters(someProperties)) ===
         !isDevelopment,
-      'develop mode works correct for createLocator and getLocatorParameters',
+      'development mode works correct for createLocator and getLocatorParameters',
     );
 
     assert(
       (removeMarkFromProperties(someProperties) === someProperties) === !isDevelopment,
-      'develop mode works correct for removeMarkFromProperties',
+      'development mode works correct for removeMarkFromProperties',
     );
 
     setGlobalProductionMode();

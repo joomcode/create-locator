@@ -1,6 +1,273 @@
 /// <reference path="./react.d.ts" />
 
 /**
+ * Any locator, that is locator that matches any other locators (for use in unit tests).
+ */
+export type AnyLocator = ((parameters?: any) => AnyMark) & WithLocator;
+
+/**
+ * A mark that matches any locator (for use in unit tests).
+ */
+export type AnyMark = WithMark<any> & WithErrorAttribute;
+
+/**
+ * Attributes object.
+ */
+export type Attributes = Readonly<Record<string, string>>;
+
+/**
+ * Symbol key for saving component parameters of locator.
+ */
+export declare const COMPONENT_PARAMETERS: unique symbol;
+
+/**
+ * Presentation of `createLocator` function in types.
+ * Creates locator type by properties and optional `MappingResult` type.
+ */
+export type CreateLocator<
+  PropertiesOrRootLocator extends Partial<PropertiesWithMarkConstraint> | WithLocator,
+  MappingResult = HiddenKey,
+> = true extends
+  | (PropertiesOrRootLocator extends Partial<PropertiesWithMarkConstraint> | WithLocator
+      ? false
+      : true)
+  | IsEqual<PropertiesOrRootLocator, never>
+  | IsEqual<PropertiesOrRootLocator, WithLocator>
+  ? unknown
+  : IsEqual<MappingResult, HiddenKey> extends true
+  ? PropertiesOrRootLocator extends WithLocator
+    ? PropertiesOrRootLocator
+    : PropertiesOrRootLocator extends Partial<WithMark>
+    ? IsEqual<LocatorTreeFromMark<PropertiesOrRootLocator>, unknown> extends true
+      ? unknown
+      : IsEqual<LocatorTreeFromMark<PropertiesOrRootLocator>, object> extends true
+      ? unknown
+      : LocatorFromLocatorTree<LocatorTreeFromMark<PropertiesOrRootLocator>>
+    : unknown
+  : PropertiesOrRootLocator extends WithLocator
+  ? NormalizeTree<LocatorTreeFromLocator<PropertiesOrRootLocator>, MappingResult>
+  : unknown;
+
+/**
+ * Type of `createLocator` function (with overloads).
+ */
+export type CreateLocatorFunction = CreateComponentLocator &
+  CreateRootLocator &
+  CreateRootLocatorWithMapping;
+
+/**
+ * Symbol key for generating type error on HTML elements.
+ */
+export declare const ERROR_ATTRIBUTE: GetErrorAttribute<keyof React.AriaAttributes & symbol>;
+
+/**
+ * Filled options of root locator, maybe with mapping attributes function.
+ */
+export type FilledRootOptions = Partial<MapAttributes<Attributes>> & RootOptionsWithDefaults;
+
+/**
+ * Presentation of `getLocatorParameters` function in types.
+ * Get type of parameters of component locator by component properties.
+ */
+export type GetLocatorParameters<
+  Properties extends Partial<PropertiesWithMarkWithParametersConstraint>,
+> = true extends
+  | (Properties extends Partial<PropertiesWithMarkWithParametersConstraint> ? false : true)
+  | IsEqual<Properties, never>
+  | IsEqual<ExtractNodeComponentParameters<LocatorTreeFromMark<Properties>>, {}>
+  ? unknown
+  : ExtractNodeComponentParameters<LocatorTreeFromMark<Properties>>;
+
+/**
+ * Type of `getLocatorParameters` function.
+ */
+export type GetLocatorParametersFunction = <
+  Properties extends Partial<PropertiesWithMarkWithParametersConstraint>,
+>(
+  this: void,
+  properties: PropertiesError<Properties> extends string ? PropertiesError<Properties> : Properties,
+) => GetLocatorParameters<PropertiesError<Properties> extends string ? never : Properties>;
+
+/**
+ * Symbol key for saving hidden normalized tree.
+ */
+export declare const HIDDEN: unique symbol;
+
+/**
+ * Symbol key for tree of empty locator (i.e. `Locator<void>`).
+ */
+export declare const IS_EMPTY_LOCATOR: unique symbol;
+
+/**
+ * Creates component locator type by locator description and locator parameters.
+ */
+export type Locator<
+  Description extends LocatorDescriptionConstraint,
+  Parameters extends ParametersConstraint = void,
+  ComponentParameters extends ParametersConstraint | 'sameParameters' = void,
+> = true extends
+  | (Description extends LocatorDescriptionConstraint ? false : true)
+  | (Parameters extends ParametersConstraint ? false : true)
+  | (ComponentParameters extends ParametersConstraint | 'sameParameters' ? false : true)
+  | IsEqual<Description, never>
+  | IsEqual<Parameters, never>
+  | IsEqual<ComponentParameters, never>
+  ? unknown
+  : LocatorFromLocatorTree<
+      LocatorTree<
+        Description,
+        AddUndefinedIfRequiredParametersEmpty<Parameters>,
+        AddUndefinedIfRequiredParametersEmpty<
+          IsEqual<ComponentParameters, 'sameParameters'> extends true
+            ? Parameters
+            : ComponentParameters
+        >
+      >
+    >;
+
+/**
+ * Symbol key to define locator.
+ */
+export declare const LOCATOR: unique symbol;
+
+/**
+ * Constraint of locator, that is the argument of `Mark`.
+ */
+export type LocatorConstraint = WithLocator;
+
+/**
+ * Constraint of description of locator tree, that is the first argument of `Locator` and `Node`.
+ */
+export type LocatorDescriptionConstraint = Readonly<
+  Record<string, (ParametersConstraint & WithErrorAttribute) | void | WithLocator | WithNode> &
+    Partial<
+      WithComponentParameters<NotLocatorDescription> &
+        WithHidden<NotLocatorDescription> &
+        WithLocator<NotLocatorDescription> &
+        WithMark<NotLocatorDescription> &
+        WithNode<NotLocatorDescription> &
+        WithParameters<NotLocatorDescription>
+    >
+> | void;
+
+/**
+ * Creates locator type by locator description and locator parameters
+ * for component, behaves like an element.
+ */
+export type LocatorOfElement<
+  Description extends LocatorDescriptionConstraint,
+  Parameters extends ParametersConstraint = void,
+  ComponentParameters extends ParametersConstraint | 'sameParameters' = void,
+> = true extends
+  | (Description extends LocatorDescriptionConstraint ? false : true)
+  | (Parameters extends ParametersConstraint ? false : true)
+  | (ComponentParameters extends ParametersConstraint | 'sameParameters' ? false : true)
+  | IsEqual<Description, never>
+  | IsEqual<Parameters, never>
+  | IsEqual<ComponentParameters, never>
+  ? unknown
+  : LocatorFromLocatorTree<
+      LocatorTree<
+        Description,
+        AddUndefinedIfRequiredParametersEmpty<Parameters>,
+        AddUndefinedIfRequiredParametersEmpty<
+          IsEqual<ComponentParameters, 'sameParameters'> extends true
+            ? Parameters
+            : ComponentParameters
+        >,
+        'LocatorOfElement'
+      >
+    >;
+
+/**
+ * Creates mark with component locator type for component properties.
+ */
+export type Mark<SomeLocator extends LocatorConstraint> = true extends
+  | (SomeLocator extends LocatorConstraint ? false : true)
+  | IsEqual<SomeLocator, never>
+  | IsEqual<LocatorTreeFromLocator<SomeLocator>, unknown>
+  ? unknown
+  : WithMark<LocatorTreeFromLocator<SomeLocator>> &
+      WithErrorAttribute<
+        | 'The mark of locator should be removed from spreaded properties using the removeMarkFromProperties'
+        | CannotMarkElementMessage
+      >;
+
+/**
+ * Symbol key for saving locator tree in mark (in properties object).
+ */
+export declare const MARK: unique symbol;
+
+/**
+ * Creates node locator type by locator description and locator parameters.
+ */
+export type Node<
+  Description extends LocatorDescriptionConstraint,
+  Parameters extends ParametersConstraint = void,
+> = true extends
+  | (Description extends LocatorDescriptionConstraint ? false : true)
+  | (Parameters extends ParametersConstraint ? false : true)
+  | IsEqual<Description, never>
+  | IsEqual<Parameters, never>
+  ? unknown
+  : WithNode<
+      LocatorTree<Description, AddUndefinedIfRequiredParametersEmpty<Parameters>, void, 'Node'>
+    > &
+      WithErrorAttribute<'Node cannot be used here'>;
+
+/**
+ * Symbol key for saving locator tree of node locator.
+ */
+export declare const NODE: unique symbol;
+
+/**
+ * Symbol key for saving locator parameters.
+ */
+export declare const PARAMETERS: unique symbol;
+
+/**
+ * Constraint of locator parameters, that is the second argument of `Locator` and `Node`.
+ */
+export type ParametersConstraint = Attributes | void;
+
+/**
+ * Constraint of properties with mark, that is the argument of `createLocator` and `removeMarkFromProperties`.
+ */
+export type PropertiesWithMarkConstraint = WithMark;
+
+/**
+ * Constraint of properties with mark with parameters, that is the argument of `getLocatorParameters`.
+ */
+export type PropertiesWithMarkWithParametersConstraint = WithMark<WithComponentParameters>;
+
+/**
+ * Presentation of `removeMarkFromProperties` function in types.
+ * Returns type of properties without locator mark.
+ */
+export type RemoveMarkFromProperties<Properties extends Partial<PropertiesWithMarkConstraint>> =
+  true extends IsEqual<Properties, never> ? unknown : Omit<Properties, ErrorAttributeKey | MarkKey>;
+
+/**
+ * Type of `removeMarkFromProperties` function.
+ */
+export type RemoveMarkFromPropertiesFunction = <
+  Properties extends Partial<PropertiesWithMarkConstraint>,
+>(
+  this: void,
+  properties: PropertiesError<Properties> extends string ? PropertiesError<Properties> : Properties,
+) => RemoveMarkFromProperties<PropertiesError<Properties> extends string ? never : Properties>;
+
+/**
+ * Options of root locator (as `createLocator` second argument).
+ */
+export type RootOptions = Partial<FilledRootOptions>;
+
+/**
+ * Symbol key for saving locator tree for prototype keys.
+ */
+export declare const TREE: unique symbol;
+
+/**
  * Adds `IS_EMPTY_LOCATOR` key if locator tree is empty (i.e. for `Locator<void>`).
  */
 type AddIsEmptyLocatorKeyIfNeeded<Tree> = IsEqual<string & keyof Tree, never> extends true
@@ -438,270 +705,3 @@ type WithParameters<Parameters = unknown> = Readonly<Record<ParametersKey, Param
  * Object with tree of locators under some prototype key.
  */
 type WithTree<Tree = object> = Readonly<Record<TreeKey, Tree>>;
-
-/**
- * Any locator, that is locator that matches any other locators (for use in unit tests).
- */
-export type AnyLocator = ((parameters?: any) => AnyMark) & WithLocator;
-
-/**
- * A mark that matches any locator (for use in unit tests).
- */
-export type AnyMark = WithMark<any> & WithErrorAttribute;
-
-/**
- * Attributes object.
- */
-export type Attributes = Readonly<Record<string, string>>;
-
-/**
- * Symbol key for saving component parameters of locator.
- */
-export declare const COMPONENT_PARAMETERS: unique symbol;
-
-/**
- * Presentation of `createLocator` function in types.
- * Creates locator type by properties and optional `MappingResult` type.
- */
-export type CreateLocator<
-  PropertiesOrRootLocator extends Partial<PropertiesWithMarkConstraint> | WithLocator,
-  MappingResult = HiddenKey,
-> = true extends
-  | (PropertiesOrRootLocator extends Partial<PropertiesWithMarkConstraint> | WithLocator
-      ? false
-      : true)
-  | IsEqual<PropertiesOrRootLocator, never>
-  | IsEqual<PropertiesOrRootLocator, WithLocator>
-  ? unknown
-  : IsEqual<MappingResult, HiddenKey> extends true
-  ? PropertiesOrRootLocator extends WithLocator
-    ? PropertiesOrRootLocator
-    : PropertiesOrRootLocator extends Partial<WithMark>
-    ? IsEqual<LocatorTreeFromMark<PropertiesOrRootLocator>, unknown> extends true
-      ? unknown
-      : IsEqual<LocatorTreeFromMark<PropertiesOrRootLocator>, object> extends true
-      ? unknown
-      : LocatorFromLocatorTree<LocatorTreeFromMark<PropertiesOrRootLocator>>
-    : unknown
-  : PropertiesOrRootLocator extends WithLocator
-  ? NormalizeTree<LocatorTreeFromLocator<PropertiesOrRootLocator>, MappingResult>
-  : unknown;
-
-/**
- * Type of `createLocator` function (with overloads).
- */
-export type CreateLocatorFunction = CreateComponentLocator &
-  CreateRootLocator &
-  CreateRootLocatorWithMapping;
-
-/**
- * Symbol key for generating type error on HTML elements.
- */
-export declare const ERROR_ATTRIBUTE: GetErrorAttribute<keyof React.AriaAttributes & symbol>;
-
-/**
- * Filled options of root locator, maybe with mapping attributes function.
- */
-export type FilledRootOptions = Partial<MapAttributes<Attributes>> & RootOptionsWithDefaults;
-
-/**
- * Presentation of `getLocatorParameters` function in types.
- * Get type of parameters of component locator by component properties.
- */
-export type GetLocatorParameters<
-  Properties extends Partial<PropertiesWithMarkWithParametersConstraint>,
-> = true extends
-  | (Properties extends Partial<PropertiesWithMarkWithParametersConstraint> ? false : true)
-  | IsEqual<Properties, never>
-  | IsEqual<ExtractNodeComponentParameters<LocatorTreeFromMark<Properties>>, {}>
-  ? unknown
-  : ExtractNodeComponentParameters<LocatorTreeFromMark<Properties>>;
-
-/**
- * Type of `getLocatorParameters` function.
- */
-export type GetLocatorParametersFunction = <
-  Properties extends Partial<PropertiesWithMarkWithParametersConstraint>,
->(
-  this: void,
-  properties: PropertiesError<Properties> extends string ? PropertiesError<Properties> : Properties,
-) => GetLocatorParameters<PropertiesError<Properties> extends string ? never : Properties>;
-
-/**
- * Symbol key for saving hidden normalized tree.
- */
-export declare const HIDDEN: unique symbol;
-
-/**
- * Symbol key for tree of empty locator (i.e. `Locator<void>`).
- */
-export declare const IS_EMPTY_LOCATOR: unique symbol;
-
-/**
- * Creates component locator type by locator description and locator parameters.
- */
-export type Locator<
-  Description extends LocatorDescriptionConstraint,
-  Parameters extends ParametersConstraint = void,
-  ComponentParameters extends ParametersConstraint | 'sameParameters' = void,
-> = true extends
-  | (Description extends LocatorDescriptionConstraint ? false : true)
-  | (Parameters extends ParametersConstraint ? false : true)
-  | (ComponentParameters extends ParametersConstraint | 'sameParameters' ? false : true)
-  | IsEqual<Description, never>
-  | IsEqual<Parameters, never>
-  | IsEqual<ComponentParameters, never>
-  ? unknown
-  : LocatorFromLocatorTree<
-      LocatorTree<
-        Description,
-        AddUndefinedIfRequiredParametersEmpty<Parameters>,
-        AddUndefinedIfRequiredParametersEmpty<
-          IsEqual<ComponentParameters, 'sameParameters'> extends true
-            ? Parameters
-            : ComponentParameters
-        >
-      >
-    >;
-
-/**
- * Symbol key to define locator.
- */
-export declare const LOCATOR: unique symbol;
-
-/**
- * Constraint of locator, that is the argument of `Mark`.
- */
-export type LocatorConstraint = WithLocator;
-
-/**
- * Constraint of description of locator tree, that is the first argument of `Locator` and `Node`.
- */
-export type LocatorDescriptionConstraint = Readonly<
-  Record<string, (ParametersConstraint & WithErrorAttribute) | void | WithLocator | WithNode> &
-    Partial<
-      WithComponentParameters<NotLocatorDescription> &
-        WithHidden<NotLocatorDescription> &
-        WithLocator<NotLocatorDescription> &
-        WithMark<NotLocatorDescription> &
-        WithNode<NotLocatorDescription> &
-        WithParameters<NotLocatorDescription>
-    >
-> | void;
-
-/**
- * Creates locator type by locator description and locator parameters
- * for component, behaves like an element.
- */
-export type LocatorOfElement<
-  Description extends LocatorDescriptionConstraint,
-  Parameters extends ParametersConstraint = void,
-  ComponentParameters extends ParametersConstraint | 'sameParameters' = void,
-> = true extends
-  | (Description extends LocatorDescriptionConstraint ? false : true)
-  | (Parameters extends ParametersConstraint ? false : true)
-  | (ComponentParameters extends ParametersConstraint | 'sameParameters' ? false : true)
-  | IsEqual<Description, never>
-  | IsEqual<Parameters, never>
-  | IsEqual<ComponentParameters, never>
-  ? unknown
-  : LocatorFromLocatorTree<
-      LocatorTree<
-        Description,
-        AddUndefinedIfRequiredParametersEmpty<Parameters>,
-        AddUndefinedIfRequiredParametersEmpty<
-          IsEqual<ComponentParameters, 'sameParameters'> extends true
-            ? Parameters
-            : ComponentParameters
-        >,
-        'LocatorOfElement'
-      >
-    >;
-
-/**
- * Creates mark with component locator type for component properties.
- */
-export type Mark<SomeLocator extends LocatorConstraint> = true extends
-  | (SomeLocator extends LocatorConstraint ? false : true)
-  | IsEqual<SomeLocator, never>
-  | IsEqual<LocatorTreeFromLocator<SomeLocator>, unknown>
-  ? unknown
-  : WithMark<LocatorTreeFromLocator<SomeLocator>> &
-      WithErrorAttribute<
-        | 'The mark of locator should be removed from spreaded properties using the removeMarkFromProperties'
-        | CannotMarkElementMessage
-      >;
-
-/**
- * Symbol key for saving locator tree in mark (in properties object).
- */
-export declare const MARK: unique symbol;
-
-/**
- * Creates node locator type by locator description and locator parameters.
- */
-export type Node<
-  Description extends LocatorDescriptionConstraint,
-  Parameters extends ParametersConstraint = void,
-> = true extends
-  | (Description extends LocatorDescriptionConstraint ? false : true)
-  | (Parameters extends ParametersConstraint ? false : true)
-  | IsEqual<Description, never>
-  | IsEqual<Parameters, never>
-  ? unknown
-  : WithNode<
-      LocatorTree<Description, AddUndefinedIfRequiredParametersEmpty<Parameters>, void, 'Node'>
-    > &
-      WithErrorAttribute<'Node cannot be used here'>;
-
-/**
- * Symbol key for saving locator tree of node locator.
- */
-export declare const NODE: unique symbol;
-
-/**
- * Symbol key for saving locator parameters.
- */
-export declare const PARAMETERS: unique symbol;
-
-/**
- * Constraint of locator parameters, that is the second argument of `Locator` and `Node`.
- */
-export type ParametersConstraint = Attributes | void;
-
-/**
- * Constraint of properties with mark, that is the argument of `createLocator` and `removeMarkFromProperties`.
- */
-export type PropertiesWithMarkConstraint = WithMark;
-
-/**
- * Constraint of properties with mark with parameters, that is the argument of `getLocatorParameters`.
- */
-export type PropertiesWithMarkWithParametersConstraint = WithMark<WithComponentParameters>;
-
-/**
- * Presentation of `removeMarkFromProperties` function in types.
- * Returns type of properties without locator mark.
- */
-export type RemoveMarkFromProperties<Properties extends Partial<PropertiesWithMarkConstraint>> =
-  true extends IsEqual<Properties, never> ? unknown : Omit<Properties, ErrorAttributeKey | MarkKey>;
-
-/**
- * Type of `removeMarkFromProperties` function.
- */
-export type RemoveMarkFromPropertiesFunction = <
-  Properties extends Partial<PropertiesWithMarkConstraint>,
->(
-  this: void,
-  properties: PropertiesError<Properties> extends string ? PropertiesError<Properties> : Properties,
-) => RemoveMarkFromProperties<PropertiesError<Properties> extends string ? never : Properties>;
-
-/**
- * Options of root locator (as `createLocator` second argument).
- */
-export type RootOptions = Partial<FilledRootOptions>;
-
-/**
- * Symbol key for saving locator tree for prototype keys.
- */
-export declare const TREE: unique symbol;

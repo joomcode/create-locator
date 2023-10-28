@@ -250,6 +250,117 @@ test('Foo renders correctly', () => {
 });
 ```
 
+## Map locators to selectors
+
+In the code of tests, we need to obtain element selectors from locators in the form in which
+your test framework uses them (for example, in [Playwright](https://playwright.dev/) such selectors
+are themselves called [locators](https://playwright.dev/docs/locators)).
+
+For this purpose, the `mapAttributesChain` mapping function is used, which is added to the root locator options in tests:
+
+```tsx
+const rootLocator = createLocator<RootLocator, Selector>('app', {
+  ···
+  mapAttributesChain: (attributesChain) => {
+    ···
+
+    return selector;
+  },
+};
+```
+
+Here `Selector` is the element selector type used by your test framework (for example,
+for [Playwright](https://playwright.dev/) it is the `Locator` type from `'@playwright/test'`).
+The `mapAttributesChain` function accepts a chain of attributes (type `readonly Attributes[]`,
+where `Attributes` is `Readonly<Record<string, string>>`), and must return a selector of type `Selector`.
+
+The `mapAttributesChain` function is called for a locator received as a chain of calls and reading
+child locators from the `rootLocator`, when it is called without parameters, for example:
+
+```tsx
+const bazSelector: Selector = rootLocator.foo({qux: 'quux'}).bar.baz();
+```
+
+An attribute chain is an array that contains the attribute objects of those locators
+for which parameters are specified in the chain, as well as the attribute object
+of the locator itself, located at the end of the chain. The order of the attribute objects
+in the array corresponds to the order of the locators in the chain — from the root locator
+to our locator at the end of the chain (which is called without parameters).
+
+For example, for a chain of locators `rootLocator.foo({qux: 'quux'}).bar.baz()`, the attributes chain
+(with the default options of the root locator) will be like this:
+
+```tsx
+[{'data-testid': 'app-foo', 'data-test-qux': 'quux'}, {'data-testid': 'app-foo-bar-baz'}];
+```
+
+It can be seen that the attribute objects for the `rootLocator` and for the `rootLocator.foo.bar`
+are missing here, because no parameters were passed to them (and there is no point in taking
+into account parent attribute objects without parameters in the selector, since their `data-testid`
+is already included in the `data-testid` of the end locator).
+
+If you need to pass parameters to the end locator, the chain of locators will look like this:
+
+```tsx
+const bazSelector: Selector = rootLocator({corge: 'garply'}).foo.bar.baz({grault: 'quux'})();`
+```
+
+Note the call without parameters at the end of the chain. In a chain of locators with `mapAttributesChain`,
+there is a simple rule — calling a locator with parameters returns the same locator
+(but with set parameters), and a call without parameters returns the result of calling the `mapAttributesChain`,
+that is, a selector, and thus it complete the chain.
+
+For this chain of locators `rootLocator({corge: 'garply'}).foo.bar.baz({grault: 'quux'})()`,
+the attributes chain will be like this:
+
+```tsx
+[
+  {'data-testid': 'app', 'data-test-corge': 'garply'},
+  {'data-testid': 'app-foo-bar-baz', 'data-test-grault': 'quux'},
+];
+```
+
+To get a standard CSS attribute selector from an attributes chain you can use
+the `getCssSelectorFromAttributesChain` function exported from a separate entry point
+`create-locator/getCssSelectorFromAttributesChain`. For example, for the above attributes chain,
+the `getCssSelectorFromAttributesChain` function will return the following CSS selector:
+
+```tsx
+`[data-testid="app"][data-test-corge="garply"] [data-testid="app-foo-bar-baz"][data-test-grault="quux"]`;
+```
+
+The `getCssSelectorFromAttributesChain` function also supports stars in attribute values (anywhere in an attribute).
+For example, an attributes chain `[{'data-testid': 'app', 'data-test-foo': 'bar*'}]`
+(derived from a locators chain `rootLocator({foo: 'bar*'})`) would be converted to a CSS selector
+`[data-testid="app"][data-test-foo^="bar"]`, which is satisfied by any attribute value starting with `bar`.
+
+The `getCssSelectorFromAttributesChain` function can be used, for example,
+in [Playwright](https://playwright.dev/) tests to map locators directly into string CSS selectors,
+which can already be passed to the `page.locator` function inside the test:
+
+```tsx
+// in test's utility file with definition of `rootLocator`
+import {getCssSelectorFromAttributesChain} from 'create-locator/getCssSelectorFromAttributesChain';
+
+···
+
+// `string`, because `getCssSelectorFromAttributesChain` returns `string`
+const rootLocator = createLocator<RootLocator, string>('app', {
+  ···
+  mapAttributesChain: getCssSelectorFromAttributesChain,
+};
+
+// in some file with tests
+test('Some test', async ({page}) => {
+  const bazSelector = rootLocator.foo.bar.baz();
+
+  await page.locator(bazSelector).click();
+
+  ···
+});
+
+```
+
 ## Production entry point
 
 The _production mode_ is enabled using the `isProduction` field in the options on the root locator
@@ -268,6 +379,35 @@ and from `create-locator` in one build).
 
 The `create-locator/production` entry point is about five times smaller than the `create-locator`
 (less than 500 bytes after minification), and the functions from it do not consume CPU and memory resources.
+
+If you cannot change the entry point in a production build to `create-locator/production`,
+but want to minimize the impact of locators on the application's performance (in production),
+you can use the `setGlobalProductionMode` function.
+
+This function must be called before creating the root locator:
+
+```tsx
+import {createLocator, type Locator, setGlobalProductionMode} from 'create-locator';
+
+···
+
+if (IS_PRODUCTION) {
+  setGlobalProductionMode();
+}
+
+const rootLocator = createLocator<RootLocator>('app', {
+  isProduction: IS_PRODUCTION,
+  ···
+});
+```
+
+After calling the `setGlobalProductionMode` function, all other functions from the public API
+(`createLocator`, `getLocatorParameters` and `removeMarkFromProperties`) will work in production mode,
+regardless of the `isProduction` option of root locator, as if they were imported from the `create-locator/production`.
+In this mode, functions work as quickly as possible, because they do not look for the parent locator
+in the component properties, but immediately return the necessary universal production values.
+
+Note that the `setGlobalProductionMode` function modifies the global state in this way.
 
 ## Using HTML attributes as component properties
 

@@ -5,10 +5,6 @@ import type {
   RemoveMarkFromPropertiesFunction,
 } from './types';
 
-const attributes = {};
-
-const toString = (): string => '';
-
 export const anyLocator: AnyLocator = new Proxy(
   Object.setPrototypeOf(() => {}, null),
   {
@@ -50,3 +46,7 @@ export type {
   RemoveMarkFromProperties,
   RootOptions,
 } from './types';
+
+const attributes = {};
+
+const toString = (): string => '';
