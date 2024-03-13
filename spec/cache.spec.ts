@@ -118,7 +118,7 @@ export const testCache: Test = ([createLocator], environment) => {
     isDevelopment,
   );
   attributesAreCached(
-    rootLocator.foo as AnyLocator,
+    rootLocator.foo as unknown as AnyLocator,
     'childLocator',
     parametersArray,
     isDevelopment,

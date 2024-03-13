@@ -35,18 +35,18 @@ export type CreateLocator<
   | IsEqual<PropertiesOrRootLocator, WithLocator>
   ? unknown
   : IsEqual<MappingResult, HiddenKey> extends true
-  ? PropertiesOrRootLocator extends WithLocator
-    ? PropertiesOrRootLocator
-    : PropertiesOrRootLocator extends Partial<WithMark>
-    ? IsEqual<LocatorTreeFromMark<PropertiesOrRootLocator>, unknown> extends true
-      ? unknown
-      : IsEqual<LocatorTreeFromMark<PropertiesOrRootLocator>, object> extends true
-      ? unknown
-      : LocatorFromLocatorTree<LocatorTreeFromMark<PropertiesOrRootLocator>>
-    : unknown
-  : PropertiesOrRootLocator extends WithLocator
-  ? NormalizeTree<LocatorTreeFromLocator<PropertiesOrRootLocator>, MappingResult>
-  : unknown;
+    ? PropertiesOrRootLocator extends WithLocator
+      ? PropertiesOrRootLocator
+      : PropertiesOrRootLocator extends Partial<WithMark>
+        ? IsEqual<LocatorTreeFromMark<PropertiesOrRootLocator>, unknown> extends true
+          ? unknown
+          : IsEqual<LocatorTreeFromMark<PropertiesOrRootLocator>, object> extends true
+            ? unknown
+            : LocatorFromLocatorTree<LocatorTreeFromMark<PropertiesOrRootLocator>>
+        : unknown
+    : PropertiesOrRootLocator extends WithLocator
+      ? NormalizeTree<LocatorTreeFromLocator<PropertiesOrRootLocator>, MappingResult>
+      : unknown;
 
 /**
  * Type of `createLocator` function (with overloads).
@@ -270,9 +270,8 @@ export declare const TREE: unique symbol;
 /**
  * Adds `IS_EMPTY_LOCATOR` key if locator tree is empty (i.e. for `Locator<void>`).
  */
-type AddIsEmptyLocatorKeyIfNeeded<Tree> = IsEqual<string & keyof Tree, never> extends true
-  ? WithIsEmptyLocator
-  : {};
+type AddIsEmptyLocatorKeyIfNeeded<Tree> =
+  IsEqual<string & keyof Tree, never> extends true ? WithIsEmptyLocator : {};
 
 /**
  * Adds undefined to parameters if there are no required parameters.
@@ -390,9 +389,8 @@ type HiddenKey = typeof HIDDEN;
  * `IsEqual<{foo: string}, {foo: string}>` = `true`.
  * `IsEqual<{readonly foo: string}, {foo: string}>` = `false`.
  */
-type IsEqual<X, Y> = (<Type>() => Type extends X ? 1 : 2) extends <Type>() => Type extends Y ? 1 : 2
-  ? true
-  : false;
+type IsEqual<X, Y> =
+  (<Type>() => Type extends X ? 1 : 2) extends <Type>() => Type extends Y ? 1 : 2 ? true : false;
 
 /**
  * Returns `true` if type includes `undefined`, `false` otherwise.
@@ -407,17 +405,19 @@ type IsIncludeUndefined<Type> = true extends (Type extends undefined ? true : ne
 type IsEmptyLocatorKey = typeof IS_EMPTY_LOCATOR;
 
 /**
- * Returns `true` if properties object valid for `CreateComponentLocator`, `false` otherwise.
+ * Returns error string if properties object is not valid for `CreateComponentLocator`
+ * and other functions, `undefined` otherwise.
  */
-type PropertiesError<Properties> = Properties extends Partial<WithMark<never>>
-  ? 'Properties are unmarked by any locator; use & Mark<SomeLocator>'
-  : Properties extends Partial<WithMark<WithLocator<'LocatorOfElement'>>>
-  ? Properties extends WithErrorAttribute
-    ? undefined
-    : 'This component does not behave like an element; use Locator instead of LocatorOfElement for it'
-  : Properties extends WithErrorAttribute
-  ? 'This component behaves like an element; use LocatorOfElement for it'
-  : undefined;
+type PropertiesError<Properties> =
+  Properties extends Partial<WithMark<never>>
+    ? 'Properties are unmarked by any locator; use & Mark<SomeLocator>'
+    : Properties extends Partial<WithMark<WithLocator<'LocatorOfElement'>>>
+      ? Properties extends WithErrorAttribute
+        ? undefined
+        : 'This component does not behave like an element; use Locator instead of LocatorOfElement for it'
+      : Properties extends WithErrorAttribute
+        ? 'This component behaves like an element; use LocatorOfElement for it'
+        : undefined;
 
 /**
  * Returns `true` if parameters is empty, `false` otherwise.
@@ -441,9 +441,10 @@ type Keys<Type> = Type extends unknown ? keyof Type : never;
 /**
  * Arguments of locator as function by locator parameters.
  */
-type LocatorArguments<Parameters> = IsIncludeUndefined<Parameters> extends true
-  ? [parameters?: Parameters]
-  : [parameters: Parameters];
+type LocatorArguments<Parameters> =
+  IsIncludeUndefined<Parameters> extends true
+    ? [parameters?: Parameters]
+    : [parameters: Parameters];
 
 /**
  *  Locator call result by locator tree and `IsChildLocator` flag.
@@ -457,7 +458,7 @@ type LocatorCallResult<Tree, IsChildLocator extends boolean = false> = Tree exte
             : CannotMarkElementMessage
           : undefined
       >
-  : object;
+  : Attributes;
 
 /**
  * Type of runtime locator object by locator tree.
@@ -523,8 +524,8 @@ type LocatorTreeNode<Key, DescriptionNode> = [DescriptionNode] extends [WithLoca
     > &
       WithHidden<TreeNode<Key, NormalizeTree<LocatorTreeFromLocator<DescriptionNode>>>>
   : [DescriptionNode] extends [WithNode]
-  ? DescriptionNode[NodeKey]
-  : BaseNode<AddUndefinedIfRequiredParametersEmpty<DescriptionNode>, {}>;
+    ? DescriptionNode[NodeKey]
+    : BaseNode<AddUndefinedIfRequiredParametersEmpty<DescriptionNode>, {}>;
 
 /**
  * Additional option of root locator for mapping attributes.
@@ -617,11 +618,12 @@ type PrototypeKeys = string & (keyof typeof Object.prototype | keyof typeof Func
  * `RequiredKeys<{foo: string}>` = `"foo"`.
  * `RequiredKeys<{foo: string, bar?: number}>` = `"foo"`.
  */
-type RequiredKeys<Type, TypeKeys = Keys<Type>> = TypeKeys extends Keys<Type>
-  ? Type extends Required<Pick<Type, TypeKeys>>
-    ? TypeKeys
-    : never
-  : never;
+type RequiredKeys<Type, TypeKeys = Keys<Type>> =
+  TypeKeys extends Keys<Type>
+    ? Type extends Required<Pick<Type, TypeKeys>>
+      ? TypeKeys
+      : never
+    : never;
 
 /**
  * Options of root locator with defaults values.

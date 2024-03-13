@@ -382,13 +382,13 @@ const setAttributesFromParameters = (
 /**
  * Method `toJSON` (and, in fact, `toString`) for locator proxy.
  */
-function toJSON(this: LocatorProxy): string {
+const toJSON = function (this: LocatorProxy): string {
   return this[PATH];
-}
+};
 
 /**
  * Method `toString` for path attribute value.
  */
-function toString(this: PathAttributeValue): string {
+const toString = function (this: PathAttributeValue): string {
   return this[LOCATOR][PATH];
-}
+};

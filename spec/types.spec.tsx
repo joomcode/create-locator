@@ -37,9 +37,8 @@ type ErrorAttribute = keyof L1 & keyof M1;
 
 declare const ERROR_ATTRIBUTE: ErrorAttribute;
 
-type IsEqual<X, Y> = (<Type>() => Type extends X ? 1 : 2) extends <Type>() => Type extends Y ? 1 : 2
-  ? true
-  : false;
+type IsEqual<X, Y> =
+  (<Type>() => Type extends X ? 1 : 2) extends <Type>() => Type extends Y ? 1 : 2 ? true : false;
 
 declare const SYMBOL: unique symbol;
 
@@ -255,6 +254,10 @@ const EmptyComponent = (properties: Mark<Locator<void>>) => {
 export type LabelLocator = Locator<{}, {level: string}, 'sameParameters'>;
 type LabelProperties = {level?: string; text: string} & Mark<LabelLocator>;
 
+type LabelLocatorParameters = Parameters<LabelLocator>[0];
+
+true satisfies IsEqual<LabelLocatorParameters, {level: string}>;
+
 export const Label = ({level, text, ...rest}: LabelProperties) => {
   const locator = createLocator(rest);
 
@@ -308,6 +311,10 @@ export const Multi = (properties: Mark<MultiLocator>) => {
 
   // @ts-expect-error
   locator.label = {} as typeof locator.label;
+
+  const attributes = locator.label({level: 'foo'});
+
+  true satisfies typeof attributes extends Attributes ? true : false;
 
   return (
     <div {...locator()}>
@@ -412,10 +419,9 @@ export const Header = ({foo, ...rest}: HeaderProperties) => {
   locator.toString({foo: ''}) satisfies object;
   locator.subtree.toLocaleString({level: ''}) satisfies object;
   locator.subtree.toString({level: ''}) satisfies object;
-  // TODO: should be an object
-  locator.toLocaleString() satisfies string;
-  // TODO: should be an object
-  locator.toString() satisfies string;
+  locator.toLocaleString() satisfies object;
+  // @ts-expect-error
+  locator.toString() satisfies object;
   locator.valueOf() satisfies object;
   locator.subtree.valueOf({level: ''}) satisfies object;
 
@@ -423,6 +429,12 @@ export const Header = ({foo, ...rest}: HeaderProperties) => {
   locator.bind.foo;
 
   const voidLocator = {} as Locator<void>;
+
+  true satisfies IsEqual<Parameters<typeof locator.alsoSubtree.corge>[0], {bar: `foo${string}`}>;
+
+  const attributes = locator.apply();
+
+  true satisfies IsEqual<typeof attributes, Attributes>;
 
   return (
     <h1 {...locator()}>
@@ -579,6 +591,10 @@ export type ArticleElementLocator = LocatorOfElement<
   {id: string},
   {notId: string}
 >;
+
+type ArticleLocatorParameters = Parameters<ArticleLocator>[0];
+
+true satisfies IsEqual<ArticleLocatorParameters, {id: string}>;
 
 export type ContentLocator = Locator<
   {
@@ -879,6 +895,8 @@ rootLocator.header.name();
 
 false satisfies IsEqual<typeof rootLocator, AppLocator>;
 true satisfies IsEqual<typeof rootLocator, CreateLocator<AppLocator, Selector>>;
+
+true satisfies IsEqual<typeof rootLocator.header, CreateLocator<HeaderLocator, Selector>>;
 
 // @ts-expect-error
 const rootLocator1 = createLocator<AppLocator, Selector>('app');
@@ -1776,6 +1794,10 @@ export const ComponentWithLocatorOfElement = (
   const locatorParameters = getLocatorParameters(properties);
   const propertiesWithoutMark = removeMarkFromProperties(properties);
 
+  const attributes = locator.foo();
+
+  true satisfies IsEqual<typeof attributes, Attributes>;
+
   false satisfies IsEqual<typeof locator, unknown>;
   false satisfies IsEqual<typeof locatorParameters, unknown>;
   false satisfies IsEqual<typeof propertiesWithoutMark, unknown>;
@@ -1892,6 +1914,10 @@ export const WithComponentParametersLikeElement = (
   const locatorParameters = getLocatorParameters(properties);
 
   true satisfies IsEqual<typeof locatorParameters, SomeParameters>;
+
+  const attributes = locator.label({level: 'bar'});
+
+  true satisfies typeof attributes extends Attributes ? true : false;
 
   return (
     <div {...locator({foo: locatorParameters.bar})}>
@@ -3256,6 +3282,8 @@ const RenderedWithOtherOptionalParameters = (
 
   true satisfies IsEqual<typeof locator, RenderedLocatorWithOtherOptionalParameters>;
   true satisfies IsEqual<typeof locator, CreateLocator<typeof properties>>;
+
+  true satisfies IsEqual<Parameters<typeof locator>[0], {foo?: `foo${string}`} | undefined>;
 
   return <div {...locator({})}></div>;
 };

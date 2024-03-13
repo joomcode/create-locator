@@ -302,7 +302,7 @@ is already included in the `data-testid` of the end locator).
 If you need to pass parameters to the end locator, the chain of locators will look like this:
 
 ```tsx
-const bazSelector: Selector = rootLocator({corge: 'garply'}).foo.bar.baz({grault: 'quux'})();`
+const bazSelector: Selector = rootLocator({corge: 'garply'}).foo.bar.baz({grault: 'quux'})();
 ```
 
 Note the call without parameters at the end of the chain. In a chain of locators with `mapAttributesChain`,
