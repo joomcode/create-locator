@@ -2,6 +2,7 @@ import type React from 'react';
 
 import type {
   createLocator as originalCreateLocator,
+  createRootLocator as originalCreateRootLocator,
   getLocatorParameters as originalGetLocatorParameters,
   removeMarkFromProperties as originalRemoveMarkFromProperties,
   setGlobalProductionMode as originalSetGlobalProductionMode,
@@ -21,6 +22,7 @@ const getRandomString = (): string => Math.random().toString(27).slice(2);
 
 export type Api = readonly [
   createLocator: typeof originalCreateLocator,
+  createRootLocator: typeof originalCreateRootLocator,
   getLocatorParameters: typeof originalGetLocatorParameters,
   removeMarkFromProperties: typeof originalRemoveMarkFromProperties,
   setGlobalProductionMode: typeof originalSetGlobalProductionMode,

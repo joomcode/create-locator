@@ -25,7 +25,7 @@
   "packageManager": "npm@10",
   "repository": {
     "type": "git",
-    "url": "https://github.com/joomcode/create-locator"
+    "url": "git+https://github.com/joomcode/create-locator.git"
   },
   "scripts": {
     "build": "cp LICENSE package.json README.md *.d.ts ./spec/node_modules/create-locator",

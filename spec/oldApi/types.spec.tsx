@@ -5,6 +5,7 @@ import {
   type AnyMark,
   type Attributes,
   createLocator,
+  createRootLocator,
   type CreateLocator,
   getLocatorParameters,
   type GetLocatorParameters,
@@ -764,26 +765,28 @@ type AppLocatorWithVoidParameters = Locator<
 true satisfies IsEqual<AppLocator, AppVoidLocator>;
 true satisfies IsEqual<AppLocator, AppLocatorWithVoidParameters>;
 
-export const appLocator = createLocator<AppLocator>('app');
+export const appLocator = createRootLocator<AppLocator>('app');
 
 // @ts-expect-error
-createLocator('app');
+createRootLocator('app');
+// @ts-expect-error
+createRootLocator({});
 // @ts-expect-error
 createLocator({});
 // @ts-expect-error
-createLocator('app', {});
+createRootLocator('app', {});
 // @ts-expect-error
-createLocator('app', {foo: ''});
+createRootLocator('app', {foo: ''});
 // @ts-expect-error
-createLocator('app', {isProduction: true});
+createRootLocator('app', {isProduction: true});
 // @ts-expect-error
-createLocator('app', {mapAttributesChain: () => {}});
+createRootLocator('app', {mapAttributesChain: () => {}});
 // @ts-expect-error
-createLocator<AppLocator>('app', {mapAttributesChain: () => {}});
+createRootLocator<AppLocator>('app', {mapAttributesChain: () => {}});
 // @ts-expect-error
-createLocator<AppLocator>('app', {mapAttributesChain: () => 3});
-createLocator<AppLocator, number>('app', {mapAttributesChain: () => 3});
-createLocator<AppLocator, void>('app', {mapAttributesChain: () => {}});
+createRootLocator<AppLocator>('app', {mapAttributesChain: () => 3});
+createRootLocator<AppLocator, number>('app', {mapAttributesChain: () => 3});
+createRootLocator<AppLocator, void>('app', {mapAttributesChain: () => {}});
 
 true satisfies IsEqual<typeof appLocator, AppLocator>;
 true satisfies IsEqual<CreateLocator<Mark<AppLocator>>, AppLocator>;
@@ -795,19 +798,19 @@ export const App = () => {
   true satisfies IsEqual<typeof appLocator, typeof locatorByProperties>;
 
   // @ts-expect-error
-  const locatorWithPartial = createLocator<Partial<AppLocator>>('app');
+  const locatorWithPartial = createRootLocator<Partial<AppLocator>>('app');
 
   true satisfies IsEqual<typeof locatorWithPartial, unknown>;
 
   // @ts-expect-error
-  createLocator<AppLocator>();
+  createRootLocator<AppLocator>();
 
   // @ts-expect-error
-  createLocator<AppLocator>({});
+  createRootLocator<AppLocator>({});
 
   const render = () => {
     // @ts-expect-error
-    const renderedLocator = createLocator<RenderedLocator>();
+    const renderedLocator = createRootLocator<RenderedLocator>();
 
     true satisfies IsEqual<typeof renderedLocator, RenderedLocator>;
     true satisfies IsEqual<CreateLocator<Mark<RenderedLocator>>, RenderedLocator>;
@@ -859,7 +862,7 @@ export const App = () => {
   );
 };
 
-const rootLocatorWithParameters = createLocator<Locator<void, {foo: string}>>('root');
+const rootLocatorWithParameters = createRootLocator<Locator<void, {foo: string}>>('root');
 
 // @ts-expect-error
 rootLocatorWithParameters();
@@ -870,17 +873,19 @@ rootLocatorWithParameters({foo: 2});
 rootLocatorWithParameters({foo: ''});
 
 // @ts-expect-error
-createLocator<Locator<{foo: {}}, {bar: string}>, symbol>('root');
+createRootLocator<Locator<{foo: {}}, {bar: string}>, symbol>('root');
 
-// @ts-expect-error
-createLocator<Locator<{foo: {}}, {bar: string}>, symbol>('root', {mapAttributesChain: () => {}});
+createRootLocator<Locator<{foo: {}}, {bar: string}>, symbol>('root', {
+  // @ts-expect-error
+  mapAttributesChain: () => {},
+});
 
 /**
  * Base tests of root locator with attributes mapping.
  */
 type Selector = {readonly textContent: Promise<string>};
 
-export const rootLocator = createLocator<AppLocator, Selector>('app', {
+export const rootLocator = createRootLocator<AppLocator, Selector>('app', {
   isProduction: true,
   mapAttributesChain() {
     return {} as Selector;
@@ -899,11 +904,11 @@ true satisfies IsEqual<typeof rootLocator, CreateLocator<AppLocator, Selector>>;
 true satisfies IsEqual<typeof rootLocator.header, CreateLocator<HeaderLocator, Selector>>;
 
 // @ts-expect-error
-const rootLocator1 = createLocator<AppLocator, Selector>('app');
+const rootLocator1 = createRootLocator<AppLocator, Selector>('app');
 // @ts-expect-error
-const rootLocator2 = createLocator<AppLocator, Selector>('app', {});
+const rootLocator2 = createRootLocator<AppLocator, Selector>('app', {});
 // @ts-expect-error
-const rootLocator3 = createLocator<AppLocator, Selector>('app', {mapAttributesChain() {}});
+const rootLocator3 = createRootLocator<AppLocator, Selector>('app', {mapAttributesChain() {}});
 
 true satisfies IsEqual<
   [AppLocator, AppLocator, AppLocator],
@@ -912,7 +917,7 @@ true satisfies IsEqual<
 
 declare const mapAttributesChainToNever: () => never;
 
-const mappedToNeverLocator = createLocator<AppLocator, never>('app', {
+const mappedToNeverLocator = createRootLocator<AppLocator, never>('app', {
   mapAttributesChain: mapAttributesChainToNever,
 });
 
@@ -923,9 +928,9 @@ mappedToNeverLocator.header() satisfies never;
 const mapAttributesChain = (attributesChain: {}) => attributesChain as Selector;
 
 // @ts-expect-error
-const appLocator1 = createLocator<Partial<AppLocator>, Selector>('app', {mapAttributesChain});
+const appLocator1 = createRootLocator<Partial<AppLocator>, Selector>('app', {mapAttributesChain});
 
-const appLocator2 = createLocator<AppLocator, Selector>('app', {mapAttributesChain});
+const appLocator2 = createRootLocator<AppLocator, Selector>('app', {mapAttributesChain});
 
 true satisfies IsEqual<typeof appLocator1, unknown>;
 
@@ -951,7 +956,7 @@ locator.main.header.header;
 // @ts-expect-error
 locator.main.header.alsoSubtree.corge({bar: 'baz'});
 
-const rootLocatorWithParametersWithMapping = createLocator<
+const rootLocatorWithParametersWithMapping = createRootLocator<
   Locator<{foo: {}}, {bar: string}>,
   symbol
 >('root', {mapAttributesChain: () => Symbol()});
@@ -1148,9 +1153,9 @@ true satisfies IsEqual<CreateLocator<never>, unknown>;
 true satisfies IsEqual<CreateLocator<never, Selector>, unknown>;
 
 const neverLocator = createLocator(neverValue);
-const neverLocatorWithMapping = createLocator(neverValue, {});
-const neverLocatorWithoutMapping = createLocator<never>(neverValue);
-const someLocatorWithNever = createLocator<never>('app');
+const neverLocatorWithMapping = createRootLocator(neverValue, {});
+const neverLocatorWithoutMapping = createRootLocator<never>(neverValue);
+const someLocatorWithNever = createRootLocator<never>('app');
 
 true satisfies IsEqual<typeof neverLocator, unknown>;
 true satisfies IsEqual<typeof neverLocatorWithMapping, unknown>;
@@ -1586,7 +1591,7 @@ export const Switch = (properties: Mark<SwitchLocator>) => {
   );
 };
 
-export const mappedSwitchLocator = createLocator<SwitchLocator, Selector>('root', {
+export const mappedSwitchLocator = createRootLocator<SwitchLocator, Selector>('root', {
   mapAttributesChain() {
     return {} as Selector;
   },
@@ -2127,7 +2132,7 @@ export const OptionalSwitchLikeElement = (properties: Partial<Mark<SwitchLocator
   );
 };
 
-export const mappedSwitchLocatorOfElement = createLocator<SwitchLocatorOfElement, Selector>(
+export const mappedSwitchLocatorOfElement = createRootLocator<SwitchLocatorOfElement, Selector>(
   'root',
   {
     mapAttributesChain() {
@@ -2468,7 +2473,7 @@ true satisfies IsEqual<
  */
 const rootOptions: RootOptions = {};
 
-export const alsoRootLocator = createLocator<LabelLocator>('root', rootOptions);
+export const alsoRootLocator = createRootLocator<LabelLocator>('root', rootOptions);
 
 rootOptions.isProduction satisfies boolean | undefined;
 rootOptions.mapAttributesChain satisfies Function | undefined;

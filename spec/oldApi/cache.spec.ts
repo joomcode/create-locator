@@ -75,11 +75,11 @@ const attributesAreCached = (
   );
 };
 
-export const testCache: Test = ([createLocator], environment) => {
+export const testCache: Test = ([_createLocator, createRootLocator], environment) => {
   const isDevelopment = environment === 'development';
 
-  const rootLocator = createLocator<RootLocator>('root');
-  const locatorWithMap = createLocator<RootLocator, object>('root', {
+  const rootLocator = createRootLocator<RootLocator>('root');
+  const locatorWithMap = createRootLocator<RootLocator, object>('root', {
     mapAttributesChain: (attributesChain) => attributesChain,
   });
 

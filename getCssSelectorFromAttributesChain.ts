@@ -1,4 +1,4 @@
-import type {Attributes} from './types';
+import type {Attributes} from './oldTypes';
 
 /**
  * Get CSS selector string from attributes chain.

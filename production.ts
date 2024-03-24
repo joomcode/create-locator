@@ -1,9 +1,10 @@
 import type {
   AnyLocator,
-  CreateLocatorFunction,
+  CreateRootLocatorFunction,
   GetLocatorParametersFunction,
   RemoveMarkFromPropertiesFunction,
-} from './types';
+} from './oldTypes';
+import type {CreateLocatorFunction} from './types';
 
 export const anyLocator: AnyLocator = new Proxy(
   Object.setPrototypeOf(() => {}, null),
@@ -20,7 +21,9 @@ export const anyLocator: AnyLocator = new Proxy(
   },
 );
 
-export const createLocator = (() => anyLocator) as CreateLocatorFunction;
+export const createLocator = (() => anyLocator) as unknown as CreateLocatorFunction;
+
+export const createRootLocator = (() => anyLocator) as CreateRootLocatorFunction;
 
 export const getLocatorParameters = (() => anyLocator) as GetLocatorParametersFunction;
 
@@ -45,7 +48,7 @@ export type {
   PropertiesWithMarkWithParametersConstraint,
   RemoveMarkFromProperties,
   RootOptions,
-} from './types';
+} from './oldTypes';
 
 const attributes = {};
 

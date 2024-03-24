@@ -72,7 +72,7 @@ When marking up a root application component, you need to specify a _root_ locat
 and a _prefix_ that starts the paths of all locators in this component tree:
 
 ```tsx
-import {createLocator, type Locator} from 'create-locator';
+import {createRootLocator, type Locator} from 'create-locator';
 import {Foo, type FooLocator} from 'src/components/Foo';
 import {Main, type MainLocator} from 'src/components/Main';
 
@@ -82,7 +82,7 @@ export type RootLocator = Locator<{
 }>;
 
 // create root locator by root locator type and path prefix
-const rootLocator = createLocator<RootLocator>('app');
+const rootLocator = createRootLocator<RootLocator>('app');
 
 const App = () => {
   return (
@@ -105,7 +105,7 @@ Here is a complete list of these options with their default values (each can be 
 
 ```tsx
 // create root locator by root locator type, path prefix and options
-const rootLocator = createLocator<RootLocator>('app', {
+const rootLocator = createRootLocator<RootLocator>('app', {
   // if true, then locator attributes will not be rendered at all
   isProduction: false,
 
@@ -146,7 +146,7 @@ and `pathSeparator`, and for locator parameter names
 ## Install
 
 Requires [node](https://nodejs.org/en/) version 8 or higher and
-[TypeScript](https://www.typescriptlang.org/) version 4.5 or higher:
+[TypeScript](https://www.typescriptlang.org/) version 5 or higher:
 
 ```sh
 npm install create-locator
@@ -239,10 +239,10 @@ If you need locator attributes to find elements (for example, in unit tests),
 you can statically create a locator for a component as a standard root locator:
 
 ```tsx
-import {createLocator, type Locator} from 'create-locator';
+import {createRootLocator, type Locator} from 'create-locator';
 import {Foo, type FooLocator} from './Foo';
 
-const locator = createLocator<FooLocator>('root');
+const locator = createRootLocator<FooLocator>('root');
 
 test('Foo renders correctly', () => {
   render(<Foo {...locator()} />); // renders with locator attributes
@@ -259,7 +259,7 @@ are themselves called [locators](https://playwright.dev/docs/locators)).
 For this purpose, the `mapAttributesChain` mapping function is used, which is added to the root locator options in tests:
 
 ```tsx
-const rootLocator = createLocator<RootLocator, Selector>('app', {
+const rootLocator = createRootLocator<RootLocator, Selector>('app', {
   ···
   mapAttributesChain: (attributesChain) => {
     ···
@@ -395,7 +395,7 @@ if (IS_PRODUCTION) {
   setGlobalProductionMode();
 }
 
-const rootLocator = createLocator<RootLocator>('app', {
+const rootLocator = createRootLocator<RootLocator>('app', {
   isProduction: IS_PRODUCTION,
   ···
 });

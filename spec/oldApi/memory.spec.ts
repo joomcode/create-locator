@@ -1,4 +1,4 @@
-import {type anyLocator, createLocator, type Locator} from 'create-locator';
+import {type anyLocator, createRootLocator, type Locator} from 'create-locator';
 
 import {createRandomTree, ok} from './utils';
 
@@ -103,11 +103,11 @@ const tick = (): void => {
     return;
   }
 
-  const rootLocator = createLocator<Locator<void>>('app');
+  const rootLocator = createRootLocator<Locator<void>>('app');
 
   createLocatorByTree(rootLocator, createRandomTree());
 
-  const mappedLocator = createLocator<Locator<void>, object>('app', {
+  const mappedLocator = createRootLocator<Locator<void>, object>('app', {
     mapAttributesChain: (attributesChain) => attributesChain,
   });
 

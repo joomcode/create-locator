@@ -11,10 +11,16 @@ type RootLocator = Locator<
 >;
 
 export const testBasicInteractions: Test = (
-  [createLocator, getLocatorParameters, removeMarkFromProperties, setGlobalProductionMode],
+  [
+    createLocator,
+    createRootLocator,
+    getLocatorParameters,
+    removeMarkFromProperties,
+    setGlobalProductionMode,
+  ],
   environment,
 ) => {
-  const locator = createLocator<RootLocator>('root');
+  const locator = createRootLocator<RootLocator>('root');
   const SYMBOL = Symbol();
 
   const anyLocator: any = locator.toString;
@@ -433,9 +439,10 @@ export const testBasicInteractions: Test = (
   type Level2Locator = Locator<{level3: Level3Locator}, {parameter2: string}>;
   type Level1Locator = Locator<{level2: Level2Locator}, {parameter1: string}>;
 
-  const mappedLocator = createLocator<Level1Locator, readonly Record<string, string>[]>('level1', {
-    mapAttributesChain: (attributesChain) => attributesChain,
-  });
+  const mappedLocator = createRootLocator<Level1Locator, readonly Record<string, string>[]>(
+    'level1',
+    {mapAttributesChain: (attributesChain) => attributesChain},
+  );
 
   if (isDevelopment) {
     const actualAttributesChains = {
@@ -500,13 +507,14 @@ export const testBasicInteractions: Test = (
       'attributes chain for mapped locators formed correctly for locators with parameters on all levels',
     );
 
-    const someLocator = createLocator<RootLocator>('app');
+    const someLocator = createRootLocator<RootLocator>('app');
     const someProperties: Mark<RootLocator> = someLocator({qux: 'foo'});
 
     assert(typeof setGlobalProductionMode === 'function', 'setGlobalProductionMode is function');
 
     assert(
-      ((createLocator<RootLocator>('app') as object) === getLocatorParameters(someProperties)) ===
+      ((createRootLocator<RootLocator>('app') as object) ===
+        getLocatorParameters(someProperties)) ===
         !isDevelopment,
       'development mode works correct for createLocator and getLocatorParameters',
     );
@@ -518,11 +526,12 @@ export const testBasicInteractions: Test = (
 
     setGlobalProductionMode();
 
-    const productionLocator = createLocator<RootLocator>('app');
+    const productionLocator = createRootLocator<RootLocator>('app');
     const productionProperties: Mark<RootLocator> = productionLocator({qux: 'foo'});
 
     assert(
-      (createLocator<RootLocator>('app') as object) === getLocatorParameters(productionProperties),
+      (createRootLocator<RootLocator>('app') as object) ===
+        getLocatorParameters(productionProperties),
       'setGlobalProductionMode turn on global production mode for createLocator and getLocatorParameters',
     );
 

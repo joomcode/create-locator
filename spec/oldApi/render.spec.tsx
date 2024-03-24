@@ -3,7 +3,12 @@ import type {Locator, Mark, Node} from 'create-locator';
 import {assert, RuntimeReact as React, type Test} from './utils';
 
 export const testRender: Test = (
-  [originalCreateLocator, getLocatorParameters, removeMarkFromProperties],
+  [
+    originalCreateLocator,
+    originalCreateRootLocator,
+    getLocatorParameters,
+    removeMarkFromProperties,
+  ],
   environment,
 ) => {
   const locatorsSet = new Set();
@@ -17,6 +22,15 @@ export const testRender: Test = (
     return locator;
   }) as typeof originalCreateLocator;
 
+  const createRootLocator = ((...args: unknown[]) => {
+    // @ts-expect-error
+    const locator = originalCreateRootLocator(...args);
+
+    locatorsSet.add(locator);
+
+    return locator;
+  }) as typeof originalCreateRootLocator;
+
   type FooLocator = Locator<{fooLeaf: {quux: string}}, {corge: string}, 'sameParameters'>;
   type NodeLocator = Node<{subLeaf: {baz: string}}, {qux: string}>;
 
@@ -27,7 +41,7 @@ export const testRender: Test = (
 
   const SYMBOL = Symbol();
 
-  const rootLocator = createLocator<RootLocator>('root', {
+  const rootLocator = createRootLocator<RootLocator>('root', {
     parameterAttributePrefix: 'data-prefix-',
     pathAttribute: 'data-path',
     pathSeparator: '.',
@@ -199,7 +213,7 @@ export const testRender: Test = (
     render: HeaderLocator;
   }>;
 
-  const appLocator = createLocator<AppLocator>('app');
+  const appLocator = createRootLocator<AppLocator>('app');
 
   const App = () => {
     const render = () => {
