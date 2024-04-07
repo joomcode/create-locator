@@ -11,6 +11,25 @@ export type Attributes = Readonly<Record<string, string>> | undefined;
 export type ChildLocatorsConstraint = Readonly<Record<string, Parameters | null>>;
 
 /**
+ * Type of `createLocatorCreatorInTests` function.
+ */
+export type CreateLocatorCreatorInTestsFunction = <Selector, SomeOptions extends OptionsInTests>(
+  this: void,
+  createSelectorFromCss: CreateSelectorFromCss<Selector>,
+  options: SomeOptions,
+) => true extends IsEqual<Selector, void> | IsEqual<SomeOptions, OptionsInTests>
+  ? unknown
+  : <SomeLocator extends Record<LocatorIdKey, string>>(
+      locatorId: SomeLocator[LocatorIdKey],
+    ) => true extends
+      | IsEqual<SomeLocator[LocatorIdKey], never>
+      | IsEqual<SomeLocator[LocatorIdKey], unknown>
+      ? unknown
+      : ReplaceReturn<SomeLocator, Selector> & {
+          readonly [Key in string & keyof SomeLocator]: ReplaceReturn<SomeLocator[Key], Selector>;
+        };
+
+/**
  * Type of `createLocator` function (with overloads).
  */
 export type CreateLocatorFunction = (<
@@ -18,15 +37,21 @@ export type CreateLocatorFunction = (<
   const ChildLocators extends ChildLocatorsConstraint = {},
 >(
   this: void,
-  locatorId: LocatorId,
+  locatorId: string extends LocatorId ? never : LocatorId,
   childLocators?: ChildLocators,
 ) => true extends
-  | IsEqual<LocatorId, string>
   | IsEqual<LocatorId, never>
+  | IsEqual<LocatorId, string>
   | IsEqual<ChildLocators, ChildLocatorsConstraint>
+  | IsEqual<ChildLocators, never>
   ? unknown
   : Locator<LocatorId, ChildLocators>) &
   CreateComponentLocator;
+
+/**
+ * Creates selector from CSS string.
+ */
+export type CreateSelectorFromCss<Selector> = (this: void, css: string) => Selector;
 
 /**
  * Returns `true` if types are exactly equal, `false` otherwise.
@@ -54,15 +79,35 @@ export declare const LOCATOR_ID: unique symbol;
  * Global locator options. Locators return attributes only after options are set.
  */
 export type Options = Readonly<{
-  childLocatorIdSeparator: string;
-  locatorIdAttribute: string;
-  parameterAttributePrefix: string;
+  /**
+   * Separator between root locator id and child locator name in child locator id.
+   */
+  childSeparator: string;
+  /**
+   * Attribute name for locator id.
+   */
+  idAttribute: string;
+  /**
+   * Prefix of attribute names for parameters.
+   */
+  parameterPrefix: string;
 }>;
+
+/**
+ * Global locator options in tests.
+ */
+export type OptionsInTests = Options & {readonly disableWildcards?: boolean};
 
 /**
  * Locator parameters.
  */
 export type Parameters = Readonly<Record<string, string>>;
+
+/**
+ * Target of locator proxy.
+ */
+export type Target = {root: string} & Record<string | symbol, Function> &
+  ((parameters?: Parameters) => unknown);
 
 /**
  * Adds `undefined` to parameters if there are no required parameters.
@@ -75,7 +120,7 @@ type AddUndefinedIfRequiredParametersEmpty<SomeParameters> =
 /**
  * Child locator functions of root locator.
  */
-type ChildLocatorsFunctions<ChildLocators> = {
+type ChildLocatorsFunctions<in out ChildLocators> = {
   readonly [Key in string & keyof ChildLocators]: LocatorFunction<
     AddUndefinedIfRequiredParametersEmpty<ChildLocators[Key]>
   >;
@@ -120,14 +165,21 @@ type LocatorArguments<SomeParameters> =
 /**
  * The function part of locator.
  */
-type LocatorFunction<SomeParameters, Return = Attributes> = (
+type LocatorFunction<in out SomeParameters> = (
   this: void,
   ...arguments: LocatorArguments<SomeParameters>
-) => Return;
+) => Attributes;
 /**
  * Type of symbol key for locator id.
  */
 type LocatorIdKey = typeof LOCATOR_ID;
+
+/**
+ * Replaces function return type.
+ */
+type ReplaceReturn<Fn, Return> = Fn extends (...args: infer Args) => unknown
+  ? (...args: Args) => Return
+  : never;
 
 /**
  * Returns required keys of type.
