@@ -6,10 +6,10 @@ export const assert = (value: boolean, message: string): void => {
   }
 };
 
-export const defaultOptions: Options = {
+export const defaultOptions = {
   childSeparator: '-',
   idAttribute: 'data-testid',
   parameterPrefix: 'data-test-',
-};
+} as const satisfies Options;
 
 export const locatorId = '136';

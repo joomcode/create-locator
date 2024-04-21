@@ -13,11 +13,17 @@ export type ChildLocatorsConstraint = Readonly<Record<string, Parameters | null>
 /**
  * Type of `createLocatorCreatorInTests` function.
  */
-export type CreateLocatorCreatorInTestsFunction = <Selector, SomeOptions extends OptionsInTests>(
+export type CreateLocatorCreatorInTestsFunction = <
+  Selector,
+  const SomeOptions extends OptionsInTests,
+>(
   this: void,
   createSelectorFromCss: CreateSelectorFromCss<Selector>,
   options: SomeOptions,
-) => true extends IsEqual<Selector, void> | IsEqual<SomeOptions, OptionsInTests>
+) => true extends
+  | IsEqual<Selector, void>
+  | IsEqual<SomeOptions, OptionsInTests>
+  | IsEqual<SomeOptions['childSeparator'], string>
   ? unknown
   : <SomeLocator extends Record<LocatorIdKey, string>>(
       locatorId: SomeLocator[LocatorIdKey],
@@ -25,8 +31,12 @@ export type CreateLocatorCreatorInTestsFunction = <Selector, SomeOptions extends
       | IsEqual<SomeLocator[LocatorIdKey], never>
       | IsEqual<SomeLocator[LocatorIdKey], unknown>
       ? unknown
-      : ReplaceReturn<SomeLocator, Selector> & {
-          readonly [Key in string & keyof SomeLocator]: ReplaceReturn<SomeLocator[Key], Selector>;
+      : LocatorInTests<SomeLocator[LocatorIdKey], SomeLocator, Selector> & {
+          readonly [Key in string & keyof SomeLocator]: LocatorInTests<
+            `${SomeLocator[LocatorIdKey]}${SomeOptions['childSeparator']}${Key}`,
+            SomeLocator[Key],
+            Selector
+          >;
         };
 
 /**
@@ -44,6 +54,7 @@ export type CreateLocatorFunction = (<
   | IsEqual<LocatorId, string>
   | IsEqual<ChildLocators, ChildLocatorsConstraint>
   | IsEqual<ChildLocators, never>
+  | HasKey<ChildLocators, 'toCss' | 'toJSON' | 'toString' | typeof Symbol.toPrimitive>
   ? unknown
   : Locator<LocatorId, ChildLocators>) &
   CreateComponentLocator;
@@ -106,7 +117,10 @@ export type Parameters = Readonly<Record<string, string>>;
 /**
  * Target of locator proxy.
  */
-export type Target = {root: string} & Record<string | symbol, Function> &
+export type Target = {toCss: (parameters?: Parameters) => string; toJSON: () => string} & Record<
+  string | symbol,
+  Function
+> &
   ((parameters?: Parameters) => unknown);
 
 /**
@@ -135,6 +149,14 @@ type GetRootParameters<
 > = RootParameters extends Parameters ? RootParameters : undefined;
 
 /**
+ * Returns `true`, if type has specified key, `false` otherwise.
+ * `HasKey<{}, 'foo'>` = `false`.
+ * `HasKey<{foo: 1}, 'foo'>` = `true`.
+ * `HasKey<{foo: 2}, 'foo' | 'bar'>` = `boolean`.
+ */
+type HasKey<Type, Key> = Key extends keyof Type ? true : false;
+
+/**
  * Returns `true` if type includes `undefined`, `false` otherwise.
  * `IsIncludeUndefined<string>` = `false`.
  * `IsIncludeUndefined<number | undefined>` = `true`.
@@ -158,21 +180,36 @@ type Keys<Type> = Type extends unknown ? keyof Type : never;
  * Arguments of function part of locator by locator parameters.
  */
 type LocatorArguments<SomeParameters> =
-  IsIncludeUndefined<SomeParameters> extends true
-    ? [parameters?: SomeParameters]
-    : [parameters: SomeParameters];
+  IsEqual<SomeParameters, undefined> extends true
+    ? []
+    : IsIncludeUndefined<SomeParameters> extends true
+      ? [parameters?: SomeParameters]
+      : [parameters: SomeParameters];
 
 /**
  * The function part of locator.
  */
 type LocatorFunction<in out SomeParameters> = (
   this: void,
-  ...arguments: LocatorArguments<SomeParameters>
+  ...arguments: LocatorArguments<
+    null extends SomeParameters
+      ? undefined
+      : {} extends SomeParameters
+        ? Parameters | undefined
+        : SomeParameters
+  >
 ) => Attributes;
+
 /**
  * Type of symbol key for locator id.
  */
 type LocatorIdKey = typeof LOCATOR_ID;
+
+/**
+ * Locator in tests.
+ */
+type LocatorInTests<LocatorId, Fn, Selector> = ReplaceReturn<Fn, Selector> &
+  Readonly<{toCss: ReplaceReturn<Fn, string>; toString: () => LocatorId}>;
 
 /**
  * Replaces function return type.

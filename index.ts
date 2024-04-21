@@ -117,8 +117,13 @@ var setChildLocators = (locatorId: string, locator: Locator, children: Children)
         throwDuplicateError(childLocatorId);
       }
 
-      locator[name] = locators[childLocatorId] = ((parameters?: Parameters) =>
-        getAttributes(childLocatorId, parameters)) as Locator;
+      Object.defineProperty(locator, name, {
+        configurable: true,
+        enumerable: true,
+        value: (locators[childLocatorId] = ((parameters?: Parameters) =>
+          getAttributes(childLocatorId, parameters)) as Locator),
+        writable: true,
+      });
     }
   }
 };

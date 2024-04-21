@@ -9,11 +9,7 @@ export const createLocatorCreatorInTests: CreateLocatorCreatorInTestsFunction = 
 ) => {
   const {childSeparator, disableWildcards, idAttribute, parameterPrefix} = options;
 
-  const getSelector = (
-    cache: Cache,
-    locatorId: string,
-    parameters: Parameters | undefined,
-  ): unknown => {
+  const getCss = (locatorId: string, parameters: Parameters | undefined): string => {
     const attributes: [name: string, value: string][] = [[idAttribute, locatorId]];
 
     if (parameters != null) {
@@ -22,10 +18,12 @@ export const createLocatorCreatorInTests: CreateLocatorCreatorInTestsFunction = 
       }
     }
 
-    const css = attributes
+    return attributes
       .map(([name, value]) => getAttributeCss(name, value, disableWildcards))
       .join('');
+  };
 
+  const getSelector = (cache: Cache, css: string): unknown => {
     if (css in cache) {
       return cache[css];
     }
@@ -38,19 +36,29 @@ export const createLocatorCreatorInTests: CreateLocatorCreatorInTestsFunction = 
   };
 
   const get: ProxyHandler<Target>['get'] = (target, property) => {
-    if (target.hasOwnProperty(property)) {
-      return target[property];
+    const maybeLocator = target[property];
+
+    if (typeof maybeLocator === 'function') {
+      return maybeLocator;
     }
 
-    const locatorId = target.root;
+    const locatorId = target.toString();
 
     const cache: Cache = Object.create(null);
     const childLocatorId = locatorId + childSeparator + String(property);
 
-    const childLocator = (parameters?: Parameters) =>
-      getSelector(cache, childLocatorId, parameters);
+    const toCss = (parameters?: Parameters) => getCss(childLocatorId, parameters);
+    const childLocator = (parameters?: Parameters) => getSelector(cache, toCss(parameters));
 
-    target[property] = childLocator;
+    childLocator.toCss = toCss;
+    childLocator.toJSON = childLocator.toString = () => childLocatorId;
+
+    Object.defineProperty(target, property, {
+      configurable: true,
+      enumerable: true,
+      value: childLocator,
+      writable: true,
+    });
 
     return childLocator;
   };
@@ -58,10 +66,11 @@ export const createLocatorCreatorInTests: CreateLocatorCreatorInTestsFunction = 
   return (locatorId: string) => {
     const cache: Cache = Object.create(null);
 
-    const target = ((parameters?: Parameters) =>
-      getSelector(cache, locatorId, parameters)) as Target;
+    const toCss = (parameters?: Parameters) => getCss(locatorId, parameters);
+    const target = ((parameters?: Parameters) => getSelector(cache, toCss(parameters))) as Target;
 
-    target.root = locatorId;
+    target.toCss = toCss;
+    target.toJSON = target.toString = target[Symbol.toPrimitive] = () => locatorId;
 
     return new Proxy(target, {get, ...handler}) as any;
   };
