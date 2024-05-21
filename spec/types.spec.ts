@@ -213,7 +213,7 @@ const locatorId = '' as string;
 }
 
 {
-  const wrongLocator = createLocator('', {[Symbol.toPrimitive]: {}, foo: null});
+  const wrongLocator = createLocator('', {[Symbol()]: {}, foo: null});
 
   true satisfies IsEqual<typeof wrongLocator, unknown>;
 }

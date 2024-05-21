@@ -1,6 +1,6 @@
-import {createLocatorCreatorInTests} from 'create-locator/createLocatorCreatorInTests';
+import {createSelectorFunctions} from 'create-locator/createSelectorFunctions';
 
-import {assert, defaultOptions, locatorId} from './utils';
+import {assert, defaultOptions, locatorId} from './utils.js';
 
 import type {Locator} from './index.spec';
 import type {LocatorWithName} from './types.spec';
@@ -9,7 +9,10 @@ type Selector = {css: string};
 
 const createSelector = (css: string): Selector => ({css});
 
-const createLocatorInTests = createLocatorCreatorInTests(createSelector, defaultOptions);
+const {createLocatorInTests, findAnyOfSelectors, findChainOfSelectors} = createSelectorFunctions(
+  createSelector,
+  defaultOptions,
+);
 
 const {childSeparator, idAttribute, parameterPrefix} = defaultOptions;
 
@@ -121,7 +124,7 @@ assert(
 {
   const idAttribute = 'data-othertest';
 
-  const createLocatorInTests = createLocatorCreatorInTests(createSelector, {
+  const {createLocatorInTests} = createSelectorFunctions(createSelector, {
     ...defaultOptions,
     disableWildcards: true,
     idAttribute,
@@ -135,3 +138,49 @@ assert(
     'can disable wildcards',
   );
 }
+
+const anyOfSelectors = findAnyOfSelectors(locator(), selector);
+
+assert(
+  anyOfSelectors.css === `:is(${selector.css}, ${locator().css})`,
+  'findAnyOfSelectors works correctly',
+);
+
+const chainOfSelectors = findChainOfSelectors(locator(), selector);
+
+assert(
+  chainOfSelectors.css === `${locator().css} ${selector.css}`,
+  'findChainOfSelectors works correctly',
+);
+
+assert(
+  findAnyOfSelectors(anyOfSelectors, chainOfSelectors).css ===
+    `:is(${selector.css}, ${locator().css}, ${chainOfSelectors.css})`,
+  'findAnyOfSelectors works correctly with secondary selectors',
+);
+
+assert(
+  findChainOfSelectors(anyOfSelectors, chainOfSelectors).css ===
+    `${anyOfSelectors.css} ${chainOfSelectors.css}`,
+  'findChainOfSelectors works correctly with secondary selectors',
+);
+
+assert(
+  findAnyOfSelectors(locator(), locator()) === locator(),
+  'findAnyOfSelectors works correctly with duplicate selectors',
+);
+
+assert(
+  findAnyOfSelectors(locator(), selector, locator()) === anyOfSelectors,
+  'findAnyOfSelectors works correctly with secondary duplicate selectors',
+);
+
+assert(
+  findAnyOfSelectors(locator()) === locator(),
+  'findAnyOfSelectors works correctly with single selector',
+);
+
+assert(
+  findChainOfSelectors(locator()) === locator(),
+  'findChainOfSelectors works correctly with single selector',
+);

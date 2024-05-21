@@ -7,7 +7,7 @@ import type {
 } from './oldTypes';
 import type {CreateLocatorFunction} from './types';
 
-import {anyLocator as productionAnyLocator} from './production';
+import {anyLocator as productionAnyLocator} from './production.js';
 
 /**
  * Proxy object that represents the locator in production mode (and, for example, in unit tests).

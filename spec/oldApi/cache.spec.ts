@@ -1,6 +1,6 @@
 import type {Locator} from 'create-locator';
 
-import {assert, assertShallowEqual, getShallowCopy, type Test} from './utils';
+import {assert, assertShallowEqual, getShallowCopy, type Test} from './utils.js';
 
 type AnyLocator = (parameters?: unknown) => {second: AnyLocator};
 

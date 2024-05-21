@@ -3,10 +3,9 @@
     "allowUnreachableCode": false,
     "allowUnusedLabels": false,
     "declaration": true,
-    "esModuleInterop": true,
     "exactOptionalPropertyTypes": true,
     "jsx": "react",
-    "module": "CommonJS",
+    "module": "preserve",
     "noEmitOnError": true,
     "noFallthroughCasesInSwitch": true,
     "noImplicitOverride": true,
@@ -21,9 +20,5 @@
     "target": "ES2015",
     "types": []
   },
-  "files": [
-    "./createLocatorCreatorInTests.ts",
-    "./index.ts",
-    "./getCssSelectorFromAttributesChain.ts"
-  ]
+  "files": ["./createSelectorFunctions.ts", "./index.ts", "./getCssSelectorFromAttributesChain.ts"]
 }

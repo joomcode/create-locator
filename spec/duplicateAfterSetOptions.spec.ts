@@ -1,6 +1,6 @@
 import {createLocator, setOptions} from 'create-locator';
 
-import {assert, defaultOptions, locatorId} from './utils';
+import {assert, defaultOptions, locatorId} from './utils.js';
 
 createLocator(locatorId, {foo: {}, bar: null, 'qux-quux': {}});
 

@@ -3,11 +3,11 @@
 import {createLocator, setOptions} from 'create-locator';
 import {fork} from 'node:child_process';
 
-import './oldApi/index.spec';
-import {assert, defaultOptions, locatorId} from './utils';
+import './oldApi/index.spec.js';
+import {assert, defaultOptions, locatorId} from './utils.js';
 
-export type * from './createLocatorCreatorInTests.spec';
-export type * from './createLocatorCreatorInTests.types.spec';
+export type * from './createSelectorFunctions.spec';
+export type * from './createSelectorFunctions.types.spec';
 export type * from './duplicateAfterSetOptions.spec';
 export type * from './duplicateChildAndChildLocator.spec';
 export type * from './duplicateChildLocator.spec';
@@ -16,7 +16,7 @@ export type * from './prematurelyCalledChildLocator.spec';
 export type * from './prematurelyCalledRootLocator.spec';
 export type * from './types.spec';
 
-fork('./spec/build/createLocatorCreatorInTests.spec.js');
+fork('./spec/build/createSelectorFunctions.spec.js');
 fork('./spec/build/duplicateAfterSetOptions.spec.js');
 fork('./spec/build/duplicateChildAndChildLocator.spec.js');
 fork('./spec/build/duplicateChildLocator.spec.js');

@@ -1,6 +1,6 @@
 import {type anyLocator, createRootLocator, type Locator} from 'create-locator';
 
-import {createRandomTree, ok} from './utils';
+import {createRandomTree, ok} from './utils.js';
 
 const baselineTicks = 300_000;
 const bytesPerTickLimit = 10;

@@ -1,4 +1,4 @@
-import {createLocator as oldCreateLocator} from './oldApi';
+import {createLocator as oldCreateLocator} from './oldApi.js';
 
 import type {Attributes, CreateLocatorFunction, Options, Parameters} from './types';
 
@@ -66,7 +66,7 @@ export {
   getLocatorParameters,
   removeMarkFromProperties,
   setGlobalProductionMode,
-} from './oldApi';
+} from './oldApi.js';
 
 export type * from './oldApi';
 

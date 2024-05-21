@@ -1,8 +1,8 @@
 import type {OptionsInTests} from 'create-locator';
-import {createLocatorCreatorInTests} from 'create-locator/createLocatorCreatorInTests';
+import {createSelectorFunctions} from 'create-locator/createSelectorFunctions';
 import type {IsEqual} from 'create-locator/types';
 
-import {defaultOptions, locatorId} from './utils';
+import {defaultOptions, locatorId} from './utils.js';
 
 import type {Locator as OtherLocator} from './index.spec';
 import type {Locator, LocatorWithName} from './types.spec';
@@ -11,7 +11,10 @@ type Selector = {isSelector: true};
 
 const createSelector = (css: string): Selector => ({isSelector: true, css}) as Selector;
 
-const createLocatorInTests = createLocatorCreatorInTests(createSelector, defaultOptions);
+const {createLocatorInTests, findAnyOfSelectors, findChainOfSelectors} = createSelectorFunctions(
+  createSelector,
+  defaultOptions,
+);
 
 const locator = createLocatorInTests<Locator>('');
 
@@ -113,39 +116,39 @@ createLocatorInTests<Locator>('foo' as string);
 
 {
   // @ts-expect-error
-  const wrongCreateLocator = createLocatorCreatorInTests((css: number) => {}, defaultOptions);
+  const wrongSelectorFunctions = createSelectorFunctions((css: number) => {}, defaultOptions);
 
-  true satisfies IsEqual<typeof wrongCreateLocator, unknown>;
+  true satisfies IsEqual<typeof wrongSelectorFunctions, unknown>;
 }
 
 {
   // @ts-expect-error
-  const wrongCreateLocator = createLocatorCreatorInTests(createSelector);
+  const wrongSelectorFunctions = createSelectorFunctions(createSelector);
 
-  true satisfies IsEqual<typeof wrongCreateLocator, unknown>;
+  true satisfies IsEqual<typeof wrongSelectorFunctions, unknown>;
 }
 
 {
   // @ts-expect-error
-  const wrongCreateLocator = createLocatorCreatorInTests(createSelector, {});
+  const wrongSelectorFunctions = createSelectorFunctions(createSelector, {});
 
-  true satisfies IsEqual<typeof wrongCreateLocator, unknown>;
+  true satisfies IsEqual<typeof wrongSelectorFunctions, unknown>;
 }
 
 {
-  const wrongCreateLocator = createLocatorCreatorInTests(createSelector, {} as OptionsInTests);
+  const wrongSelectorFunctions = createSelectorFunctions(createSelector, {} as OptionsInTests);
 
-  true satisfies IsEqual<typeof wrongCreateLocator, unknown>;
+  true satisfies IsEqual<typeof wrongSelectorFunctions, unknown>;
 }
 
 {
-  const wrongCreateLocator = createLocatorCreatorInTests(createSelector, {
+  const wrongSelectorFunctions = createSelectorFunctions(createSelector, {
     ...defaultOptions,
     // @ts-expect-error
     disableWildcards: 2,
   });
 
-  true satisfies IsEqual<typeof wrongCreateLocator, unknown>;
+  true satisfies IsEqual<typeof wrongSelectorFunctions, unknown>;
 }
 
 {
@@ -242,3 +245,27 @@ locatorWithName.name() satisfies Selector;
 createLocatorInTests<OtherLocator>(
   locatorId,
 ).foo.toString() satisfies `${typeof locatorId}${(typeof defaultOptions)['childSeparator']}foo`;
+
+// @ts-expect-error
+findAnyOfSelectors();
+
+// @ts-expect-error
+findAnyOfSelectors({});
+
+// @ts-expect-error
+findAnyOfSelectors(locator);
+
+findAnyOfSelectors(locator());
+findAnyOfSelectors(locator(), locator.bar({}));
+
+// @ts-expect-error
+findChainOfSelectors();
+
+// @ts-expect-error
+findChainOfSelectors({});
+
+// @ts-expect-error
+findChainOfSelectors(locator);
+
+findChainOfSelectors(locator());
+findChainOfSelectors(locator(), locator.bar({}));

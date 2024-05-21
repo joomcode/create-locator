@@ -2,7 +2,7 @@ import {getCssSelectorFromAttributesChain} from 'create-locator/getCssSelectorFr
 
 import type {Attributes} from 'create-locator';
 
-import {assert} from './utils';
+import {assert} from './utils.js';
 
 const attributesArray: readonly Attributes[] = [
   {},

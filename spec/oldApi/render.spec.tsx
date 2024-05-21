@@ -1,6 +1,6 @@
 import type {Locator, Mark, Node} from 'create-locator';
 
-import {assert, RuntimeReact as React, type Test} from './utils';
+import {assert, RuntimeReact as React, type Test} from './utils.js';
 
 export const testRender: Test = (
   [

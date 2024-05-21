@@ -1,13 +1,12 @@
-import type {CreateLocatorCreatorInTestsFunction, Parameters, Target} from './types';
+import type {CreateSelectorFunctionsFunction, Parameters, Target} from './types';
 
 /**
- * Creates `createLocatorInTests` function by `createSelector` function.
+ * Creates `createLocatorInTests` and `findAnyOfSelectors` functions by `createSelector` function.
  */
-export const createLocatorCreatorInTests: CreateLocatorCreatorInTestsFunction = (
-  createSelectorFromCss,
-  options,
-) => {
+export const createSelectorFunctions = ((createSelectorFromCss, options) => {
   const {childSeparator, disableWildcards, idAttribute, parameterPrefix} = options;
+
+  const cache: Cache = Object.create(null);
 
   const getCss = (locatorId: string, parameters: Parameters | undefined): string => {
     const attributes: [name: string, value: string][] = [[idAttribute, locatorId]];
@@ -23,12 +22,14 @@ export const createLocatorCreatorInTests: CreateLocatorCreatorInTestsFunction = 
       .join('');
   };
 
-  const getSelector = (cache: Cache, css: string): unknown => {
+  const getSelector = (css: string, cssStrings?: CssStrings): object => {
     if (css in cache) {
-      return cache[css];
+      return cache[css]!;
     }
 
     const selector = createSelectorFromCss(css);
+
+    allSelectors.set(selector, cssStrings ?? [css]);
 
     cache[css] = selector;
 
@@ -43,12 +44,10 @@ export const createLocatorCreatorInTests: CreateLocatorCreatorInTestsFunction = 
     }
 
     const locatorId = target.toString();
-
-    const cache: Cache = Object.create(null);
     const childLocatorId = locatorId + childSeparator + String(property);
 
     const toCss = (parameters?: Parameters) => getCss(childLocatorId, parameters);
-    const childLocator = (parameters?: Parameters) => getSelector(cache, toCss(parameters));
+    const childLocator = (parameters?: Parameters) => getSelector(toCss(parameters));
 
     childLocator.toCss = toCss;
     childLocator.toJSON = childLocator.toString = () => childLocatorId;
@@ -63,20 +62,85 @@ export const createLocatorCreatorInTests: CreateLocatorCreatorInTestsFunction = 
     return childLocator;
   };
 
-  return (locatorId: string) => {
-    const cache: Cache = Object.create(null);
-
+  const createLocatorInTests = (locatorId: string): object => {
     const toCss = (parameters?: Parameters) => getCss(locatorId, parameters);
-    const target = ((parameters?: Parameters) => getSelector(cache, toCss(parameters))) as Target;
+    const target = ((parameters?: Parameters) => getSelector(toCss(parameters))) as Target;
 
     target.toCss = toCss;
     target.toJSON = target.toString = target[Symbol.toPrimitive] = () => locatorId;
 
     return new Proxy(target, {get, ...handler}) as any;
   };
-};
 
-type Cache = Record<string, unknown>;
+  const findAnyOfSelectors = (...selectors: readonly object[]): object => {
+    if (selectors.length === 0) {
+      throw new Error('Empty argument list');
+    }
+
+    if (selectors.length === 1) {
+      return selectors[0]!;
+    }
+
+    const cssStringsSet = new Set<string>();
+
+    for (const selector of selectors) {
+      const cssStringsOfSelector = getCssStringsOfSelector(selector);
+
+      for (const cssString of cssStringsOfSelector) {
+        cssStringsSet.add(cssString);
+      }
+    }
+
+    const cssStrings = [...cssStringsSet].sort(compare) as unknown as CssStrings;
+    const css = getCssOfSelector(cssStrings);
+
+    return getSelector(css, cssStrings);
+  };
+
+  const findChainOfSelectors = (...selectors: readonly object[]): object => {
+    if (selectors.length === 0) {
+      throw new Error('Empty argument list');
+    }
+
+    if (selectors.length === 1) {
+      return selectors[0]!;
+    }
+
+    const cssParts: string[] = [];
+
+    for (const selector of selectors) {
+      const cssStringsOfSelector = getCssStringsOfSelector(selector);
+
+      cssParts.push(getCssOfSelector(cssStringsOfSelector));
+    }
+
+    const css = cssParts.join(' ');
+
+    return getSelector(css);
+  };
+
+  return {createLocatorInTests, findAnyOfSelectors, findChainOfSelectors};
+}) as CreateSelectorFunctionsFunction;
+
+/**
+ * Cache of selectors by their CSS string.
+ */
+type Cache = Record<string, object>;
+
+/**
+ * Not empty array of CSS strings of selector.
+ */
+type CssStrings = readonly [string, ...string[]];
+
+/**
+ * Weak map `Selector` -> `list of CSS selector strings` with all created selectors.
+ */
+const allSelectors = new WeakMap<object, CssStrings>();
+
+/**
+ * Compare function for sorting array of CSS strings in selectors.
+ */
+const {compare} = new Intl.Collator('en');
 
 /**
  * Get CSS selector string for single attribute.
@@ -116,6 +180,25 @@ const getAttributeCss = (name: string, value: string, disableWildcards = false):
   }
 
   return cssParts.join('');
+};
+
+/**
+ * Get CSS of selector by array of it's CSS strings.
+ */
+const getCssOfSelector = (cssStrings: CssStrings): string =>
+  cssStrings.length === 1 ? cssStrings[0] : `:is(${cssStrings.join(', ')})`;
+
+/**
+ * Get array of CSS strings of selector.
+ */
+const getCssStringsOfSelector = (selector: object): CssStrings => {
+  const cssStrings = allSelectors.get(selector);
+
+  if (cssStrings === undefined) {
+    throw new Error(`Selector not created by createLocatorInTests function: ${selector}`);
+  }
+
+  return cssStrings;
 };
 
 /**

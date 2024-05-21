@@ -11,33 +11,37 @@ export type Attributes = Readonly<Record<string, string>> | undefined;
 export type ChildLocatorsConstraint = Readonly<Record<string, Parameters | null>>;
 
 /**
- * Type of `createLocatorCreatorInTests` function.
+ * Type of `createSelectorFunctions` function.
  */
-export type CreateLocatorCreatorInTestsFunction = <
-  Selector,
+export type CreateSelectorFunctionsFunction = <
+  Selector extends object,
   const SomeOptions extends OptionsInTests,
 >(
   this: void,
   createSelectorFromCss: CreateSelectorFromCss<Selector>,
   options: SomeOptions,
 ) => true extends
-  | IsEqual<Selector, void>
+  | IsEqual<Selector, object>
   | IsEqual<SomeOptions, OptionsInTests>
   | IsEqual<SomeOptions['childSeparator'], string>
   ? unknown
-  : <SomeLocator extends Record<LocatorIdKey, string>>(
-      locatorId: SomeLocator[LocatorIdKey],
-    ) => true extends
-      | IsEqual<SomeLocator[LocatorIdKey], never>
-      | IsEqual<SomeLocator[LocatorIdKey], unknown>
-      ? unknown
-      : LocatorInTests<SomeLocator[LocatorIdKey], SomeLocator, Selector> & {
-          readonly [Key in string & keyof SomeLocator]: LocatorInTests<
-            `${SomeLocator[LocatorIdKey]}${SomeOptions['childSeparator']}${Key}`,
-            SomeLocator[Key],
-            Selector
-          >;
-        };
+  : Readonly<{
+      createLocatorInTests: <SomeLocator extends Record<LocatorIdKey, string>>(
+        locatorId: SomeLocator[LocatorIdKey],
+      ) => true extends
+        | IsEqual<SomeLocator[LocatorIdKey], never>
+        | IsEqual<SomeLocator[LocatorIdKey], unknown>
+        ? unknown
+        : LocatorInTests<SomeLocator[LocatorIdKey], SomeLocator, Selector> & {
+            readonly [Key in string & keyof SomeLocator]: LocatorInTests<
+              `${SomeLocator[LocatorIdKey]}${SomeOptions['childSeparator']}${Key}`,
+              SomeLocator[Key],
+              Selector
+            >;
+          };
+      findAnyOfSelectors: (...selectors: readonly [Selector, ...Selector[]]) => Selector;
+      findChainOfSelectors: (...selectors: readonly [Selector, ...Selector[]]) => Selector;
+    }>;
 
 /**
  * Type of `createLocator` function (with overloads).

@@ -1,6 +1,6 @@
 import type {Locator, Mark, Node} from 'create-locator';
 
-import {assert, assertPropertiesAreEqual, getShallowCopy, type Test} from './utils';
+import {assert, assertPropertiesAreEqual, getShallowCopy, type Test} from './utils.js';
 
 type ChildLocator = Locator<void, {foo: string}, 'sameParameters'>;
 

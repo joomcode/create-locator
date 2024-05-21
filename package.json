@@ -1,6 +1,6 @@
 {
   "name": "create-locator",
-  "version": "0.0.21",
+  "version": "0.0.22",
   "description": "Creates typed component locators for tests 📌",
   "author": "uid11",
   "bugs": "https://github.com/joomcode/create-locator/issues",
@@ -9,10 +9,28 @@
     "typescript": ">=5.4"
   },
   "exports": {
-    ".": "./index.js",
-    "./createLocatorCreatorInTests": "./createLocatorCreatorInTests.js",
-    "./getCssSelectorFromAttributesChain": "./getCssSelectorFromAttributesChain.js",
-    "./production": "./production.js"
+    ".": {
+      "import": "./index.js",
+      "require": "./index.cjs",
+      "types": "./index.d.ts"
+    },
+    "./createSelectorFunctions": {
+      "import": "./createSelectorFunctions.js",
+      "require": "./createSelectorFunctions.cjs",
+      "types": "./createSelectorFunctions.d.ts"
+    },
+    "./getCssSelectorFromAttributesChain": {
+      "import": "./getCssSelectorFromAttributesChain.js",
+      "require": "./getCssSelectorFromAttributesChain.cjs",
+      "types": "./getCssSelectorFromAttributesChain.d.ts"
+    },
+    "./oldTypes": {
+      "types": "./oldTypes.d.ts"
+    },
+    "./package.json": "./package.json",
+    "./types": {
+      "types": "./types.d.ts"
+    }
   },
   "homepage": "https://github.com/joomcode/create-locator#readme",
   "keywords": [
@@ -29,7 +47,7 @@
     "url": "git+https://github.com/joomcode/create-locator.git"
   },
   "scripts": {
-    "build": "cp LICENSE package.json README.md *.d.ts ./spec/node_modules/create-locator",
+    "build": "cp LICENSE package.json README.md *.cjs *.d.ts ./spec/node_modules/create-locator",
     "postbuild": "tsc --project ./spec",
     "prebuild": "tsc",
     "prerelease": "npm test",
@@ -40,5 +58,6 @@
     "test:memory": "node ./spec/build/oldApi/memory.spec.js"
   },
   "sideEffects": false,
+  "type": "module",
   "types": "index.d.ts"
 }
