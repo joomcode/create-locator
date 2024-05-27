@@ -1,5 +1,6 @@
 {
   "compilerOptions": {
+    "allowJs": true,
     "allowUnreachableCode": false,
     "allowUnusedLabels": false,
     "declaration": true,
@@ -20,5 +21,10 @@
     "target": "ES2015",
     "types": []
   },
-  "files": ["./createSelectorFunctions.ts", "./index.ts", "./getCssSelectorFromAttributesChain.ts"]
+  "files": [
+    "./convertEsmToCjs.js",
+    "./createSelectorFunctions.ts",
+    "./index.ts",
+    "./getCssSelectorFromAttributesChain.ts"
+  ]
 }

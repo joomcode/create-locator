@@ -1,6 +1,6 @@
 {
   "name": "create-locator",
-  "version": "0.0.22",
+  "version": "0.0.23",
   "description": "Creates typed component locators for tests 📌",
   "author": "uid11",
   "bugs": "https://github.com/joomcode/create-locator/issues",
@@ -47,9 +47,9 @@
     "url": "git+https://github.com/joomcode/create-locator.git"
   },
   "scripts": {
-    "build": "cp LICENSE package.json README.md *.cjs *.d.ts ./spec/node_modules/create-locator",
-    "postbuild": "tsc --project ./spec",
-    "prebuild": "tsc",
+    "build": "cp LICENSE package.json README.md *.d.ts ./spec/node_modules/create-locator",
+    "postbuild": "node ./convertEsmToCjs.js ./spec/node_modules/create-locator && tsc --project ./spec",
+    "prebuild": "tsc && rm ./spec/node_modules/create-locator/convertEsmToCjs.*",
     "prerelease": "npm test",
     "pretest": "(cd ./spec && rm -fr ./build ./node_modules/create-locator)",
     "prettier": "prettier --cache --cache-strategy=content --write .",
