@@ -1,10 +1,10 @@
 import type {
   AnyLocator,
+  CreateComponentLocator,
   CreateRootLocatorFunction,
   GetLocatorParametersFunction,
   RemoveMarkFromPropertiesFunction,
 } from './oldTypes';
-import type {CreateLocatorFunction} from './types';
 
 export const anyLocator: AnyLocator = new Proxy(
   Object.setPrototypeOf(() => {}, null),
@@ -21,7 +21,7 @@ export const anyLocator: AnyLocator = new Proxy(
   },
 );
 
-export const createLocator = (() => anyLocator) as unknown as CreateLocatorFunction;
+export const createLocator = (() => anyLocator) as unknown as CreateComponentLocator;
 
 export const createRootLocator = (() => anyLocator) as CreateRootLocatorFunction;
 

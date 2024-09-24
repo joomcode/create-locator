@@ -1,12 +1,12 @@
 {
   "name": "create-locator",
-  "version": "0.0.23",
-  "description": "Creates typed component locators for tests 📌",
+  "version": "0.0.24",
+  "description": "Creates HTML element locators for tests 📌",
   "author": "uid11",
   "bugs": "https://github.com/joomcode/create-locator/issues",
   "devDependencies": {
-    "prettier": ">=3.2",
-    "typescript": ">=5.4"
+    "prettier": ">=3.3",
+    "typescript": ">=5.6"
   },
   "exports": {
     ".": {
@@ -14,10 +14,10 @@
       "require": "./index.cjs",
       "types": "./index.d.ts"
     },
-    "./createSelectorFunctions": {
-      "import": "./createSelectorFunctions.js",
-      "require": "./createSelectorFunctions.cjs",
-      "types": "./createSelectorFunctions.d.ts"
+    "./createTestUtils": {
+      "import": "./createTestUtils.js",
+      "require": "./createTestUtils.cjs",
+      "types": "./createTestUtils.d.ts"
     },
     "./getCssSelectorFromAttributesChain": {
       "import": "./getCssSelectorFromAttributesChain.js",
@@ -48,14 +48,13 @@
   },
   "scripts": {
     "build": "cp LICENSE package.json README.md *.d.ts ./spec/node_modules/create-locator",
-    "postbuild": "node ./convertEsmToCjs.js ./spec/node_modules/create-locator && tsc --project ./spec",
-    "prebuild": "tsc && rm ./spec/node_modules/create-locator/convertEsmToCjs.*",
+    "postbuild": "node ./spec/build/convertEsmToCjs.js ./spec/node_modules/create-locator && tsc --project ./spec",
+    "prebuild": "tsc && mkdir ./spec/build/ && mv ./spec/node_modules/create-locator/convertEsmToCjs.* ./spec/build/",
     "prerelease": "npm test",
     "pretest": "(cd ./spec && rm -fr ./build ./node_modules/create-locator)",
     "prettier": "prettier --cache --cache-strategy=content --write .",
     "release": "npm publish ./spec/node_modules/create-locator",
-    "test": "export _START=$(date +%s%3N) && npm run prettier && npm run build && node ./spec/build/index.spec.js",
-    "test:memory": "node ./spec/build/oldApi/memory.spec.js"
+    "test": "export _START=$(date +%s%3N) && npm run prettier && npm run build && node ./spec/build/index.spec.js"
   },
   "sideEffects": false,
   "type": "module",

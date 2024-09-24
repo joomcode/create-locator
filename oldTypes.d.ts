@@ -21,6 +21,14 @@ export type Attributes = Readonly<Record<string, string>>;
 export declare const COMPONENT_PARAMETERS: unique symbol;
 
 /**
+ * `createLocator` overload for component locator.
+ */
+export type CreateComponentLocator = <Properties extends Partial<PropertiesWithMarkConstraint>>(
+  this: void,
+  properties: PropertiesError<Properties> extends string ? PropertiesError<Properties> : Properties,
+) => CreateLocator<PropertiesError<Properties> extends string ? never : Properties>;
+
+/**
  * Presentation of `createLocator` function in types.
  * Creates locator type by properties and optional `MappingResult` type.
  */
@@ -314,14 +322,6 @@ type CannotMarkElementMessage = 'Cannot mark HTML element with component locator
  * Type of symbol key for saving component parameters of locator.
  */
 type ComponentParametersKey = typeof COMPONENT_PARAMETERS;
-
-/**
- * `createLocator` overload for component locator.
- */
-type CreateComponentLocator = <Properties extends Partial<PropertiesWithMarkConstraint>>(
-  this: void,
-  properties: PropertiesError<Properties> extends string ? PropertiesError<Properties> : Properties,
-) => CreateLocator<PropertiesError<Properties> extends string ? never : Properties>;
 
 /**
  * `createLocator` overload for root locator.

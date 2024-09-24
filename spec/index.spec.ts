@@ -1,97 +1,122 @@
-/// <reference path="./global.d.ts" />
+import {createSimpleLocator} from 'create-locator';
 
-import {createLocator, setOptions} from 'create-locator';
-import {fork} from 'node:child_process';
+import {assert, attributesOptions, ok, testsCount} from './utils.js';
 
-import './oldApi/index.spec.js';
-import {assert, defaultOptions, locatorId} from './utils.js';
+export type * from './createTestUtils.types.spec.js';
+export type * from './types.spec.js';
 
-export type * from './createSelectorFunctions.spec';
-export type * from './createSelectorFunctions.types.spec';
-export type * from './duplicateAfterSetOptions.spec';
-export type * from './duplicateChildAndChildLocator.spec';
-export type * from './duplicateChildLocator.spec';
-export type * from './duplicateRootLocator.spec';
-export type * from './prematurelyCalledChildLocator.spec';
-export type * from './prematurelyCalledRootLocator.spec';
-export type * from './types.spec';
+let startTestsTime = Date.now();
 
-fork('./spec/build/createSelectorFunctions.spec.js');
-fork('./spec/build/duplicateAfterSetOptions.spec.js');
-fork('./spec/build/duplicateChildAndChildLocator.spec.js');
-fork('./spec/build/duplicateChildLocator.spec.js');
-fork('./spec/build/duplicateRootLocator.spec.js');
-fork('./spec/build/prematurelyCalledChildLocator.spec.js');
-fork('./spec/build/prematurelyCalledRootLocator.spec.js');
+ok(`Build passed in ${startTestsTime - Number(process.env._START)}ms!`);
 
-const locator = createLocator(locatorId, {foo: {}, bar: null, root: {}});
+await import('./oldApi/index.spec.js');
 
-export type Locator = typeof locator;
+startTestsTime = Date.now();
 
-setOptions(defaultOptions);
+await import('./createTestUtils.spec.js');
 
-const {childSeparator, idAttribute, parameterPrefix} = defaultOptions;
+const locator = createSimpleLocator({attributesOptions, isProduction: false});
 
-locator();
+const {parameterAttributePrefix, testIdAttribute, testIdSeparator} = attributesOptions;
 
-{
-  const attributes = locator.foo({qux: 'quux'});
+const attributes = locator('foo', 'bar', {qux: 'quux'});
 
-  locator.bar();
+assert(locator('bar')[testIdAttribute] === 'bar', 'has correct testId');
 
-  assert(Object.keys(locator()!).length === 1, 'root locator has correct number of attributes');
+assert(locator('foo') !== locator('foo'), 'attributes are not cached');
 
-  assert(locator() !== locator(), 'attributes from root locator are not cached');
+assert(
+  attributes !== locator('foo', 'bar', {qux: 'quux'}),
+  'attributes with parameters are not cached',
+);
 
-  assert(Object.keys(locator()!)[0] === idAttribute, 'root locator used correct idAttribute');
+assert(Object.keys(attributes).length === 2, 'has correct number of attributes');
 
-  assert(locator()![idAttribute] === locatorId, 'root locator has correct locatorId');
+assert(Object.keys(attributes)[0] === testIdAttribute, 'used correct idAttribute');
 
-  assert(locator({qux: '2'})![`${parameterPrefix}qux`] === '2', 'root locator has parameter value');
+assert(
+  Object.keys(attributes)[1] === `${parameterAttributePrefix}qux`,
+  'used correct attribute name for parameter',
+);
 
-  assert(attributes !== locator.foo({qux: 'quux'}), 'attributes are not cached');
+assert(attributes[testIdAttribute] === `foo${testIdSeparator}bar`, 'has correct testId from parts');
 
-  assert(Object.keys(attributes!).length === 2, 'has correct number of attributes');
+assert(attributes[`${parameterAttributePrefix}qux`] === 'quux', 'has correct parameter value');
 
-  assert(Object.keys(attributes!)[0] === idAttribute, 'used correct idAttribute');
+assert(
+  attributes.toString() === attributes[testIdAttribute],
+  'attributes have correct toString() method',
+);
 
-  assert(
-    Object.keys(attributes!)[1] === `${parameterPrefix}qux`,
-    'used correct attribute name for parameter',
-  );
+const emptyLocator = locator(undefined);
 
-  assert(
-    attributes![idAttribute] === `${locatorId}${childSeparator}foo`,
-    'has correct child locatorId',
-  );
+assert(
+  // @ts-expect-error
+  emptyLocator !== locator() && locator().toString() === '',
+  'support empty arguments list of testId parts',
+);
 
-  assert(attributes![`${parameterPrefix}qux`] === 'quux', 'has correct parameter value');
-}
+assert(emptyLocator === locator(null), 'support null in testId');
 
-{
-  const locator = createLocator('id', {length: {}, name: {}});
+assert(emptyLocator === locator(''), 'support empty string in testId');
 
-  assert(
-    locator.length()![idAttribute] === `id${childSeparator}length`,
-    'works with property "length"',
-  );
+assert(
+  emptyLocator === locator('baz', undefined) &&
+    emptyLocator === locator('baz', undefined, 'bar') &&
+    emptyLocator === locator('baz', undefined, {foo: 2}),
+  'support undefined in testId parts',
+);
 
-  assert(locator.name()![idAttribute] === `id${childSeparator}name`, 'works with property "name"');
-}
+assert(
+  emptyLocator === locator('baz', null) &&
+    emptyLocator === locator('baz', null, 'bar') &&
+    emptyLocator === locator('baz', null, {foo: true}),
+  'support null in testId parts',
+);
 
-setOptions({
-  childSeparator: 'childSeparator',
-  idAttribute: 'id',
-  parameterPrefix: 'prefix',
-});
+assert(
+  emptyLocator === locator('foo', '') &&
+    emptyLocator === locator('foo', '', 'bar') &&
+    emptyLocator === locator('foo', '', {bar: null}),
+  'support empty string in testId parts',
+);
 
-{
-  const attributes = locator.foo({qux: 'quux'});
+assert(emptyLocator.toString() === '', 'empty locator has empty testId');
 
-  assert(
-    attributes!['id'] === `${locatorId}childSeparatorfoo`,
-    'use actual idAttribute and separator',
-  );
+assert(Object.keys(emptyLocator).length === 0, 'empty locator has no attributes');
 
-  assert(attributes!['prefixqux'] === 'quux', 'use actual parameterPrefix');
-}
+assert(
+  Object.keys(locator('foo', {bar: null, baz: undefined})).length === 1,
+  'skip empty parameters',
+);
+
+assert(locator(3).toString() === '3', 'support numbers as testId');
+
+assert(locator(true).toString() === 'true', 'support boolean as testId');
+
+assert(
+  locator('foo', {qux: 3})[`${parameterAttributePrefix}qux`] === '3',
+  'support numbers as parameter value',
+);
+
+assert(
+  locator('foo', {qux: false})[`${parameterAttributePrefix}qux`] === 'false',
+  'support boolean as parameter value',
+);
+
+assert(
+  locator('foo', {bar: false, baz: 12})[`${parameterAttributePrefix}baz`] === '12',
+  'support multi parameters',
+);
+
+const productionLocator = createSimpleLocator({attributesOptions, isProduction: true});
+
+assert(productionLocator('foo') !== emptyLocator, 'createSimpleLocator creates new empty locator');
+
+assert(
+  productionLocator('foo').toString() === '' &&
+    productionLocator('foo') === productionLocator(null),
+  'production locator is empty',
+);
+
+ok(`All ${testsCount} tests passed in ${Date.now() - startTestsTime}ms!`);

@@ -14,8 +14,6 @@ import {type Api, log, ok, type Test, testsCount} from './utils.js';
 
 const startTestsTime = Date.now();
 
-ok(`Build passed in ${startTestsTime - Number(process.env._START)}ms!`);
-
 const createRootLocatorWithIsProduction = ((...args: Parameters<typeof createRootLocator>) => {
   if (typeof args[0] === 'string') {
     args[1] = {...args[1], isProduction: true};

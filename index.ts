@@ -1,67 +1,75 @@
-import {createLocator as oldCreateLocator} from './oldApi.js';
-
-import type {Attributes, CreateLocatorFunction, Options, Parameters} from './types';
+import type {Attributes, CreateLocatorOptions, LocatorFunction, LocatorParameters} from './types';
 
 /**
- * Creates locator by locator id and child locators description.
+ * Creates locator function by locator options.
  */
-export const createLocator = ((locatorId: string | object, children?: Children) => {
-  if (typeof locatorId !== 'string') {
-    return oldCreateLocator(locatorId as any);
+export const createSimpleLocator = ({
+  attributesOptions,
+  isProduction,
+}: CreateLocatorOptions): LocatorFunction => {
+  var emptyLocator: Attributes = {__proto__: {toString: () => ''} as string};
+
+  if (isProduction) {
+    return () => emptyLocator;
   }
 
-  var locator: Locator;
+  var {parameterAttributePrefix, testIdAttribute, testIdSeparator} = attributesOptions;
 
-  if (locatorId in locators) {
-    if (idAttribute !== undefined) {
-      throwDuplicateError(locatorId);
+  var Locator = class implements Attributes {
+    [name: string]: string;
+
+    readonly testId!: string;
+
+    constructor(testId: string) {
+      this[testIdAttribute as 'testId'] = testId;
     }
 
-    duplicateLocator = locatorId;
-    locator = locators[locatorId]!;
-  } else {
-    locator = locators[locatorId] = ((parameters?: Parameters) =>
-      getAttributes(locatorId, parameters)) as Locator;
-  }
+    // @ts-expect-error: method is incompatible with index signature of class
+    toString(): string {
+      return this[testIdAttribute as 'testId'];
+    }
+  };
 
-  if (children !== undefined) {
-    if (idAttribute === undefined) {
-      for (var name in children) {
-        locator[name] = locator;
+  return ((...args: readonly unknown[]) => {
+    var parts: string[] = [];
+
+    for (var index = 0; index < args.length; index += 1) {
+      var arg = args[index];
+
+      if (arg == null) {
+        return emptyLocator;
       }
-    } else {
-      setChildLocators(locatorId, locator, children);
+
+      if (index === args.length - 1 && typeof arg === 'object') {
+        var locator = new Locator(parts.join(testIdSeparator));
+
+        for (var name of Object.keys(arg)) {
+          var value = (arg as LocatorParameters)[name];
+
+          if (value != null) {
+            locator[parameterAttributePrefix + name] = String(value);
+          }
+        }
+
+        return locator;
+      }
+
+      var part = String(arg);
+
+      if (part === '') {
+        return emptyLocator;
+      }
+
+      parts.push(part);
     }
-  }
 
-  return locator;
-}) as CreateLocatorFunction;
-
-/**
- * Set global locator options. Locators return attributes only after options are set.
- */
-export const setOptions = (options: Options): void => {
-  if (duplicateLocator !== undefined) {
-    throwDuplicateError(duplicateLocator);
-  }
-
-  if (prematurelyCalledLocator !== undefined) {
-    throw new Error(
-      `Locator with id "${prematurelyCalledLocator}" or it's child locator was called before the options were set`,
-    );
-  }
-
-  ({childSeparator, idAttribute, parameterPrefix} = options);
-
-  for (var locatorId in locators) {
-    var locator = locators[locatorId]!;
-
-    setChildLocators(locatorId, locator, locator);
-  }
+    return new Locator(parts.join(testIdSeparator));
+  }) as LocatorFunction;
 };
 
 export {
   anyLocator,
+  createLocator,
   createRootLocator,
   getLocatorParameters,
   removeMarkFromProperties,
@@ -70,64 +78,4 @@ export {
 
 export type * from './oldApi';
 
-export type {Options, OptionsInTests} from './types';
-
-type Children = Readonly<Record<string, unknown>>;
-
-type LocatorFunction = (parameters?: Parameters) => Attributes;
-
-type Locator = LocatorFunction & Record<string, LocatorFunction>;
-
-var childSeparator: string | undefined;
-
-var duplicateLocator: string | undefined;
-
-var getAttributes = (locatorId: string, parameters: Parameters | undefined): Attributes => {
-  if (idAttribute === undefined) {
-    prematurelyCalledLocator = locatorId;
-
-    return;
-  }
-
-  var attributes = {[idAttribute]: locatorId};
-
-  if (parameters != null) {
-    for (var name in parameters) {
-      attributes[parameterPrefix + name] = String(parameters[name]);
-    }
-  }
-
-  return attributes;
-};
-
-var idAttribute: string | undefined;
-
-var locators: Record<string, Locator> = {__proto__: null as unknown as Locator};
-
-var parameterPrefix: string | undefined;
-
-var prematurelyCalledLocator: string | undefined;
-
-var setChildLocators = (locatorId: string, locator: Locator, children: Children): void => {
-  for (var name in children) {
-    if (name !== 'root') {
-      const childLocatorId = locatorId + childSeparator + name;
-
-      if (childLocatorId in locators) {
-        throwDuplicateError(childLocatorId);
-      }
-
-      Object.defineProperty(locator, name, {
-        configurable: true,
-        enumerable: true,
-        value: (locators[childLocatorId] = ((parameters?: Parameters) =>
-          getAttributes(childLocatorId, parameters)) as Locator),
-        writable: true,
-      });
-    }
-  }
-};
-
-var throwDuplicateError = (locatorId: string): void => {
-  throw new Error(`More than one locator with id "${locatorId}" has been created`);
-};
+export type * from './types';

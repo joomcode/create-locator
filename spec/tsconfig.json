@@ -1,6 +1,7 @@
 {
   "compilerOptions": {
-    "outDir": "./build"
+    "outDir": "./build",
+    "target": "ES2023"
   },
   "extends": "../tsconfig",
   "files": ["./index.spec.ts"]

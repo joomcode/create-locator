@@ -1,235 +1,119 @@
-import type {CreateComponentLocator} from './oldTypes';
-
 /**
  * Attributes object.
  */
-export type Attributes = Readonly<Record<string, string>> | undefined;
+export type Attributes = Readonly<Record<string, string>>;
 
 /**
- * Constraint of description of child locators, that is the second argument of `createLocator`.
+ * Attributes options used to get attributes from the locator.
  */
-export type ChildLocatorsConstraint = Readonly<Record<string, Parameters | null>>;
-
-/**
- * Type of `createSelectorFunctions` function.
- */
-export type CreateSelectorFunctionsFunction = <
-  Selector extends object,
-  const SomeOptions extends OptionsInTests,
->(
-  this: void,
-  createSelectorFromCss: CreateSelectorFromCss<Selector>,
-  options: SomeOptions,
-) => true extends
-  | IsEqual<Selector, object>
-  | IsEqual<SomeOptions, OptionsInTests>
-  | IsEqual<SomeOptions['childSeparator'], string>
-  ? unknown
-  : Readonly<{
-      createLocatorInTests: <SomeLocator extends Record<LocatorIdKey, string>>(
-        locatorId: SomeLocator[LocatorIdKey],
-      ) => true extends
-        | IsEqual<SomeLocator[LocatorIdKey], never>
-        | IsEqual<SomeLocator[LocatorIdKey], unknown>
-        ? unknown
-        : LocatorInTests<SomeLocator[LocatorIdKey], SomeLocator, Selector> & {
-            readonly [Key in string & keyof SomeLocator]: LocatorInTests<
-              `${SomeLocator[LocatorIdKey]}${SomeOptions['childSeparator']}${Key}`,
-              SomeLocator[Key],
-              Selector
-            >;
-          };
-      findAnyOfSelectors: (...selectors: readonly [Selector, ...Selector[]]) => Selector;
-      findChainOfSelectors: (...selectors: readonly [Selector, ...Selector[]]) => Selector;
-    }>;
-
-/**
- * Type of `createLocator` function (with overloads).
- */
-export type CreateLocatorFunction = (<
-  const LocatorId extends string,
-  const ChildLocators extends ChildLocatorsConstraint = {},
->(
-  this: void,
-  locatorId: string extends LocatorId ? never : LocatorId,
-  childLocators?: ChildLocators,
-) => true extends
-  | IsEqual<LocatorId, never>
-  | IsEqual<LocatorId, string>
-  | IsEqual<ChildLocators, ChildLocatorsConstraint>
-  | IsEqual<ChildLocators, never>
-  | HasKey<ChildLocators, 'toCss' | 'toJSON' | 'toString' | typeof Symbol.toPrimitive>
-  ? unknown
-  : Locator<LocatorId, ChildLocators>) &
-  CreateComponentLocator;
-
-/**
- * Creates selector from CSS string.
- */
-export type CreateSelectorFromCss<Selector> = (this: void, css: string) => Selector;
-
-/**
- * Returns `true` if types are exactly equal, `false` otherwise.
- * `IsEqual<{foo: string}, {foo: string}>` = `true`.
- * `IsEqual<{readonly foo: string}, {foo: string}>` = `false`.
- */
-export type IsEqual<X, Y> =
-  (<Type>() => Type extends X ? 1 : 2) extends <Type>() => Type extends Y ? 1 : 2 ? true : false;
-
-/**
- * Locator.
- */
-export type Locator<LocatorId, ChildLocators extends ChildLocatorsConstraint> = Readonly<
-  Record<LocatorIdKey, LocatorId>
-> &
-  LocatorFunction<AddUndefinedIfRequiredParametersEmpty<GetRootParameters<ChildLocators>>> &
-  ChildLocatorsFunctions<Omit<ChildLocators, 'root'>>;
-
-/**
- * Symbol key for locator id.
- */
-export declare const LOCATOR_ID: unique symbol;
-
-/**
- * Global locator options. Locators return attributes only after options are set.
- */
-export type Options = Readonly<{
+export type AttributesOptions = Readonly<{
   /**
-   * Separator between root locator id and child locator name in child locator id.
+   * Prefix of attribute's names for parameters.
    */
-  childSeparator: string;
+  parameterAttributePrefix: 'data-test-' | string;
+
   /**
-   * Attribute name for locator id.
+   * Attribute's name for `testId`.
    */
-  idAttribute: string;
+  testIdAttribute: 'data-testid' | string;
+
   /**
-   * Prefix of attribute names for parameters.
+   * Separator between parts of `testId`.
    */
-  parameterPrefix: string;
+  testIdSeparator: '-' | string;
 }>;
 
 /**
- * Global locator options in tests.
+ * Options of `createLocator` function.
  */
-export type OptionsInTests = Options & {readonly disableWildcards?: boolean};
+export type CreateLocatorOptions = Readonly<{
+  /**
+   * Attributes options used to get attributes from the locator.
+   */
+  attributesOptions: AttributesOptions;
+
+  /**
+   * If `true`, locator doesn't render (`locator(...)` returns empty object).
+   */
+  isProduction: boolean;
+}>;
 
 /**
- * Locator parameters.
+ * Type of `createSelector` function.
  */
-export type Parameters = Readonly<Record<string, string>>;
+export type CreateSelectorFunction = (this: void, ...selectors: [string, ...string[]]) => string;
 
 /**
- * Target of locator proxy.
+ * Options of `createTestUtils` function.
  */
-export type Target = {toCss: (parameters?: Parameters) => string; toJSON: () => string} & Record<
-  string | symbol,
-  Function
-> &
-  ((parameters?: Parameters) => unknown);
+export type CreateTestUtilsOptions<Locator extends object> = Readonly<{
+  /**
+   * Attributes options used to get attributes from the locator.
+   */
+  attributesOptions: AttributesOptions;
+
+  /**
+   * Creates `Locator` object by CSS selector.
+   */
+  createLocatorByCssSelector: (this: void, selector: string) => Locator;
+
+  /**
+   * If `true`, asterisks in `testId` and locator parameters are considered
+   * to represent any string (as wildcards).
+   */
+  supportWildcardsInCssSelectors: boolean;
+}>;
 
 /**
- * Adds `undefined` to parameters if there are no required parameters.
+ * Locator function.
  */
-type AddUndefinedIfRequiredParametersEmpty<SomeParameters> =
-  IsRequiredParametersEmpty<SomeParameters> extends true
-    ? SomeParameters | undefined
-    : SomeParameters;
+export type LocatorFunction<Locator extends object = Attributes> = ByParts<Locator, []> &
+  ByParts<Locator, [Part]> &
+  ByParts<Locator, [Part, Part]> &
+  ByParts<Locator, [Part, Part, Part]> &
+  ByParts<Locator, [Part, Part, Part, Part]> &
+  ByParts<Locator, [Part, Part, Part, Part, Part]> &
+  ByParts<Locator, [Part, Part, Part, Part, Part, Part]> &
+  ByParts<Locator, [Part, Part, Part, Part, Part, Part, Part]>;
 
 /**
- * Child locator functions of root locator.
+ * Operator over locators.
  */
-type ChildLocatorsFunctions<in out ChildLocators> = {
-  readonly [Key in string & keyof ChildLocators]: LocatorFunction<
-    AddUndefinedIfRequiredParametersEmpty<ChildLocators[Key]>
-  >;
-};
-
-/**
- * Get type of root locator parameters from `ChildLocators` type.
- */
-type GetRootParameters<
-  ChildLocators extends ChildLocatorsConstraint,
-  RootParameters = ChildLocators['root'],
-> = RootParameters extends Parameters ? RootParameters : undefined;
-
-/**
- * Returns `true`, if type has specified key, `false` otherwise.
- * `HasKey<{}, 'foo'>` = `false`.
- * `HasKey<{foo: 1}, 'foo'>` = `true`.
- * `HasKey<{foo: 2}, 'foo' | 'bar'>` = `boolean`.
- */
-type HasKey<Type, Key> = Key extends keyof Type ? true : false;
-
-/**
- * Returns `true` if type includes `undefined`, `false` otherwise.
- * `IsIncludeUndefined<string>` = `false`.
- * `IsIncludeUndefined<number | undefined>` = `true`.
- */
-type IsIncludeUndefined<Type> = true extends (Type extends undefined ? true : never) ? true : false;
-
-/**
- * Returns `true` if there are no required parameters, `false` otherwise.
- */
-type IsRequiredParametersEmpty<SomeParameters> =
-  RequiredKeys<SomeParameters> extends never ? true : false;
-
-/**
- * Returns all keys of type.
- * `Keys<{foo: string}>` = `"foo"`.
- * `Keys<{foo: string} | {bar?: number}>` = `"foo" | "bar"`.
- */
-type Keys<Type> = Type extends unknown ? keyof Type : never;
-
-/**
- * Arguments of function part of locator by locator parameters.
- */
-type LocatorArguments<SomeParameters> =
-  IsEqual<SomeParameters, undefined> extends true
-    ? []
-    : IsIncludeUndefined<SomeParameters> extends true
-      ? [parameters?: SomeParameters]
-      : [parameters: SomeParameters];
-
-/**
- * The function part of locator.
- */
-type LocatorFunction<in out SomeParameters> = (
+export type LocatorOperator<Locator extends object> = (
   this: void,
-  ...arguments: LocatorArguments<
-    null extends SomeParameters
-      ? undefined
-      : {} extends SomeParameters
-        ? Parameters | undefined
-        : SomeParameters
-  >
-) => Attributes;
+  ...locators: readonly [Locator, ...Locator[]]
+) => Locator;
 
 /**
- * Type of symbol key for locator id.
+ * Locator parameters object.
  */
-type LocatorIdKey = typeof LOCATOR_ID;
+export type LocatorParameters = Readonly<Record<string, Stringifiable>>;
 
 /**
- * Locator in tests.
+ * Stringifiable or empty (`null`/`undefined`) value.
  */
-type LocatorInTests<LocatorId, Fn, Selector> = ReplaceReturn<Fn, Selector> &
-  Readonly<{toCss: ReplaceReturn<Fn, string>; toString: () => LocatorId}>;
+export type Stringifiable = boolean | null | number | string | undefined;
 
 /**
- * Replaces function return type.
+ * Locator utils for tests (locator operators and `locator` function).
  */
-type ReplaceReturn<Fn, Return> = Fn extends (...args: infer Args) => unknown
-  ? (...args: Args) => Return
-  : never;
+export type TestUtils<Locator extends object> = Readonly<{
+  and: LocatorOperator<Locator>;
+  chain: LocatorOperator<Locator>;
+  createLocatorOperator: (
+    this: void,
+    createSelector: CreateSelectorFunction,
+  ) => LocatorOperator<Locator>;
+  has: LocatorOperator<Locator>;
+  locator: LocatorFunction<Locator>;
+  not: LocatorOperator<Locator>;
+  or: LocatorOperator<Locator>;
+  selectorByLocator: WeakMap<Locator, string>;
+}>;
 
-/**
- * Returns required keys of type.
- * `RequiredKeys<{foo: string}>` = `"foo"`.
- * `RequiredKeys<{foo: string, bar?: number}>` = `"foo"`.
- */
-type RequiredKeys<Type, TypeKeys = Keys<Type>> =
-  TypeKeys extends Keys<Type>
-    ? Type extends Required<Pick<Type, TypeKeys>>
-      ? TypeKeys
-      : never
-    : never;
+type ByParts<Locator, Parts extends readonly Part[]> = (
+  this: void,
+  ...testIdParts: readonly [Part, ...Parts, parameters?: LocatorParameters]
+) => Locator;
+
+type Part = Stringifiable;

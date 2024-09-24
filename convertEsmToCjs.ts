@@ -1,5 +1,3 @@
-// @ts-check
-
 /**
  * @file Creates CJS files from each JS file in the directories.
  */
@@ -9,26 +7,23 @@ import * as nodeFs from 'node:fs';
 // @ts-expect-error
 import * as nodePath from 'node:path';
 
-/** @type {{argv: string[]}} */
 // @ts-expect-error
-const nodeJsProcess = process;
+const nodeJsProcess = process as {argv: string[]};
 
-/**
- * @type {{
- *   readdirSync: (path: string, options?: {recursive?: boolean}) => readonly string[]
- *   readFileSync: (path: string, options: {encoding: 'utf8'}) => string
- *   writeFileSync: (path: string, data: string) => void
- * }}
- */
-const {readFileSync, readdirSync, writeFileSync} = nodeFs;
-/**
- * @type {{
- *   join: (...paths: readonly string[]) => string
- * }}
- */
-const {join} = nodePath;
+const {readFileSync, readdirSync, writeFileSync} = nodeFs as {
+  readdirSync: (path: string, options?: {recursive?: boolean}) => readonly string[];
+  readFileSync: (path: string, options: {encoding: 'utf8'}) => string;
+  writeFileSync: (path: string, data: string) => void;
+};
+
+const {join} = nodePath as {join: (...paths: readonly string[]) => string};
 
 const paths = nodeJsProcess.argv.slice(2);
+
+/**
+ * Replaces `.js` file extension to `.cjs`.
+ */
+const replaceExtension = (fileName: string): string => fileName.replace('.js', '.cjs');
 
 for (const path of paths) {
   const fileNames = readdirSync(path, {recursive: true});
@@ -44,13 +39,13 @@ for (const path of paths) {
     fileContent = fileContent.replace(
       /^import {([^}]+)} from ([^;]*);/gim,
       (_match, names, modulePath) =>
-        `const {${names.replaceAll(' as ', ': ')}} = require(${modulePath.replace('.js', '.cjs')});`,
+        `const {${names.replaceAll(' as ', ': ')}} = require(${replaceExtension(modulePath)});`,
     );
 
     fileContent = fileContent.replace(
       /^export {([^}]+)} from ([^;]*);/gim,
       (_match, names, modulePath) =>
-        `{\nconst {${names}} = require(${modulePath.replace('.js', '.cjs')});\nObject.assign(exports, {${names}});\n};`,
+        `{\nconst {${names}} = require(${replaceExtension(modulePath)});\nObject.assign(exports, {${names}});\n};`,
     );
 
     fileContent = fileContent.replace(
@@ -60,7 +55,7 @@ for (const path of paths) {
 
     fileContent = `'use strict';\n${fileContent}`;
 
-    const newFilePath = `${filePath.slice(0, -3)}.cjs`;
+    const newFilePath = replaceExtension(filePath);
 
     writeFileSync(newFilePath, fileContent);
   }

@@ -1,11 +1,11 @@
 import type {
   Attributes,
+  CreateComponentLocator,
   CreateRootLocatorFunction,
   FilledRootOptions,
   GetLocatorParametersFunction,
   RemoveMarkFromPropertiesFunction,
 } from './oldTypes';
-import type {CreateLocatorFunction} from './types';
 
 import {anyLocator as productionAnyLocator} from './production.js';
 
@@ -17,32 +17,19 @@ export const anyLocator = productionAnyLocator;
 /**
  * Creates component locator (by component properties).
  */
-export const createLocator = ((
-  prefixOrProperties: string | Properties,
-  maybeOptions?: FilledRootOptions,
-): LocatorProxy => {
+export const createLocator = ((properties: Properties): LocatorProxy => {
   if (isGlobalProductionMode) {
     return anyLocator as unknown as LocatorProxy;
   }
 
-  if (typeof prefixOrProperties === 'string') {
-    const options: FilledRootOptions = Object.assign({}, DEFAULT_OPTIONS, maybeOptions);
-
-    if (options.isProduction) {
-      return anyLocator as unknown as LocatorProxy;
-    }
-
-    return createLocatorProxy(options, prefixOrProperties);
-  }
-
-  const pathAttributeValue = getPathAttributeValueFromProperties(prefixOrProperties);
+  const pathAttributeValue = getPathAttributeValueFromProperties(properties);
 
   if (!pathAttributeValue) {
     return anyLocator as unknown as LocatorProxy;
   }
 
   return pathAttributeValue[LOCATOR];
-}) as CreateLocatorFunction;
+}) as CreateComponentLocator;
 
 /**
  * Creates root locator (by prefix and options).
@@ -131,7 +118,6 @@ var isGlobalProductionMode: boolean = false;
 
 export type {
   AnyMark,
-  Attributes,
   CreateLocator,
   GetLocatorParameters,
   Locator,

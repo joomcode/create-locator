@@ -1,227 +1,104 @@
-import {createLocator} from 'create-locator';
+import {createSimpleLocator} from 'create-locator';
 
-import type {Attributes, IsEqual} from 'create-locator/types';
+import type {
+  Attributes,
+  AttributesOptions,
+  CreateLocatorOptions,
+  LocatorFunction,
+} from 'create-locator';
 
-createLocator('');
+import {attributesOptions, type IsEqual} from './utils.js';
+
+createSimpleLocator({attributesOptions, isProduction: true});
 
 {
-  const locator = createLocator('', {});
+  const locator = createSimpleLocator({attributesOptions, isProduction: false});
 
   true satisfies IsEqual<string & keyof typeof locator, never>;
 }
 
-createLocator('', {foo: null});
-
-createLocator('', {foo: null, bar: {}});
-
-const locator = createLocator('', {foo: null, bar: {}, baz: {} as {qux: string}});
-
-export type Locator = typeof locator;
+attributesOptions satisfies AttributesOptions;
 
 // @ts-expect-error
-locator(undefined);
+createSimpleLocator({attributesOptions, isProduction: 3});
+
+// @ts-expect-error
+createSimpleLocator({attributesOptions: {}, isProduction: false});
+
+// @ts-expect-error
+createSimpleLocator({attributesOptions});
+
+// @ts-expect-error
+createSimpleLocator({isProduction: false});
+
+const locator = createSimpleLocator({
+  attributesOptions,
+  isProduction: true,
+} satisfies CreateLocatorOptions);
+
+true satisfies IsEqual<typeof locator, LocatorFunction>;
+
+// @ts-expect-error
+locator();
 
 // @ts-expect-error
 locator({});
 
-locator.foo() satisfies Attributes;
+locator('') satisfies Attributes;
+
+locator(null);
+
+locator(undefined) satisfies Attributes;
+
+locator('foo') satisfies Attributes;
+
+locator('foo', null);
 
 // @ts-expect-error
-locator.foo(undefined);
+locator('foo', Symbol());
+
+locator('bar', {foo: ''}) satisfies Attributes;
+
+locator('bar', {foo: 3});
+
+locator('bar', {foo: true});
 
 // @ts-expect-error
-locator.foo({});
+locator('bar', {foo: Symbol()});
 
-locator.bar() satisfies Attributes;
-
-locator.bar(undefined) satisfies Attributes;
+locator('baz', {qux: ''}) satisfies Attributes;
 
 // @ts-expect-error
-locator.bar(null);
-
-locator.bar({}) satisfies Attributes;
-
-locator.bar({foo: ''}) satisfies Attributes;
+locator({foo: ''});
 
 // @ts-expect-error
-locator.bar({foo: 3});
+locator({qux: 3});
 
-locator.baz({qux: ''}) satisfies Attributes;
+locator('foo', {length: true, name: 3});
 
-// @ts-expect-error
-locator.baz(undefined);
+locator('foo', 'bar') satisfies Attributes;
 
-// @ts-expect-error
-locator.baz(null);
+locator('foo', 'bar', 'baz') satisfies Attributes;
 
-// @ts-expect-error
-locator.baz({});
+locator('foo', undefined, 'baz') satisfies Attributes;
 
-// @ts-expect-error
-locator.baz({foo: ''});
+locator('foo', null, 'baz') satisfies Attributes;
 
 // @ts-expect-error
-locator.baz({qux: 3});
+locator(Symbol(), null, 'baz') satisfies Attributes;
 
-{
-  // @ts-expect-error
-  const wrongLocator = createLocator('', {baz: {} as {qux: number}});
+locator('foo', undefined, {foo: 3}) satisfies Attributes;
 
-  true satisfies IsEqual<typeof wrongLocator, unknown>;
-}
+locator('foo', 'baz', {foo: 'qux'}) satisfies Attributes;
 
-{
-  // @ts-expect-error
-  const wrongLocator = createLocator('' as string);
+locator('foo', 'bar', 'baz', {foo: true}) satisfies Attributes;
 
-  true satisfies IsEqual<typeof wrongLocator, unknown>;
-}
-
-createLocator('')() satisfies Attributes;
+locator('foo', 'bar', 'baz', {foo: undefined});
 
 // @ts-expect-error
-createLocator('')({}) satisfies Attributes;
+locator('foo', 'bar', 'baz', {foo: Symbol()});
 
-createLocator('', {root: null})() satisfies Attributes;
-
-// @ts-expect-error
-createLocator('', {root: null})(undefined);
+locator('foo', 'bar', 'baz', {foo: null});
 
 // @ts-expect-error
-createLocator('', {root: null})({});
-
-createLocator('', {foo: {}, root: null})() satisfies Attributes;
-
-{
-  const locator = createLocator('', {root: {}});
-
-  // @ts-expect-error
-  locator({foo: 3}) satisfies Attributes;
-}
-
-// @ts-expect-error
-createLocator('', {foo: {}, root: undefined})() satisfies Attributes;
-
-createLocator('', {foo: {}})() satisfies Attributes;
-
-createLocator('', {root: {}})({}) satisfies Attributes;
-
-createLocator('', {root: {}})() satisfies Attributes;
-
-createLocator('', {root: {} as {bar?: string}})() satisfies Attributes;
-
-// @ts-expect-error
-createLocator('', {root: {} as {bar: string}})() satisfies Attributes;
-
-// @ts-expect-error
-createLocator('', {root: {} as {bar: string}})({}) satisfies Attributes;
-
-// @ts-expect-error
-createLocator('', {root: {} as {bar: string}})({baz: ''}) satisfies Attributes;
-
-createLocator('', {root: {} as {bar: string}})({bar: ''}) satisfies Attributes;
-
-// @ts-expect-error
-createLocator('', {root: {} as {bar: number}})({bar: 3}) satisfies Attributes;
-
-// @ts-expect-error
-createLocator('', {root: {} as {bar: 'baz'}})({bar: ''}) satisfies Attributes;
-
-createLocator('', {root: {} as {bar: 'baz'}})({bar: 'baz'}) satisfies Attributes;
-
-// @ts-expect-error
-createLocator('', {root: {} as {bar: 'baz'}}).root;
-
-// @ts-expect-error
-createLocator('', {foo: {} as {bar: 'baz'}}).root;
-
-createLocator('', {foo: {} as {bar: 'baz'}}).foo;
-
-// @ts-expect-error
-createLocator('', {foo: undefined});
-
-createLocator('', {foo: {} as {bar: 'baz'}}).foo({bar: 'baz'}) satisfies Attributes;
-
-// @ts-expect-error
-createLocator('', {foo: {} as {bar: 'baz'}}).bar({bar: 'baz'}) satisfies Attributes;
-
-// @ts-expect-error
-createLocator('', {foo: {} as {bar: 'baz'}}).foo({bar: ''}) satisfies Attributes;
-
-// @ts-expect-error
-createLocator('', {foo: {} as {bar: 'baz'}}).foo() satisfies Attributes;
-
-const locatorId = '' as string;
-
-{
-  // @ts-expect-error
-  const wrongLocator = createLocator(locatorId);
-
-  true satisfies IsEqual<typeof wrongLocator, unknown>;
-}
-
-{
-  // @ts-expect-error
-  const wrongLocator = createLocator(locatorId, {foo: {}});
-
-  true satisfies IsEqual<typeof wrongLocator, unknown>;
-}
-
-{
-  // @ts-expect-error
-  const wrongLocator = createLocator('', {foo: ''});
-
-  true satisfies IsEqual<typeof wrongLocator, unknown>;
-}
-
-{
-  // @ts-expect-error
-  const wrongLocator = createLocator('', {} as object);
-
-  true satisfies IsEqual<typeof wrongLocator, unknown>;
-}
-
-{
-  // @ts-expect-error
-  const wrongLocator = createLocator('', {} as Record<string, unknown>);
-
-  true satisfies IsEqual<typeof wrongLocator, unknown>;
-}
-
-{
-  const wrongLocator = createLocator('', {} as never);
-
-  true satisfies IsEqual<typeof wrongLocator, unknown>;
-}
-
-{
-  const wrongLocator = createLocator('', {toCss: null});
-
-  true satisfies IsEqual<typeof wrongLocator, unknown>;
-}
-
-{
-  const wrongLocator = createLocator('', {toJSON: {}});
-
-  true satisfies IsEqual<typeof wrongLocator, unknown>;
-}
-
-{
-  const wrongLocator = createLocator('', {toString: {}});
-
-  true satisfies IsEqual<typeof wrongLocator, unknown>;
-}
-
-{
-  const wrongLocator = createLocator('', {[Symbol()]: {}, foo: null});
-
-  true satisfies IsEqual<typeof wrongLocator, unknown>;
-}
-
-const locatorWithName = createLocator('', {length: {}, name: {}});
-
-export type LocatorWithName = typeof locatorWithName;
-
-locatorWithName.length() satisfies Attributes;
-
-locatorWithName.name() satisfies Attributes;
+locator('foo', 'bar', {foo: true}, 'baz');

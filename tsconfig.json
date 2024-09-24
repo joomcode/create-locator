@@ -22,9 +22,8 @@
     "types": []
   },
   "files": [
-    "./convertEsmToCjs.js",
-    "./createSelectorFunctions.ts",
-    "./index.ts",
+    "./convertEsmToCjs.ts",
+    "./createTestUtils.ts",
     "./getCssSelectorFromAttributesChain.ts"
   ]
 }
