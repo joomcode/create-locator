@@ -39,14 +39,9 @@ export type CreateLocatorOptions = Readonly<{
 }>;
 
 /**
- * Type of `createSelector` function.
- */
-export type CreateSelectorFunction = (this: void, ...selectors: [string, ...string[]]) => string;
-
-/**
  * Options of `createTestUtils` function.
  */
-export type CreateTestUtilsOptions<Locator extends object> = Readonly<{
+export type CreateTestUtilsOptions<Locator> = Readonly<{
   /**
    * Attributes options used to get attributes from the locator.
    */
@@ -67,7 +62,7 @@ export type CreateTestUtilsOptions<Locator extends object> = Readonly<{
 /**
  * Locator function.
  */
-export type LocatorFunction<Locator extends object = Attributes> = ByParts<Locator, []> &
+export type LocatorFunction<Locator = Attributes> = ByParts<Locator, []> &
   ByParts<Locator, [Part]> &
   ByParts<Locator, [Part, Part]> &
   ByParts<Locator, [Part, Part, Part]> &
@@ -75,14 +70,6 @@ export type LocatorFunction<Locator extends object = Attributes> = ByParts<Locat
   ByParts<Locator, [Part, Part, Part, Part, Part]> &
   ByParts<Locator, [Part, Part, Part, Part, Part, Part]> &
   ByParts<Locator, [Part, Part, Part, Part, Part, Part, Part]>;
-
-/**
- * Operator over locators.
- */
-export type LocatorOperator<Locator extends object> = (
-  this: void,
-  ...locators: readonly [Locator, ...Locator[]]
-) => Locator;
 
 /**
  * Locator parameters object.
@@ -97,18 +84,10 @@ export type Stringifiable = boolean | null | number | string | undefined;
 /**
  * Locator utils for tests (locator operators and `locator` function).
  */
-export type TestUtils<Locator extends object> = Readonly<{
-  and: LocatorOperator<Locator>;
-  chain: LocatorOperator<Locator>;
-  createLocatorOperator: (
-    this: void,
-    createSelector: CreateSelectorFunction,
-  ) => LocatorOperator<Locator>;
-  has: LocatorOperator<Locator>;
+export type TestUtils<Locator> = Readonly<{
   locator: LocatorFunction<Locator>;
-  not: LocatorOperator<Locator>;
-  or: LocatorOperator<Locator>;
-  selectorByLocator: WeakMap<Locator, string>;
+  selector: LocatorFunction<string>;
+  testId: LocatorFunction<string>;
 }>;
 
 type ByParts<Locator, Parts extends readonly Part[]> = (

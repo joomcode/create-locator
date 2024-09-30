@@ -2,175 +2,115 @@ import {createTestUtils} from 'create-locator/createTestUtils';
 
 import {assert, attributesOptions, createLocatorByCssSelector} from './utils.js';
 
-const {and, chain, createLocatorOperator, has, locator, not, or, selectorByLocator} =
-  createTestUtils({
-    attributesOptions,
-    createLocatorByCssSelector,
-    supportWildcardsInCssSelectors: true,
-  });
+const {locator, selector, testId} = createTestUtils({
+  attributesOptions,
+  createLocatorByCssSelector,
+  supportWildcardsInCssSelectors: true,
+});
 
 const {parameterAttributePrefix, testIdAttribute, testIdSeparator} = attributesOptions;
 
-const testId = 'foo';
+const fooLocator = locator('foo', {bar: 'baz'});
 
-const fooLocator = locator(testId, {bar: 'baz'});
-const barLocator = locator('bar');
+const fooSelector = selector('foo', {bar: 'baz'});
 
-assert(locator(testId).selector === `[${testIdAttribute}="${testId}"]`, 'creates correct selector');
+assert(locator('foo').selector === `[${testIdAttribute}="foo"]`, 'creates correct selector');
 
-assert(
-  fooLocator.selector === selectorByLocator.get(fooLocator),
-  'selectorByLocator works correctly',
-);
+assert(fooLocator.selector === fooSelector, 'selector(...) works correctly');
 
 assert(Object.keys(locator('foo')).length === 2, 'locator object has correct number of properties');
 
 assert(Object.keys(locator('foo'))[1] === 'selector', 'selector has correct shape');
 
 assert(
-  fooLocator.selector === `[${testIdAttribute}="${testId}"][${parameterAttributePrefix}bar="baz"]`,
+  locator('foo', undefined, {bar: 3}).selector === '',
+  'locator(...) works correctly with empty testId',
+);
+
+assert(
+  selector('foo', 'bar', null, {bar: 3}) === '',
+  'selector(...) works correctly with empty testId',
+);
+
+assert(testId(undefined, 'foo', 'bar') === '', 'testId(...) works correctly with empty testId');
+
+assert(
+  testId('foo', 'bar') === ['foo', 'bar'].join(testIdSeparator),
+  'testId(...) works correctly',
+);
+
+assert(
+  fooLocator.selector === `[${testIdAttribute}="foo"][${parameterAttributePrefix}bar="baz"]`,
   'selector has parameter value',
 );
 
 assert(locator('foo') !== locator('foo'), 'locators are not cached');
 
 assert(
-  locator(testId, 'bar').selector === `[${testIdAttribute}="${testId}${testIdSeparator}bar"]`,
-  'correctly join parts of testId',
+  locator('foo', 'bar').selector === `[${testIdAttribute}="${'foo'}${testIdSeparator}bar"]`,
+  'locator(...) correctly join parts of testId',
 );
 
 assert(
-  locator(testId, 'bar', {qux: 3}).selector ===
-    `[${testIdAttribute}="${testId}${testIdSeparator}bar"][${parameterAttributePrefix}qux="3"]`,
-  'creates correct selector with multipart testId and parameters',
+  selector('foo', 'bar') === `[${testIdAttribute}="${'foo'}${testIdSeparator}bar"]`,
+  'selector(...) correctly join parts of testId',
 );
 
 assert(
-  locator(testId, {qux: 'bar*baz'}).selector ===
-    `[${testIdAttribute}="${testId}"][${parameterAttributePrefix}qux^="bar"][${parameterAttributePrefix}qux$="baz"]`,
-  'supports wildcards',
+  locator('foo', 'bar', {qux: 3}).selector ===
+    `[${testIdAttribute}="${'foo'}${testIdSeparator}bar"][${parameterAttributePrefix}qux="3"]`,
+  'locator(...) creates correct selector with multipart testId and parameters',
 );
 
 assert(
-  locator(testId, {foo: 'bar*baz'}).selector ===
-    selectorByLocator.get(locator(testId, {foo: 'bar*baz'})),
-  'selectorByLocator works correctly with wildcards',
+  selector('foo', 'bar', {qux: 3}) ===
+    `[${testIdAttribute}="${'foo'}${testIdSeparator}bar"][${parameterAttributePrefix}qux="3"]`,
+  'selector(...) creates correct selector with multipart testId and parameters',
+);
+
+assert(
+  locator('foo', {qux: 'bar*baz'}).selector ===
+    `[${testIdAttribute}="foo"][${parameterAttributePrefix}qux^="bar"][${parameterAttributePrefix}qux$="baz"]`,
+  'locator(...) supports wildcards',
+);
+
+assert(
+  selector('foo', {qux: 'bar*baz'}) ===
+    `[${testIdAttribute}="foo"][${parameterAttributePrefix}qux^="bar"][${parameterAttributePrefix}qux$="baz"]`,
+  'selector(...) supports wildcards',
+);
+
+assert(
+  locator('foo', {foo: 'bar*baz*', qux: '*quux'}).selector ===
+    selector('foo', {foo: 'bar*baz*', qux: '*quux'}),
+  'locator(...) and selector(...) works correctly with complicated wildcards',
 );
 
 {
-  const testIdAttribute = 'data-othertest';
+  const parameterAttributePrefix = 'data-othertest-';
+  const testIdAttribute = 'data-othertestid';
+  const testIdSeparator = '|';
 
-  const {locator} = createTestUtils({
-    attributesOptions: {...attributesOptions, testIdAttribute},
+  const {locator, selector, testId} = createTestUtils({
+    attributesOptions: {parameterAttributePrefix, testIdAttribute, testIdSeparator},
     createLocatorByCssSelector,
     supportWildcardsInCssSelectors: false,
   });
 
   assert(
-    locator(testId, {qux: 'bar*baz'}).selector ===
-      `[${testIdAttribute}="${testId}"][${parameterAttributePrefix}qux="bar*baz"]`,
+    locator('foo', 'quux', {qux: 'bar*baz'}).selector ===
+      `[${testIdAttribute}="foo${testIdSeparator}quux"][${parameterAttributePrefix}qux="bar*baz"]`,
     'can disable wildcards',
   );
+
+  assert(
+    selector('foo', 'quux', {qux: 'bar*baz'}) ===
+      `[${testIdAttribute}="foo${testIdSeparator}quux"][${parameterAttributePrefix}qux="bar*baz"]`,
+    'respect non default attributes options',
+  );
+
+  assert(
+    testId('foo', 'quux', {qux: 'bar*baz'}) === `foo${testIdSeparator}quux`,
+    'testId(...) respect non default testIdSeparator',
+  );
 }
-
-assert(
-  and(fooLocator, barLocator).selector === `${fooLocator.selector}${barLocator.selector}`,
-  'operator "and" works correctly',
-);
-
-assert(and(fooLocator) === fooLocator, 'operator "and" works correctly with one locator');
-
-assert(
-  chain(fooLocator, barLocator).selector === `${fooLocator.selector} ${barLocator.selector}`,
-  'operator "chain" works correctly',
-);
-
-assert(chain(fooLocator) === fooLocator, 'operator "chain" works correctly with one locator');
-
-assert(
-  has(fooLocator, barLocator).selector === `:has(${fooLocator.selector}, ${barLocator.selector})`,
-  'operator "has" works correctly',
-);
-
-assert(
-  has(fooLocator).selector === `:has(${fooLocator.selector})`,
-  'operator "has" works correctly with one locator',
-);
-
-assert(
-  not(fooLocator, barLocator).selector === `:not(${fooLocator.selector}, ${barLocator.selector})`,
-  'operator "not" works correctly',
-);
-
-assert(
-  not(fooLocator).selector === `:not(${fooLocator.selector})`,
-  'operator "not" works correctly with one locator',
-);
-
-assert(
-  or(fooLocator, barLocator).selector === `:is(${fooLocator.selector}, ${barLocator.selector})`,
-  'operator "or" works correctly',
-);
-
-assert(or(fooLocator) === fooLocator, 'operator "or" works correctly with one locator');
-
-assert(selectorByLocator instanceof WeakMap, 'selectorByLocator is instance of WeakMap');
-
-const locatorOperator = createLocatorOperator((...selectors) => selectors.join('qux'));
-
-assert(
-  locatorOperator(fooLocator, barLocator).selector ===
-    `${fooLocator.selector}qux${barLocator.selector}`,
-  'operator "or" works correctly',
-);
-
-assert(
-  locatorOperator(fooLocator) === fooLocator,
-  'locator operator works correctly with one locator',
-);
-
-let throwsCount = 0;
-
-try {
-  // @ts-expect-error
-  and();
-} catch {
-  throwsCount += 1;
-}
-
-try {
-  // @ts-expect-error
-  chain();
-} catch {
-  throwsCount += 1;
-}
-
-try {
-  // @ts-expect-error
-  has();
-} catch {
-  throwsCount += 1;
-}
-
-try {
-  // @ts-expect-error
-  locatorOperator();
-} catch {
-  throwsCount += 1;
-}
-
-try {
-  // @ts-expect-error
-  not();
-} catch {
-  throwsCount += 1;
-}
-
-try {
-  // @ts-expect-error
-  or();
-} catch {
-  throwsCount += 1;
-}
-
-assert(throwsCount === 6, 'locator operators throw without arguments');

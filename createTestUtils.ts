@@ -1,76 +1,32 @@
 import {createSimpleLocator as createLocatorFunction} from './index.js';
 
-import type {
-  CreateSelectorFunction,
-  CreateTestUtilsOptions,
-  LocatorFunction,
-  LocatorOperator,
-  TestUtils,
-} from './types';
+import type {CreateTestUtilsOptions, LocatorFunction, TestUtils} from './types';
 
 /**
- * Creates locator utils for tests (locator operators and `locator` function).
+ * Creates locator utils for tests (`locator`, `selector` and `testId` functions).
  */
-export const createTestUtils = <Locator extends object>({
+export const createTestUtils = <Locator>({
   attributesOptions,
   createLocatorByCssSelector,
   supportWildcardsInCssSelectors,
 }: CreateTestUtilsOptions<Locator>): TestUtils<Locator> => {
   const createAttributes = createLocatorFunction({attributesOptions, isProduction: false});
-  const selectorByLocator = new WeakMap<Locator, string>();
 
-  const createLocator = (selector: string): Locator => {
-    const locator = createLocatorByCssSelector(selector);
-
-    selectorByLocator.set(locator, selector);
-
-    return locator;
-  };
-
-  const locator: LocatorFunction<Locator> = (...args) => {
+  const selector: LocatorFunction<string> = (...args) => {
     const attributes = createAttributes(...(args as [string]));
-    const selector = Object.keys(attributes)
+
+    return Object.keys(attributes)
       .map((name) => getAttributeCss(name, attributes[name]!, supportWildcardsInCssSelectors))
       .join('');
-
-    return createLocator(selector);
   };
 
-  const createLocatorOperator =
-    (createSelector: CreateSelectorFunction): LocatorOperator<Locator> =>
-    (...locators) => {
-      if (locators.length === 0) {
-        throw new Error('Empty argument list');
-      }
+  const locator: LocatorFunction<Locator> = (...args) =>
+    createLocatorByCssSelector(selector(...(args as [string])));
 
-      const selectors = locators.map((locator) => {
-        const selector = selectorByLocator.get(locator);
+  const testId: LocatorFunction<string> = (...args) =>
+    String(createAttributes(...(args as [string])));
 
-        if (selector === undefined) {
-          throw new Error(`Cannot find selector for locator ${locator} in selectorByLocator map`);
-        }
-
-        return selector;
-      }) as [string, ...string[]];
-
-      const selector = createSelector(...selectors);
-
-      if (selector === selectors[0]) {
-        return locators[0];
-      }
-
-      return createLocator(selector);
-    };
-
-  const and = createLocatorOperator((...selectors) => selectors.join(''));
-  const chain = createLocatorOperator((...selectors) => selectors.join(' '));
-  const has = createLocatorOperator((...selectors) => `:has(${selectors.join(', ')})`);
-  const not = createLocatorOperator((...selectors) => `:not(${selectors.join(', ')})`);
-  const or = createLocatorOperator((...selectors) =>
-    selectors.length === 1 ? selectors[0] : `:is(${selectors.join(', ')})`,
-  );
-
-  return {and, chain, createLocatorOperator, has, locator, not, or, selectorByLocator};
+  return {locator, selector, testId};
 };
 
 /**

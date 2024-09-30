@@ -10,19 +10,33 @@
 The `create-locator` 📌 library allows you to mark HTML elements with locators and
 find these elements by their locators in tests.
 
-Marking an HTML element with a locator in the application code looks like this (in the JSX example):
+Marking an HTML element with a locator in the application code looks like this (example in JSX):
 
 ```tsx
 export const Foo = () => {
-  return <div {...locator('foo')}>Hello👋 world! 📌</div>;
+  return <div {...locator('foo')}>Hello👋 world!</div>;
 };
 ```
 
 In the browser, this element will render into the following DOM structure:
 
 ```tsx
-<div data-testid="foo">Hello👋 world! 📌</div>
+<div data-testid="foo">Hello👋 world!</div>
 ```
+
+In tests you can use locators in this way (example in [Playwright](https://playwright.dev/)):
+
+```tsx
+await locator('foo').click();
+```
+
+## Install
+
+```sh
+npm install create-locator
+```
+
+## Usage
 
 The first argument of the locator function is called the locator's `testId`.
 Typically, it’s a unique string that allows you to find the element marked by the locator in tests.
