@@ -9,7 +9,7 @@ import {
   type Locator,
 } from './utils.js';
 
-const {locator, selector, testId} = createTestUtils({
+const {getSelector, getTestId, locator} = createTestUtils({
   attributesOptions,
   createLocatorByCssSelector,
   supportWildcardsInCssSelectors: true,
@@ -30,31 +30,31 @@ createTestUtils({
 
 true satisfies IsEqual<typeof locator, LocatorFunction<Locator>>;
 
-true satisfies IsEqual<typeof selector, LocatorFunction<string>>;
+true satisfies IsEqual<typeof getSelector, LocatorFunction<string>>;
 
-true satisfies IsEqual<typeof testId, LocatorFunction<string>>;
+true satisfies IsEqual<typeof getTestId, LocatorFunction<string>>;
 
 locator('foo') satisfies Locator;
 
-selector('foo') satisfies string;
+getSelector('foo') satisfies string;
 
-testId('foo') satisfies string;
+getTestId('foo') satisfies string;
 
 locator('foo', 'bar') satisfies Locator;
 
-selector('foo', 3, 'bar') satisfies string;
+getSelector('foo', 3, 'bar') satisfies string;
 
-testId(undefined, null, true, 4) satisfies string;
+getTestId(undefined, null, true, 4) satisfies string;
 
 locator('baz', 'qux', {foo: 3, bar: undefined}) satisfies Locator;
 
-selector(undefined, null, true, 4, {foo: true, bar: 13, qux: null}) satisfies string;
+getSelector(undefined, null, true, 4, {foo: true, bar: 13, qux: null}) satisfies string;
 
 // @ts-expect-error
-testId(Symbol());
+getTestId(Symbol());
 
 // @ts-expect-error
 locator({});
 
 // @ts-expect-error
-selector('foo', 'bar', {foo: true}, 'baz');
+getSelector('foo', 'bar', {foo: true}, 'baz');

@@ -4,6 +4,7 @@
     "allowUnusedLabels": false,
     "declaration": true,
     "exactOptionalPropertyTypes": true,
+    "isolatedDeclarations": true,
     "jsx": "react",
     "module": "preserve",
     "noEmitOnError": true,
@@ -12,13 +13,15 @@
     "noImplicitReturns": true,
     "noPropertyAccessFromIndexSignature": true,
     "noUncheckedIndexedAccess": true,
+    "noUncheckedSideEffectImports": true,
     "noUnusedLocals": true,
     "noUnusedParameters": true,
     "outDir": "./spec/node_modules/create-locator",
     "skipLibCheck": false,
     "strict": true,
     "target": "ES2015",
-    "types": []
+    "types": [],
+    "verbatimModuleSyntax": true
   },
   "files": [
     "./convertEsmToCjs.ts",

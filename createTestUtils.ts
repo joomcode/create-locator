@@ -1,4 +1,4 @@
-import {createSimpleLocator as createLocatorFunction} from './index.js';
+import {createSimpleLocator} from './index.js';
 
 import type {CreateTestUtilsOptions, LocatorFunction, TestUtils} from './types';
 
@@ -10,9 +10,12 @@ export const createTestUtils = <Locator>({
   createLocatorByCssSelector,
   supportWildcardsInCssSelectors,
 }: CreateTestUtilsOptions<Locator>): TestUtils<Locator> => {
-  const createAttributes = createLocatorFunction({attributesOptions, isProduction: false});
+  const {getTestId, locator: createAttributes} = createSimpleLocator({
+    attributesOptions,
+    isProduction: false,
+  });
 
-  const selector: LocatorFunction<string> = (...args) => {
+  const getSelector: LocatorFunction<string> = (...args) => {
     const attributes = createAttributes(...(args as [string]));
 
     return Object.keys(attributes)
@@ -21,12 +24,9 @@ export const createTestUtils = <Locator>({
   };
 
   const locator: LocatorFunction<Locator> = (...args) =>
-    createLocatorByCssSelector(selector(...(args as [string])));
+    createLocatorByCssSelector(getSelector(...(args as [string])));
 
-  const testId: LocatorFunction<string> = (...args) =>
-    String(createAttributes(...(args as [string])));
-
-  return {locator, selector, testId};
+  return {getSelector, getTestId, locator};
 };
 
 /**

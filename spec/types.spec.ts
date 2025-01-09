@@ -12,7 +12,7 @@ import {attributesOptions, type IsEqual} from './utils.js';
 createSimpleLocator({attributesOptions, isProduction: true});
 
 {
-  const locator = createSimpleLocator({attributesOptions, isProduction: false});
+  const {locator} = createSimpleLocator({attributesOptions, isProduction: false});
 
   true satisfies IsEqual<string & keyof typeof locator, never>;
 }
@@ -31,7 +31,7 @@ createSimpleLocator({attributesOptions});
 // @ts-expect-error
 createSimpleLocator({isProduction: false});
 
-const locator = createSimpleLocator({
+const {locator} = createSimpleLocator({
   attributesOptions,
   isProduction: true,
 } satisfies CreateLocatorOptions);

@@ -1,4 +1,5 @@
 import type {
+  AnyLocator,
   Attributes,
   CreateComponentLocator,
   CreateRootLocatorFunction,
@@ -12,7 +13,7 @@ import {anyLocator as productionAnyLocator} from './production.js';
 /**
  * Proxy object that represents the locator in production mode (and, for example, in unit tests).
  */
-export const anyLocator = productionAnyLocator;
+export const anyLocator: AnyLocator = productionAnyLocator;
 
 /**
  * Creates component locator (by component properties).

@@ -15,11 +15,12 @@ startTestsTime = Date.now();
 
 await import('./createTestUtils.spec.js');
 
-const locator = createSimpleLocator({attributesOptions, isProduction: false});
+const {getTestId, locator} = createSimpleLocator({attributesOptions, isProduction: false});
 
 const {parameterAttributePrefix, testIdAttribute, testIdSeparator} = attributesOptions;
 
 const attributes = locator('foo', 'bar', {qux: 'quux'});
+const testId = getTestId('foo', 'bar', {qux: 'quux'});
 
 assert(locator('bar')[testIdAttribute] === 'bar', 'has correct testId');
 
@@ -43,18 +44,13 @@ assert(attributes[testIdAttribute] === `foo${testIdSeparator}bar`, 'has correct 
 
 assert(attributes[`${parameterAttributePrefix}qux`] === 'quux', 'has correct parameter value');
 
-assert(
-  attributes.toString() === attributes[testIdAttribute],
-  'attributes have correct toString() method',
-);
+assert(testId === attributes[testIdAttribute], 'getTestId return correct value');
 
 const emptyLocator = locator(undefined);
+const emptyTestId = getTestId(undefined);
 
-assert(
-  // @ts-expect-error
-  emptyLocator !== locator() && locator().toString() === '',
-  'support empty arguments list of testId parts',
-);
+// @ts-expect-error
+assert(emptyLocator === locator(), 'support empty arguments list of testId parts');
 
 assert(emptyLocator === locator(null), 'support null in testId');
 
@@ -81,7 +77,7 @@ assert(
   'support empty string in testId parts',
 );
 
-assert(emptyLocator.toString() === '', 'empty locator has empty testId');
+assert(emptyTestId === '', 'empty locator has empty testId');
 
 assert(Object.keys(emptyLocator).length === 0, 'empty locator has no attributes');
 
@@ -90,9 +86,9 @@ assert(
   'skip empty parameters',
 );
 
-assert(locator(3).toString() === '3', 'support numbers as testId');
+assert(getTestId(3) === '3', 'support numbers as testId');
 
-assert(locator(true).toString() === 'true', 'support boolean as testId');
+assert(getTestId(true) === 'true', 'support boolean as testId');
 
 assert(
   locator('foo', {qux: 3})[`${parameterAttributePrefix}qux`] === '3',
@@ -109,13 +105,15 @@ assert(
   'support multi parameters',
 );
 
-const productionLocator = createSimpleLocator({attributesOptions, isProduction: true});
+const {getTestId: productionGetTestId, locator: productionLocator} = createSimpleLocator({
+  attributesOptions,
+  isProduction: true,
+});
 
 assert(productionLocator('foo') !== emptyLocator, 'createSimpleLocator creates new empty locator');
 
 assert(
-  productionLocator('foo').toString() === '' &&
-    productionLocator('foo') === productionLocator(null),
+  productionGetTestId('foo') === '' && productionLocator('foo') === productionLocator(null),
   'production locator is empty',
 );
 

@@ -1,5 +1,6 @@
 {
   "compilerOptions": {
+    "isolatedDeclarations": false,
     "outDir": "./build",
     "target": "ES2023"
   },

@@ -77,17 +77,22 @@ export type LocatorFunction<Locator = Attributes> = ByParts<Locator, []> &
 export type LocatorParameters = Readonly<Record<string, Stringifiable>>;
 
 /**
+ * Locator utils for runtime (`getTestId` and `locator` functions).
+ */
+export type RuntimeUtils = Readonly<{getTestId: LocatorFunction<string>; locator: LocatorFunction}>;
+
+/**
  * Stringifiable or empty (`null`/`undefined`) value.
  */
 export type Stringifiable = boolean | null | number | string | undefined;
 
 /**
- * Locator utils for tests (locator operators and `locator` function).
+ * Locator utils for tests (`getSelector`, `getTestId`, and `locator` functions).
  */
 export type TestUtils<Locator> = Readonly<{
+  getSelector: LocatorFunction<string>;
+  getTestId: LocatorFunction<string>;
   locator: LocatorFunction<Locator>;
-  selector: LocatorFunction<string>;
-  testId: LocatorFunction<string>;
 }>;
 
 type ByParts<Locator, Parts extends readonly Part[]> = (

@@ -1,4 +1,10 @@
-import type {Attributes, CreateLocatorOptions, LocatorFunction, LocatorParameters} from './types';
+import type {
+  Attributes,
+  CreateLocatorOptions,
+  LocatorFunction,
+  LocatorParameters,
+  RuntimeUtils,
+} from './types';
 
 /**
  * Creates locator function by locator options.
@@ -6,65 +12,65 @@ import type {Attributes, CreateLocatorOptions, LocatorFunction, LocatorParameter
 export const createSimpleLocator = ({
   attributesOptions,
   isProduction,
-}: CreateLocatorOptions): LocatorFunction => {
-  var emptyLocator: Attributes = {__proto__: {toString: () => ''} as string};
+}: CreateLocatorOptions): RuntimeUtils => {
+  var emptyLocator: Attributes = {};
 
   if (isProduction) {
-    return () => emptyLocator;
+    return {getTestId: () => '', locator: () => emptyLocator};
   }
 
   var {parameterAttributePrefix, testIdAttribute, testIdSeparator} = attributesOptions;
 
-  var Locator = class implements Attributes {
-    [name: string]: string;
-
-    readonly testId!: string;
-
-    constructor(testId: string) {
-      this[testIdAttribute as 'testId'] = testId;
-    }
-
-    // @ts-expect-error: method is incompatible with index signature of class
-    toString(): string {
-      return this[testIdAttribute as 'testId'];
-    }
-  };
-
-  return ((...args: readonly unknown[]) => {
+  var getTestId: LocatorFunction<string> = (...args: readonly unknown[]) => {
     var parts: string[] = [];
 
     for (var index = 0; index < args.length; index += 1) {
       var arg = args[index];
 
       if (arg == null) {
-        return emptyLocator;
+        return '';
       }
 
       if (index === args.length - 1 && typeof arg === 'object') {
-        var locator = new Locator(parts.join(testIdSeparator));
-
-        for (var name of Object.keys(arg)) {
-          var value = (arg as LocatorParameters)[name];
-
-          if (value != null) {
-            locator[parameterAttributePrefix + name] = String(value);
-          }
-        }
-
-        return locator;
+        return parts.join(testIdSeparator);
       }
 
       var part = String(arg);
 
       if (part === '') {
-        return emptyLocator;
+        return '';
       }
 
       parts.push(part);
     }
 
-    return new Locator(parts.join(testIdSeparator));
-  }) as LocatorFunction;
+    return parts.join(testIdSeparator);
+  };
+
+  var locator: LocatorFunction = (...args: readonly unknown[]) => {
+    var testId = getTestId(...(args as [string]));
+
+    if (testId === '') {
+      return emptyLocator;
+    }
+
+    var locator = {[testIdAttribute]: testId};
+    var parameters = args[args.length - 1];
+
+    if (parameters !== null && typeof parameters === 'object') {
+      for (var name of Object.keys(parameters)) {
+        var value = (parameters as LocatorParameters)[name];
+
+        if (value != null) {
+          locator[parameterAttributePrefix + name] = String(value);
+        }
+      }
+    }
+
+    return locator;
+  };
+
+  return {getTestId, locator};
 };
 
 export {

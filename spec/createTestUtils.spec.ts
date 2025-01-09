@@ -2,7 +2,7 @@ import {createTestUtils} from 'create-locator/createTestUtils';
 
 import {assert, attributesOptions, createLocatorByCssSelector} from './utils.js';
 
-const {locator, selector, testId} = createTestUtils({
+const {getSelector, getTestId, locator} = createTestUtils({
   attributesOptions,
   createLocatorByCssSelector,
   supportWildcardsInCssSelectors: true,
@@ -12,7 +12,7 @@ const {parameterAttributePrefix, testIdAttribute, testIdSeparator} = attributesO
 
 const fooLocator = locator('foo', {bar: 'baz'});
 
-const fooSelector = selector('foo', {bar: 'baz'});
+const fooSelector = getSelector('foo', {bar: 'baz'});
 
 assert(locator('foo').selector === `[${testIdAttribute}="foo"]`, 'creates correct selector');
 
@@ -28,14 +28,14 @@ assert(
 );
 
 assert(
-  selector('foo', 'bar', null, {bar: 3}) === '',
+  getSelector('foo', 'bar', null, {bar: 3}) === '',
   'selector(...) works correctly with empty testId',
 );
 
-assert(testId(undefined, 'foo', 'bar') === '', 'testId(...) works correctly with empty testId');
+assert(getTestId(undefined, 'foo', 'bar') === '', 'testId(...) works correctly with empty testId');
 
 assert(
-  testId('foo', 'bar') === ['foo', 'bar'].join(testIdSeparator),
+  getTestId('foo', 'bar') === ['foo', 'bar'].join(testIdSeparator),
   'testId(...) works correctly',
 );
 
@@ -52,7 +52,7 @@ assert(
 );
 
 assert(
-  selector('foo', 'bar') === `[${testIdAttribute}="${'foo'}${testIdSeparator}bar"]`,
+  getSelector('foo', 'bar') === `[${testIdAttribute}="${'foo'}${testIdSeparator}bar"]`,
   'selector(...) correctly join parts of testId',
 );
 
@@ -63,7 +63,7 @@ assert(
 );
 
 assert(
-  selector('foo', 'bar', {qux: 3}) ===
+  getSelector('foo', 'bar', {qux: 3}) ===
     `[${testIdAttribute}="${'foo'}${testIdSeparator}bar"][${parameterAttributePrefix}qux="3"]`,
   'selector(...) creates correct selector with multipart testId and parameters',
 );
@@ -75,14 +75,14 @@ assert(
 );
 
 assert(
-  selector('foo', {qux: 'bar*baz'}) ===
+  getSelector('foo', {qux: 'bar*baz'}) ===
     `[${testIdAttribute}="foo"][${parameterAttributePrefix}qux^="bar"][${parameterAttributePrefix}qux$="baz"]`,
   'selector(...) supports wildcards',
 );
 
 assert(
   locator('foo', {foo: 'bar*baz*', qux: '*quux'}).selector ===
-    selector('foo', {foo: 'bar*baz*', qux: '*quux'}),
+    getSelector('foo', {foo: 'bar*baz*', qux: '*quux'}),
   'locator(...) and selector(...) works correctly with complicated wildcards',
 );
 
@@ -91,7 +91,7 @@ assert(
   const testIdAttribute = 'data-othertestid';
   const testIdSeparator = '|';
 
-  const {locator, selector, testId} = createTestUtils({
+  const {getSelector, getTestId, locator} = createTestUtils({
     attributesOptions: {parameterAttributePrefix, testIdAttribute, testIdSeparator},
     createLocatorByCssSelector,
     supportWildcardsInCssSelectors: false,
@@ -104,13 +104,13 @@ assert(
   );
 
   assert(
-    selector('foo', 'quux', {qux: 'bar*baz'}) ===
+    getSelector('foo', 'quux', {qux: 'bar*baz'}) ===
       `[${testIdAttribute}="foo${testIdSeparator}quux"][${parameterAttributePrefix}qux="bar*baz"]`,
     'respect non default attributes options',
   );
 
   assert(
-    testId('foo', 'quux', {qux: 'bar*baz'}) === `foo${testIdSeparator}quux`,
+    getTestId('foo', 'quux', {qux: 'bar*baz'}) === `foo${testIdSeparator}quux`,
     'testId(...) respect non default testIdSeparator',
   );
 }
