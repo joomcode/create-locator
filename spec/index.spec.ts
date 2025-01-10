@@ -2,7 +2,7 @@ import {createSimpleLocator} from 'create-locator';
 
 import {assert, attributesOptions, ok, testsCount} from './utils.js';
 
-export type * from './createTestUtils.types.spec.js';
+export type * from './createTestLocator.types.spec.js';
 export type * from './types.spec.js';
 
 let startTestsTime = Date.now();
@@ -13,7 +13,7 @@ await import('./oldApi/index.spec.js');
 
 startTestsTime = Date.now();
 
-await import('./createTestUtils.spec.js');
+await import('./createTestLocator.spec.js');
 
 const {getTestId, locator} = createSimpleLocator({attributesOptions, isProduction: false});
 

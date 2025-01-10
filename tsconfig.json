@@ -25,7 +25,7 @@
   },
   "files": [
     "./convertEsmToCjs.ts",
-    "./createTestUtils.ts",
+    "./createTestLocator.ts",
     "./getCssSelectorFromAttributesChain.ts"
   ]
 }

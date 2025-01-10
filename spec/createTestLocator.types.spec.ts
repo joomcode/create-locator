@@ -1,6 +1,6 @@
-import type {CreateTestUtilsOptions, LocatorFunction, TestUtils} from 'create-locator';
+import type {CreateTestLocatorOptions, LocatorFunction, LocatorKit} from 'create-locator';
 
-import {createTestUtils} from 'create-locator/createTestUtils';
+import {createTestLocator} from 'create-locator/createTestLocator';
 
 import {
   attributesOptions,
@@ -9,19 +9,19 @@ import {
   type Locator,
 } from './utils.js';
 
-const {getSelector, getTestId, locator} = createTestUtils({
+const {getSelector, getTestId, locator} = createTestLocator({
   attributesOptions,
   createLocatorByCssSelector,
   supportWildcardsInCssSelectors: true,
-} satisfies CreateTestUtilsOptions<Locator>) satisfies TestUtils<Locator>;
+} satisfies CreateTestLocatorOptions<Locator>) satisfies LocatorKit<Locator>;
 
 // @ts-expect-error
-createTestUtils({attributesOptions, createLocatorByCssSelector});
+createTestLocator({attributesOptions, createLocatorByCssSelector});
 
 // @ts-expect-error
-createTestUtils({attributesOptions, supportWildcardsInCssSelectors: true});
+createTestLocator({attributesOptions, supportWildcardsInCssSelectors: true});
 
-createTestUtils({
+createTestLocator({
   // @ts-expect-error
   attributesOptions: {},
   createLocatorByCssSelector,

@@ -1,9 +1,9 @@
 import type {
+  AppLocatorKit,
   Attributes,
   CreateLocatorOptions,
   LocatorFunction,
   LocatorParameters,
-  RuntimeUtils,
 } from './types';
 
 /**
@@ -12,7 +12,7 @@ import type {
 export const createSimpleLocator = ({
   attributesOptions,
   isProduction,
-}: CreateLocatorOptions): RuntimeUtils => {
+}: CreateLocatorOptions): AppLocatorKit => {
   var emptyLocator: Attributes = {};
 
   if (isProduction) {

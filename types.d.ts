@@ -1,4 +1,10 @@
 /**
+ * Locator kit for application (`locator` function, that produce attributes object,
+ * and additional `getTestId` function).
+ */
+export type AppLocatorKit = Omit<LocatorKit<Attributes>, 'getSelector'>;
+
+/**
  * Attributes object.
  */
 export type Attributes = Readonly<Record<string, string>>;
@@ -39,9 +45,9 @@ export type CreateLocatorOptions = Readonly<{
 }>;
 
 /**
- * Options of `createTestUtils` function.
+ * Options of `createTestLocator` function.
  */
-export type CreateTestUtilsOptions<Locator> = Readonly<{
+export type CreateTestLocatorOptions<Locator> = Readonly<{
   /**
    * Attributes options used to get attributes from the locator.
    */
@@ -72,28 +78,24 @@ export type LocatorFunction<Locator = Attributes> = ByParts<Locator, []> &
   ByParts<Locator, [Part, Part, Part, Part, Part, Part, Part]>;
 
 /**
+ * Locator kit for tests (`locator` function, that produce locators,
+ * and additional `getSelector` and `getTestId` functions).
+ */
+export type LocatorKit<Locator> = Readonly<{
+  locator: LocatorFunction<Locator>;
+  getSelector: LocatorFunction<string>;
+  getTestId: LocatorFunction<string>;
+}>;
+
+/**
  * Locator parameters object.
  */
 export type LocatorParameters = Readonly<Record<string, Stringifiable>>;
 
 /**
- * Locator utils for runtime (`getTestId` and `locator` functions).
- */
-export type RuntimeUtils = Readonly<{getTestId: LocatorFunction<string>; locator: LocatorFunction}>;
-
-/**
  * Stringifiable or empty (`null`/`undefined`) value.
  */
 export type Stringifiable = boolean | null | number | string | undefined;
-
-/**
- * Locator utils for tests (`getSelector`, `getTestId`, and `locator` functions).
- */
-export type TestUtils<Locator> = Readonly<{
-  getSelector: LocatorFunction<string>;
-  getTestId: LocatorFunction<string>;
-  locator: LocatorFunction<Locator>;
-}>;
 
 type ByParts<Locator, Parts extends readonly Part[]> = (
   this: void,

@@ -1,8 +1,8 @@
-import {createTestUtils} from 'create-locator/createTestUtils';
+import {createTestLocator} from 'create-locator/createTestLocator';
 
 import {assert, attributesOptions, createLocatorByCssSelector} from './utils.js';
 
-const {getSelector, getTestId, locator} = createTestUtils({
+const {getSelector, getTestId, locator} = createTestLocator({
   attributesOptions,
   createLocatorByCssSelector,
   supportWildcardsInCssSelectors: true,
@@ -91,7 +91,7 @@ assert(
   const testIdAttribute = 'data-othertestid';
   const testIdSeparator = '|';
 
-  const {getSelector, getTestId, locator} = createTestUtils({
+  const {getSelector, getTestId, locator} = createTestLocator({
     attributesOptions: {parameterAttributePrefix, testIdAttribute, testIdSeparator},
     createLocatorByCssSelector,
     supportWildcardsInCssSelectors: false,

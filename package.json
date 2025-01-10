@@ -1,6 +1,6 @@
 {
   "name": "create-locator",
-  "version": "0.0.26",
+  "version": "0.0.27",
   "description": "Creates HTML element locators for tests 📌",
   "author": "uid11",
   "bugs": "https://github.com/joomcode/create-locator/issues",
@@ -14,10 +14,10 @@
       "require": "./index.cjs",
       "types": "./index.d.ts"
     },
-    "./createTestUtils": {
-      "import": "./createTestUtils.js",
-      "require": "./createTestUtils.cjs",
-      "types": "./createTestUtils.d.ts"
+    "./createTestLocator": {
+      "import": "./createTestLocator.js",
+      "require": "./createTestLocator.cjs",
+      "types": "./createTestLocator.d.ts"
     },
     "./getCssSelectorFromAttributesChain": {
       "import": "./getCssSelectorFromAttributesChain.js",
@@ -35,10 +35,10 @@
   "homepage": "https://github.com/joomcode/create-locator#readme",
   "keywords": [
     "autotest",
-    "component",
     "e2e",
     "locator",
-    "selector"
+    "selector",
+    "testId"
   ],
   "license": "MIT",
   "packageManager": "npm@10",

@@ -105,13 +105,13 @@ The ability to specify a `testId` composed of multiple parts is useful for dynam
 which can accept an optional `testId` string property in their props:
 
 ```tsx
-type Properties = {..., testId?: string};
+type Properties = {testId?: string};
 
-export const Button = ({..., testId}: Properties) => (
+export const Button = ({testId}: Properties) => (
   <label {...locator(testId, 'label')}>
     <button {...locator(testId, 'button')}>{/* ... */}</button>
   </label>
-)
+);
 ```
 
 For example, with `testId="submitButton"`, this will render into the following DOM structure:
@@ -120,6 +120,55 @@ For example, with `testId="submitButton"`, this will render into the following D
 <label data-testid="submitButton-label">
   <button data-testid="submitButton-button">{/* ... */}</button>
 </label>
+```
+
+## Initialization
+
+To create `locator` function, first define the attributes options in a separate file
+(since you will import them in both your application code and your test code):
+
+```ts
+// app/attributesOptions.ts
+
+import type {AttributesOptions} from 'create-locator';
+
+export const attributesOptions: AttributesOptions = {
+  parameterAttributePrefix: 'data-test-',
+  testIdAttribute: 'data-testid',
+  testIdSeparator: '-',
+};
+```
+
+Then create `locator` function and additional `getTestId` function in application code using these options
+and the boolean parameter `isProduction` (if `isProduction` is `true`, no one locator attributes are rendered):
+
+```ts
+// app/locator.ts
+
+import {createSimpleLocator} from 'create-locator';
+import {attributesOptions} from './attributesOptions';
+
+const isProduction: boolean = /* ... */;
+
+export const {locator, getTestId} = createSimpleLocator({attributesOptions, isProduction});
+```
+
+In test code, create `locator` function and additional `getSelector` and `getTestId` functions in a similar manner
+(using the example of the [Playwright](https://playwright.dev/),
+where `getPage` is the function of getting the current Playwright page):
+
+```ts
+// tests/locator.ts
+
+import {createTestLocator} from 'create-locator';
+import {attributesOptions} from '../app/attributesOptions';
+import {getPage} from './getPage';
+
+export const {locator, getSelector, getTestId} = createTestLocator({
+  attributesOptions,
+  createLocatorByCssSelector: (selector) => getPage().locator(selector),
+  supportWildcardsInCssSelectors: true,
+});
 ```
 
 ## License

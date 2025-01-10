@@ -1,15 +1,15 @@
 import {createSimpleLocator} from './index.js';
 
-import type {CreateTestUtilsOptions, LocatorFunction, TestUtils} from './types';
+import type {CreateTestLocatorOptions, LocatorFunction, LocatorKit} from './types';
 
 /**
  * Creates locator utils for tests (`locator`, `selector` and `testId` functions).
  */
-export const createTestUtils = <Locator>({
+export const createTestLocator = <Locator>({
   attributesOptions,
   createLocatorByCssSelector,
   supportWildcardsInCssSelectors,
-}: CreateTestUtilsOptions<Locator>): TestUtils<Locator> => {
+}: CreateTestLocatorOptions<Locator>): LocatorKit<Locator> => {
   const {getTestId, locator: createAttributes} = createSimpleLocator({
     attributesOptions,
     isProduction: false,
